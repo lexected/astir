@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClCompile Include="LexicalAnalyzer.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Parser.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ExampleFile.alex" />
@@ -148,6 +149,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LexicalAnalyzer.h" />
+    <ClInclude Include="Parser.h" />
+    <ClInclude Include="Token.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

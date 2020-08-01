@@ -3,171 +3,192 @@
 #include <string>
 #include <cctype>
 
+LexicalAnalyzer::LexicalAnalyzer()
+	: m_currentLine(1), m_currentColumn(0), m_state(LexicalAnalyzerState::Default), m_currentToken(),
+	m_currentCharacter('\0'), m_endOfStreamReached(true), m_consumeNew(false) {
+}
+
 std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 	std::list<Token> ret;
-	LexicalAnalyzerState state = LexicalAnalyzerState::Default;
-	unsigned int currentColumn = 0;
-	Token currentToken;
 
-	char c;
-	bool consumeNew = true;
-	bool endOfFileReached = false;
-	while (!endOfFileReached) {
-		if (consumeNew) {
-			if (!input.get(c)) {
-				endOfFileReached = true;
-				if (state == LexicalAnalyzerState::Default) {
+	m_consumeNew = true;
+	m_endOfStreamReached = false;
+	while (!m_endOfStreamReached) {
+		if (m_consumeNew) {
+			if (!input.get(m_currentCharacter)) {
+				m_endOfStreamReached = true;
+				if (m_state == LexicalAnalyzerState::Default) {
 					break;
 				}
 			} else {
-				if (c == '\n') {
-					++currentToken.line;
-					currentColumn = 0;
+				if (m_currentCharacter == '\n') {
+					++m_currentLine;
+					m_currentColumn = 0;
 				} else {
-					++currentColumn;
+					++m_currentColumn;
 				}
 			}
 		} else {
-			consumeNew = true;
+			m_consumeNew = true;
 		}
 
-		switch (state) {
+		switch (m_state) {
 			case LexicalAnalyzerState::Default:
-				if (std::isalpha(c)) {
-					state = LexicalAnalyzerState::Identifier;
-					currentToken.string.append(std::string({ c }));
-					currentToken.type = TokenType::IDENTIFIER;
-					currentToken.column = currentColumn;
-				} else if(std::isalnum(c)) {
-					state = LexicalAnalyzerState::Number;
-					currentToken.string.append(std::string({ c }));
-					currentToken.type = TokenType::NUMBER;
-					currentToken.column = currentColumn;
-				} else if (isspace(c)) {
+				if (std::isalpha(m_currentCharacter)) {
+					m_state = LexicalAnalyzerState::Identifier;
+					m_currentToken.string.append(std::string({ m_currentCharacter }));
+					m_currentToken.type = TokenType::IDENTIFIER;
+					m_currentToken.column = m_currentColumn;
+					m_currentToken.line = m_currentLine;
+				} else if(std::isalnum(m_currentCharacter)) {
+					m_state = LexicalAnalyzerState::Number;
+					m_currentToken.string.append(std::string({ m_currentCharacter }));
+					m_currentToken.type = TokenType::NUMBER;
+					m_currentToken.column = m_currentColumn;
+					m_currentToken.line = m_currentLine;
+				} else if (isspace(m_currentCharacter)) {
 					/* do nothin' */
-				} else if (c == '"') {
-					state = LexicalAnalyzerState::String;
-					currentToken.type = TokenType::STRING;
-					currentToken.column = currentColumn;
-				} else if (c == '<') {
-					state = LexicalAnalyzerState::LeftArrow;
-					currentToken.string = "<-";
-					currentToken.type = TokenType::OP_LEFTARR;
-					currentToken.column = currentColumn;
+				} else if (m_currentCharacter == '"') {
+					m_state = LexicalAnalyzerState::String;
+					m_currentToken.type = TokenType::STRING;
+					m_currentToken.column = m_currentColumn;
+					m_currentToken.line = m_currentLine;
+				} else if (m_currentCharacter == '<') {
+					m_state = LexicalAnalyzerState::LeftArrow;
+					m_currentToken.string = "<-";
+					m_currentToken.type = TokenType::OP_LEFTARR;
+					m_currentToken.column = m_currentColumn;
+					m_currentToken.line = m_currentLine;
 				} else {
-					currentToken.string = std::string({ c });
-					currentToken.column = currentColumn;
-					switch (c) {
+					m_currentToken.string = std::string({ m_currentCharacter });
+					m_currentToken.column = m_currentColumn;
+					m_currentToken.line = m_currentLine;
+					switch (m_currentCharacter) {
 						case '(':
-							currentToken.type = TokenType::PAR_LEFT;
+							m_currentToken.type = TokenType::PAR_LEFT;
 							break;
 						case ')':
-							currentToken.type = TokenType::PAR_RIGHT;
+							m_currentToken.type = TokenType::PAR_RIGHT;
 							break;
 						case '[':
-							currentToken.type = TokenType::SQUARE_LEFT;
+							m_currentToken.type = TokenType::SQUARE_LEFT;
 							break;
 						case ']':
-							currentToken.type = TokenType::SQUARE_RIGHT;
+							m_currentToken.type = TokenType::SQUARE_RIGHT;
 							break;
 						case '{':
-							currentToken.type = TokenType::CURLY_LEFT;
+							m_currentToken.type = TokenType::CURLY_LEFT;
 							break;
 						case '}':
-							currentToken.type = TokenType::CURLY_RIGHT;
+							m_currentToken.type = TokenType::CURLY_RIGHT;
 							break;
 						case '=':
-							currentToken.type = TokenType::OP_EQUALS;
+							m_currentToken.type = TokenType::OP_EQUALS;
 							break;
 						case ':':
-							currentToken.type = TokenType::OP_COLON;
+							m_currentToken.type = TokenType::OP_COLON;
 							break;
 						case ';':
-							currentToken.type = TokenType::OP_SEMICOLON;
+							m_currentToken.type = TokenType::OP_SEMICOLON;
 							break;
 						case '.':
-							currentToken.type = TokenType::OP_DOT;
+							m_currentToken.type = TokenType::OP_DOT;
 							break;
 						case '^':
-							currentToken.type = TokenType::OP_CARET;
+							m_currentToken.type = TokenType::OP_CARET;
 							break;
 						case '$':
-							currentToken.type = TokenType::OP_DOLLAR;
+							m_currentToken.type = TokenType::OP_DOLLAR;
 							break;
 						case '*':
-							currentToken.type = TokenType::OP_STAR;
+							m_currentToken.type = TokenType::OP_STAR;
 							break;
 						case '+':
-							currentToken.type = TokenType::OP_PLUS;
+							m_currentToken.type = TokenType::OP_PLUS;
 							break;
 						case '?':
-							currentToken.type = TokenType::OP_QM;
+							m_currentToken.type = TokenType::OP_QM;
 							break;
 						case '|':
-							currentToken.type = TokenType::OP_OR;
+							m_currentToken.type = TokenType::OP_OR;
 							break;
 						case '/':
-							currentToken.type = TokenType::OP_FWDSLASH;
+							m_currentToken.type = TokenType::OP_FWDSLASH;
 							break;
 						case ',':
-							currentToken.type = TokenType::OP_COMMA;
+							m_currentToken.type = TokenType::OP_COMMA;
 							break;
 						case '&':
-							currentToken.type = TokenType::OP_AMPERSAND;
+							m_currentToken.type = TokenType::OP_AMPERSAND;
 							break;
 						case '-':
-							currentToken.type = TokenType::OP_DASH;
+							m_currentToken.type = TokenType::OP_DASH;
 							break;
 						default:
-							throw LexicalAnalyzerException("Unrecognized character '" + currentToken.string + "' found on line " + std::to_string(currentToken.line) + ":" + std::to_string(currentToken.column));
+							throw LexicalAnalyzerException("Unrecognized character '" + m_currentToken.string + "' found on line " + std::to_string(m_currentLine) + ":" + std::to_string(m_currentColumn));
 							break;
 					}
-					ret.push_back(currentToken);
-					currentToken.string.clear();
+					ret.push_back(m_currentToken);
+					m_currentToken.string.clear();
 				}
 				break;
 			case LexicalAnalyzerState::Identifier:
-				if (std::isalnum(c) && !endOfFileReached) {
-					currentToken.string.append(std::string({ c }));
+				if (std::isalnum(m_currentCharacter) && !m_endOfStreamReached) {
+					m_currentToken.string.append(std::string({ m_currentCharacter }));
 				} else {
-					ret.push_back(currentToken);
-					currentToken.string.clear();
-					state = LexicalAnalyzerState::Default;
-					consumeNew = false;
+					ret.push_back(m_currentToken);
+					m_currentToken.string.clear();
+					m_state = LexicalAnalyzerState::Default;
+					m_consumeNew = false;
 				}
 				break;
 			case LexicalAnalyzerState::Number:
-				if (std::isdigit(c) && !endOfFileReached) {
-					currentToken.string.append(std::string({ c }));
+				if (std::isdigit(m_currentCharacter) && !m_endOfStreamReached) {
+					m_currentToken.string.append(std::string({ m_currentCharacter }));
 				} else {
-					ret.push_back(currentToken);
-					currentToken.string.clear();
-					state = LexicalAnalyzerState::Default;
-					consumeNew = false;
+					ret.push_back(m_currentToken);
+					m_currentToken.string.clear();
+					m_state = LexicalAnalyzerState::Default;
+					m_consumeNew = false;
 				}
 				break;
 			case LexicalAnalyzerState::String:
-				if (c != '"' && !endOfFileReached) {
-					currentToken.string.append(std::string({ c }));
+				if (m_currentCharacter != '"' && !m_endOfStreamReached) {
+					m_currentToken.string.append(std::string({ m_currentCharacter }));
 				} else {
-					ret.push_back(currentToken);
-					currentToken.string.clear();
-					state = LexicalAnalyzerState::Default;
+					ret.push_back(m_currentToken);
+					m_currentToken.string.clear();
+					m_state = LexicalAnalyzerState::Default;
 				}
 				break;
 			case LexicalAnalyzerState::LeftArrow:
-				if (c != '-' || endOfFileReached) {
-					throw LexicalAnalyzerException("Unrecognized character '" + currentToken.string + "' found on line " + std::to_string(currentToken.line) + ":" + std::to_string(currentToken.column) + ", expected '-' to complete the left-arrow operator '<-'");
+				if (m_currentCharacter != '-' || m_endOfStreamReached) {
+					throw LexicalAnalyzerException("Unrecognized character '" + m_currentToken.string + "' found on line " + std::to_string(m_currentLine) + ":" + std::to_string(m_currentColumn) + ", expected '-' to complete the left-arrow operator '<-'");
 				} else {
-					ret.push_back(currentToken);
-					currentToken.string.clear();
-					state = LexicalAnalyzerState::Default;
+					ret.push_back(m_currentToken);
+					m_currentToken.string.clear();
+					m_state = LexicalAnalyzerState::Default;
 				}
 				break;
 		}
 	}
 
 	return ret;
+}
+
+void LexicalAnalyzer::resetInternalState() {
+	m_consumeNew = true;
+	m_state = LexicalAnalyzerState::Default;
+}
+
+void LexicalAnalyzer::resetPositionState() {
+	m_currentColumn = 0;
+	m_currentLine = 1;
+}
+
+void LexicalAnalyzer::resetState() {
+	resetInternalState();
+	resetPositionState();
 }
 
 std::string LexicalAnalyzer::tokenTypeToString(TokenType type) {
@@ -219,9 +240,9 @@ std::string LexicalAnalyzer::tokenTypeToString(TokenType type) {
 		case TokenType::PAR_RIGHT:
 			return "PAR_RIGHT";
 		case TokenType::SQUARE_LEFT:
-			return "]";
+			return "SQUARE_LEFT";
 		case TokenType::SQUARE_RIGHT:
-			return "[";
+			return "SQUARE_RIGHT";
 		case TokenType::STRING:
 			return "STRING";
 		default:
