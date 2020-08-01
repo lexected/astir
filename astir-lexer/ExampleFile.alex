@@ -1,8 +1,8 @@
 regex digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 
-token number : integer =
-				digit+ : positive
-				| "-" digit+ : negative
+token : integer =
+				digit+			<- number : positive
+				| "-" digit+	<- number : : negative
 				;
 
 token number : decimal, positive =
@@ -13,7 +13,7 @@ token number : decimal, negative =
 				"-" decimal&positive
 				;
 
-regex identifierStartingCharacter = ["a"-"z" "A"-"Z" _];
+regex identifierStartingCharacter = ["a"-"z" "A"-"Z" "_"];
 regex identifierCharacter = identifierStartingCharacter | digit;
 
 token identifier = identifierStartingCharacter identifierCharacter*;

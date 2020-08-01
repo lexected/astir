@@ -11,8 +11,7 @@
 		OP_SEMICOLON
 		OP_DOT
 		OP_CARET
-		OP_LNBEG
-		OP_LNEND
+		OP_DOLLAR
 		SQUARE_LEFT
 		SQUARE_RIGHT
 		PAR_LEFT
@@ -23,8 +22,10 @@
 		OP_PLUS
 		OP_QM
 		OP_OR
-		OP_FORWARD
+		OP_FWDSLASH,
+		OP_COMMA
 */
+
 production language =
 	 statementList
 	;
@@ -35,7 +36,8 @@ rule statementList =
 	;
 
 production statement =
-	
+	tokenStatement
+	| regexStatement
 	;
 
 production tokenStatement =
@@ -55,7 +57,7 @@ rule declarationName =
 	;
 
 rule declarationNameList =
-	declarationName declarationNameList
+	declarationName OP_COMMA declarationNameList
 	| declarationName
 	;
 
@@ -85,13 +87,22 @@ rule alternativesList =
 	| alternative
 	;
 
+production qualifiedName = 
+	qualifiedNameList
+	;
+
+rule qualifiedNameList = 
+	IDENTIFIER OP_AMPERSAND qualifiedNameList
+	| IDENTIFIER
+	;
+
 production regex =
 	ESCAPED_CHAR
 	| STRING
 	| IDENTIFIER
 	| OP_DOT
-	| OP_LNBEG
-	| OP_LNEND
+	| OP_CARET
+	| OP_DOLLAR
 	| SQUARE_LEFT STRING SQUARE_RIGHT
 	| SQUARE_LEFT OP_CARET STRING SQUARE_RIGHT
 	| regex OP_STAR
@@ -101,5 +112,5 @@ production regex =
 	| regex regex
 	| regex OP_OR regex
 	| PAR_LEFT regex PAR_RIGHT
-	| regex OP_FWD regex
+	| regex OP_FWDSLASH regex
 	;
