@@ -1,10 +1,29 @@
 /*
 	RECOGNIZED TOKENS:
-		NUMBER
 		KW_TOKEN
 		KW_REGEX
+		KW_PRODUCTION
+		KW_RULE
+		KW_DETERMINISTIC
+		KW_NONDETERMINISTIC
+		KW_FINITE
+		KW_AUTOMATON
+		KW_PARSER
+		KW_RECURSIVE_DESCENT
+		KW_WITH
+		KW_FOLLOWS
+		KW_EXTENDS
+		KW_INDIVIDUAL_STRING_LITERALS
+		KW_GROUPED_STRING_LITERALS
+		KW_TABLE_LOOKUP
+		KW_MACHINE_LOOKUP
+		KW_BACKTRACKING
+		KW_PREDICTION
+
 		IDENTIFIER
+		NUMBER
 		STRING
+
 		OP_EQUALS
 		OP_COLON
 		OP_LEFTARR
@@ -26,8 +45,29 @@
 		OP_COMMA
 */
 
-production language =
-	 statementList
+production specification = 
+	machineDefinitionList
+	;
+
+rule machineDefinitionList =
+	machineDefinition*
+	;
+
+production machineDefinition =
+	machineType IDENTIFIER (KW_WITH machineOptionList)? (KW_EXTENDS IDENTIFIER| KW_FOLLOWS IDENTIFIER)? CURLY_LEFT machineDefinitionBody CURLY_RIGHT
+	;
+
+rule machineOptionList =
+	(KW_INDIVIDUAL_STRING_LITERALS
+		| KW_GROUPED_STRING_LITERALS
+		| KW_TABLE_LOOKUP
+		| KW_MACHINE_LOOKUP
+		| KW_BACKTRACKING
+		| KW_PREDICTION)+
+	;
+
+production machineDefinitionBody =
+	statementList
 	;
 
 rule statementList =

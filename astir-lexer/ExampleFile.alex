@@ -1,29 +1,35 @@
-regex digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+nondeterministic finite automaton ExampleTokenizer with individual_string_literals, table_lookup {
+	regex digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 
-token : integer =
-				digit+			<- number : positive
-				| "-" digit+	<- number : : negative
-				;
+	token : integer =
+					digit+			<- number : positive
+					| "-" digit+	<- number : negative
+					;
 
-token number : decimal, positive =
-				digit+ "." digit+ ("e" integer)?
-				;
+	token number : decimal, positive =
+					digit+ "." digit+ ("e" integer)?
+					;
 
-token number : decimal, negative =
-				"-" decimal&positive
-				;
+	token number : decimal, negative =
+					"-" decimal&positive
+					;
 
-regex identifierStartingCharacter = ["a"-"z" "A"-"Z" "_"];
-regex identifierCharacter = identifierStartingCharacter | digit;
+	regex identifierStartingCharacter = ["a"-"z" "A"-"Z" "_"];
+	regex identifierCharacter = identifierStartingCharacter | digit;
 
-token identifier = identifierStartingCharacter identifierCharacter*;
+	token identifier = identifierStartingCharacter identifierCharacter*;
 
-token operator : arithmeticOperator, unaryArithmeticOperator, binaryAirthmeticOperator =
-	"+" : plusOperator
-	| "-" : minusOperator
-	;
+	token operator : arithmeticOperator, unaryArithmeticOperator, binaryAirthmeticOperator =
+		"+" : plusOperator
+		| "-" : minusOperator
+		;
 
-token operator : arithmeticOperator, binaryArithmeticOperator =
-	"*"
-	| "\"
-	;
+	token operator : arithmeticOperator, binaryArithmeticOperator =
+		"*"
+		| "\"
+		;
+}
+
+recursive_descent parser ExampleParser follows ExampleTokenizer {
+	
+}
