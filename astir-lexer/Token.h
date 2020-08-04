@@ -49,7 +49,9 @@ enum class TokenType {
 	OP_FWDSLASH,
 	OP_COMMA,
 	OP_AMPERSAND,
-	OP_DASH
+	OP_DASH,
+
+	EOS /* end of stream wiseapples */
 };
 
 struct Token {

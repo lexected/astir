@@ -177,6 +177,10 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 		}
 	}
 
+	m_currentToken.string = "";
+	m_currentToken.type = TokenType::EOS;
+	ret.push_back(m_currentToken);
+
 	return ret;
 }
 
