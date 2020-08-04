@@ -136,6 +136,10 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 				if (std::isalnum(m_currentCharacter) && !m_endOfStreamReached) {
 					m_currentToken.string.append(std::string({ m_currentCharacter }));
 				} else {
+					decltype(m_keywordMap)::const_iterator it;
+					if ((it = m_keywordMap.find(m_currentToken.string)) != m_keywordMap.cend()) {
+						m_currentToken.type = it->second;
+					}
 					ret.push_back(m_currentToken);
 					m_currentToken.string.clear();
 					m_state = LexicalAnalyzerState::Default;
