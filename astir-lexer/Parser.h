@@ -11,5 +11,7 @@ public:
 	Parser() = default;
 
 	std::unique_ptr<Specification> parse(const std::list<Token>& tokens) const;
+	std::unique_ptr<MachineDefinition> parseMachineDefinition(std::list<Token>::const_iterator & it) const;
+	std::unique_ptr<MachineDefinition> parseStatement(std::list<Token>::const_iterator& it) const;
 };
 

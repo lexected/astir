@@ -54,7 +54,8 @@ rule machineDefinitionList =
 	;
 
 production machineDefinition =
-	machineType IDENTIFIER (KW_WITH machineOptionList)? (KW_EXTENDS IDENTIFIER| KW_FOLLOWS IDENTIFIER)? CURLY_LEFT machineDefinitionBody CURLY_RIGHT
+	machineType IDENTIFIER (KW_WITH machineOptionList)? (KW_EXTENDS IDENTIFIER| KW_FOLLOWS IDENTIFIER)? OP_SEMICOLON
+	| machineType IDENTIFIER (KW_WITH machineOptionList)? (KW_EXTENDS IDENTIFIER| KW_FOLLOWS IDENTIFIER)? CURLY_LEFT machineDefinitionBody CURLY_RIGHT
 	;
 
 rule machineOptionList =
