@@ -25,7 +25,7 @@ public:
 		: ParserException(messagePrefix + "\nCurrent Token: " + currentToken.toString()) {
 	}
 	ParserException(const std::string& messagePrefix, const Token& currentToken, const Token& initialToken)
-		: ParserException(messagePrefix + "\nCurrent Token: " + currentToken.toString() + "\Initial Token: " + initialToken.toString()) {
+		: ParserException(messagePrefix + "\nCurrent Token: " + currentToken.toString() + "\nInitial Token: " + initialToken.toString()) {
 	}
 };
 

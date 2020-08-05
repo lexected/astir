@@ -7,8 +7,7 @@ using namespace std;
 std::unique_ptr<Specification> Parser::parse(const std::list<Token>& tokens) const {
 	auto it = tokens.begin();
 
-	list<unique_ptr<MachineDefinition>> definitions;
-
+	unique_ptr<Specification> specification(new Specification);
 	while (it->type != TokenType::EOS) {
 		auto savedIt = it;
 		auto machineDefinition = Parser::parseMachineDefinition(it);
@@ -17,10 +16,10 @@ std::unique_ptr<Specification> Parser::parse(const std::list<Token>& tokens) con
 			// throw
 		}
 
-		definitions.push_back(machineDefinition);
+		specification->machineDefinitions.push_back(std::move(machineDefinition));
 	}
 
-	return std::unique_ptr<Specification>(new Specification(definitions));
+	return specification;
 }
 
 std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Token>::const_iterator & it) const {
@@ -126,13 +125,14 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 			auto savedIt = it;
 			lastStatement = Parser::parseStatement(it);
 			if (lastStatement != nullptr) {
-				faDef->statements.push_back(lastStatement);
+				faDef->statements.push_back(std::move(lastStatement));
 			} else {
 				it = savedIt;
 				break;
 			}
 		} while (true);
 
+		// no need for move, according to 'internet'
 		return faDef;
 	}
 

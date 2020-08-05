@@ -11,7 +11,7 @@ int main(int argc, char* argv[]) {
 
 	for (const Token& token : tokenList) {
 		std::cout << "[" << token.line << ":" << token.column << "] "
-			<< LexicalAnalyzer::tokenTypeToString(token.type)
+			<< token.typeString()
 			<< ": \"" << token.string << "\""
 			<< std::endl
 			;
