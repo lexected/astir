@@ -197,14 +197,74 @@ std::unique_ptr<Statement> Parser::parseStatement(std::list<Token>::const_iterat
 		}
 
 		return catstat;
-	} else if (it->type == TokenType::KW_REGEX) {
-		
-	} else if (it->type == TokenType::KW_TOKEN) {
-		
-	} else if (it->type == TokenType::KW_RULE) {
-		
-	} else if (it->type == TokenType::KW_PRODUCTION) {
-		
+	} else if (it->type == TokenType::KW_REGEX || it->type == TokenType::KW_TOKEN || it->type == TokenType::KW_RULE || it->type == TokenType::KW_PRODUCTION) {
+		string grammarStatementType = it->toHumanString();
+		std::unique_ptr<GrammarStatement> grastat = make_unique<GrammarStatement>();
+		switch (it->type) {
+			case TokenType::KW_REGEX:
+				grastat->type = StatementType::Regex;
+				break;
+			case TokenType::KW_TOKEN:
+				grastat->type = StatementType::Token;
+				break;
+			case TokenType::KW_RULE:
+				grastat->type = StatementType::Rule;
+				break;
+			case TokenType::KW_PRODUCTION:
+				grastat->type = StatementType::Production;
+				break;
+			default:
+				throw ParserException("Unrecognized token '" + grammarStatementType + "' accepted as a grammar statement type at " +it->locationString());
+		}
+		++it;
+
+		if (it->type != TokenType::IDENTIFIER) {
+			throw UnexpectedTokenException(*it, "an identifier for the "+ grammarStatementType +" name", "for " + grammarStatementType + " declaration", *initIt);
+		}
+		grastat->name = it->string;
+		++it;
+
+		if (it->type == TokenType::OP_COLON) {
+			++it;
+			do {
+				if (it->type != TokenType::IDENTIFIER) {
+					throw UnexpectedTokenException(*it, "an " + grammarStatementType + " name identifier", "for inheritance in " + grammarStatementType + " declaration", *initIt);
+				}
+				grastat->categories.push_back(it->string);
+				++it;
+
+				if (it->type != TokenType::OP_COMMA) {
+					break;
+				}
+				++it;
+			} while (true);
+		}
+
+		if (it->type == TokenType::OP_SEMICOLON) {
+			return grastat;
+		}
+
+		if (it->type != TokenType::OP_EQUALS) {
+			throw UnexpectedTokenException(*it, "'=' followed by a list of qualified names", "for " + grammarStatementType + " declaration", *initIt);
+		}
+
+		std::unique_ptr<Alternative> lastAlternative;
+		do {
+			auto savedIt = it;
+			lastAlternative = Parser::parseAlternative(it);
+			if (lastAlternative != nullptr) {
+				grastat->alternatives.push_back(move(lastAlternative));
+			} else {
+				it = savedIt;
+				break;
+			}
+		} while (true);
+
+		if (it->type != TokenType::OP_SEMICOLON) {
+			throw UnexpectedTokenException(*it, "the terminal semicolon ';'", "for " + grammarStatementType + " definition", *initIt);
+		}
+
+		return grastat;
 	} else {
 		return nullptr;
 	}
