@@ -202,16 +202,16 @@ std::unique_ptr<Statement> Parser::parseStatement(std::list<Token>::const_iterat
 		std::unique_ptr<GrammarStatement> grastat = make_unique<GrammarStatement>();
 		switch (it->type) {
 			case TokenType::KW_REGEX:
-				grastat->type = StatementType::Regex;
+				grastat->type = GrammarStatementType::Regex;
 				break;
 			case TokenType::KW_TOKEN:
-				grastat->type = StatementType::Token;
+				grastat->type = GrammarStatementType::Token;
 				break;
 			case TokenType::KW_RULE:
-				grastat->type = StatementType::Rule;
+				grastat->type = GrammarStatementType::Rule;
 				break;
 			case TokenType::KW_PRODUCTION:
-				grastat->type = StatementType::Production;
+				grastat->type = GrammarStatementType::Production;
 				break;
 			default:
 				throw ParserException("Unrecognized token '" + grammarStatementType + "' accepted as a grammar statement type at " +it->locationString());
@@ -240,25 +240,26 @@ std::unique_ptr<Statement> Parser::parseStatement(std::list<Token>::const_iterat
 			} while (true);
 		}
 
-		if (it->type == TokenType::OP_SEMICOLON) {
-			return grastat;
-		}
-
 		if (it->type != TokenType::OP_EQUALS) {
 			throw UnexpectedTokenException(*it, "'=' followed by a list of qualified names", "for " + grammarStatementType + " declaration", *initIt);
 		}
 
-		std::unique_ptr<Alternative> lastAlternative;
-		do {
-			auto savedIt = it;
+		auto savedIt = it;
+		std::unique_ptr<Alternative> lastAlternative = Parser::parseAlternative(it);
+		if (lastAlternative == nullptr) {
+			throw ParserException("Expected an alternative to follow the '=' on the intial token - none found.", *it, *savedIt);
+		}
+		
+		while(it->type == TokenType::OP_OR) {
+			++it;
+
 			lastAlternative = Parser::parseAlternative(it);
-			if (lastAlternative != nullptr) {
-				grastat->alternatives.push_back(move(lastAlternative));
-			} else {
-				it = savedIt;
-				break;
+			if (lastAlternative == nullptr) {
+				throw UnexpectedTokenException(*it, "an alternative to follow the alternative operator '|'", "for " + grammarStatementType + " definition body", *initIt);
 			}
-		} while (true);
+
+			grastat->alternatives.push_back(move(lastAlternative));
+		}
 
 		if (it->type != TokenType::OP_SEMICOLON) {
 			throw UnexpectedTokenException(*it, "the terminal semicolon ';'", "for " + grammarStatementType + " definition", *initIt);
@@ -270,12 +271,12 @@ std::unique_ptr<Statement> Parser::parseStatement(std::list<Token>::const_iterat
 	}
 }
 
-std::unique_ptr<QualifiedName> Parser::parseQualifiedName(std::list<Token>::const_iterator& it) const {
-	std::unique_ptr<QualifiedName> qname = make_unique<QualifiedName>();
+std::unique_ptr<SpecifiedName> Parser::parseSpecifiedName(std::list<Token>::const_iterator& it) const {
+	std::unique_ptr<SpecifiedName> sname = make_unique<SpecifiedName>();
 	if (it->type != TokenType::IDENTIFIER) {
 		return nullptr;
 	}
-	qname->queriedCategories.push_back(it->string);
+	sname->queriedCategories.push_back(it->string);
 	++it;
 
 	do {
@@ -285,20 +286,35 @@ std::unique_ptr<QualifiedName> Parser::parseQualifiedName(std::list<Token>::cons
 		++it;
 
 		if (it->type != TokenType::IDENTIFIER) {
-			throw UnexpectedTokenException(*it, "an identifier to follow the ampersand qualification operator", "for qualified name");
+			throw UnexpectedTokenException(*it, "an identifier to follow the ampersand qualification operator", "for specialized name");
 		}
-		qname->queriedCategories.push_back(it->string);
+		sname->queriedCategories.push_back(it->string);
 		++it;
 	} while (true);
 
-	if (it->type == TokenType::OP_AT) {
-		++it;
-		if (it->type != TokenType::IDENTIFIER) {
-			throw UnexpectedTokenException(*it, "an identifier for instance name", "for qualified name");
-		}
-		qname->instanceName = it->string;
-		++it;
+	return sname;
+}
+
+std::unique_ptr<QualifiedName> Parser::parseQualifiedName(std::list<Token>::const_iterator& it) const {
+	auto savedIt = it;
+	auto specifiedName = parseSpecifiedName(it);
+	std::unique_ptr<QualifiedName> qname = make_unique<QualifiedName>();
+	qname->queriedCategories = std::move(specifiedName->queriedCategories);
+
+	if (it->type != TokenType::OP_AT) {
+		throw UnexpectedTokenException(*it, "qualification operator '@'", "for qualified name in category definition body", *savedIt);
+	} 
+	++it;
+
+	if (it->type != TokenType::IDENTIFIER) {
+		throw UnexpectedTokenException(*it, "an identifier for instance name", "for qualified name in category definition body", *savedIt);
 	}
+	qname->instanceName = it->string;
+	++it;
 
 	return qname;
+}
+
+std::unique_ptr<Alternative> Parser::parseAlternative(std::list<Token>::const_iterator& it) const {
+	return std::unique_ptr<Alternative>();
 }

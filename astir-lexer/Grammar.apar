@@ -74,87 +74,100 @@ production machineDefinitionBody =
 	;
 
 rule statementList =
-	statement statementList
-	| statement
+	statement*
 	;
 
 production statement =
-	statementType declarationName OP_EQUALS statementBody 
-	| statementType declarationName COLON declarationNameList OP_EQUALS namedStatementBody
-	| possiblyNamelessStatementType COLON declarationNameList OP_EQUALS statementBody
+	categoryStatement
+	| grammarStatement
 	;
 
-rule statementType =
+production categoryStatement =
+	KW_CATEGORY IDENTIFIER OP_EQUALS categoryStatementBody OP_SEMICOLON
+	| KW_CATEGORY IDENTIFIER OP_COLON declarationNameList OP_EQUALS categoryStatementBody OP_SEMICOLON
+	| KW_CATEGORY IDENTIFIER OP_COLON declarationNameList OP_SEMICOLON
+	| KW_CATEGORY IDENTIFIER OP_SEMICOLON
+	;
+
+rule categoryStatementBody =
+	qualifiedName*
+	;
+
+production qualifiedName =
+	specializedName OP_AT identifier
+	;
+
+production grammarStatement =
+	grammarStatementType IDENTIFIER OP_EQUALS grammarStatementBody OP_SEMICOLON
+	| grammarStatementType IDENTIFIER OP_COLON declarationNameList OP_EQUALS grammarStatementBody OP_SEMICOLON
+	;
+
+rule grammarStatementType =
 	KW_TOKEN
 	| KW_REGEX
 	| KW_RULE
 	| KW_PRODUCTION
 	;
 
-rule possiblyNamelessStatementType =
-	KW_REGEX
-	| KW_RULE
-	;
-
-rule declarationName =
-	IDENTIFIER
-	;
-
 rule declarationNameList =
-	declarationName OP_COMMA declarationNameList
-	| declarationName
-	;
-
-production namedStatementBody = 
-	namedAlternativesList OP_SEMICOLON
-	| OP_SEMICOLON
-	;
-
-rule namedAlternativesList =
-	namedAlternative OP_OR namedAlternativesList
-	| namedAlternative
-	;
-
-production namedAlternative = 
-	regex
-	| regex OP_COLON declarationNameList
-	;
-
-production alternative =
-	namedAlternative
-	| regex OP_LEFTARR declarationName
-	| regex OP_LEFTARR declarationName OP_COLON declarationNameList
-	;
-
-rule alternativesList =
-	alternative OP_OR alternativesList
-	| alternative
-	;
-
-production qualifiedName = 
-	qualifiedNameList
-	;
-
-rule qualifiedNameList = 
-	IDENTIFIER OP_AMPERSAND qualifiedNameList
+	IDENTIFIER OP_COMMA declarationNameList
 	| IDENTIFIER
 	;
 
-production regex =
-	ESCAPED_CHAR
+production grammarStatementBody = 
+	alternative*
+	;
+
+production alternative = 
+	qualifiedRegex*
+	;
+
+production qualifiedRegex =
+	namableRegex (OP_AT IDENTIFIER)?
+	;
+
+production namableRegex =
+	repetitiveRegex
+	| lookaheadRegex
+	| atomicRegex
+	;
+
+production repetitiveRegex =
+	atomicRegex OP_STAR
+	| atomicRegex OP_PLUS
+	| atomicRegex CURLY_LEFT NUMBER, NUMBER CURLY_RIGHT
+	| atomicRegex OP_QM
+	;
+
+production lookaheadRegex =
+	atomicRegex OP_FWDSLASH namableRegex
+	;
+
+production atomicRegex : namableRegex =
+	SQUARE_LEFT OP_CARET STRING+ SQUARE_RIGHT
+	| SQUARE_LEFT OP_CARET regexRange+ SQUARE_RIGHT
+	| SQUARE_LEFT STRING+ SQUARE_RIGHT
+	| SQUARE_LEFT regexRange+ SQUARE_RIGHT
+	| PAR_LEFT disjunctiveRegex PAR_RIGHT
 	| STRING
-	| IDENTIFIER
+	| specializedName
 	| OP_DOT
 	| OP_CARET
 	| OP_DOLLAR
-	| SQUARE_LEFT STRING SQUARE_RIGHT
-	| SQUARE_LEFT OP_CARET STRING SQUARE_RIGHT
-	| regex OP_STAR
-	| regex OP_PLUS
-	| regex OP_QM
-	| regex CURLY_LEFT NUMBER, NUMBER CURLY_RIGHT
-	| regex regex
-	| regex OP_OR regex
-	| PAR_LEFT regex PAR_RIGHT
-	| regex OP_FWDSLASH regex
+	;
+
+production regexRange =
+	STRING OP_DASH STRING
+	;
+
+production disjunctiveRegex =
+	conjuctiveRegex+
+	;
+
+production conjunctiveRegex =
+	namableRegex+
+	;
+
+production specializedName =
+	IDENTIFIER (OP_AMPERSAND IDENTIFIER)*
 	;

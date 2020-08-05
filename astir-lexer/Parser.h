@@ -15,6 +15,7 @@ public:
 	std::unique_ptr<MachineDefinition> parseMachineDefinition(std::list<Token>::const_iterator & it) const;
 	std::unique_ptr<Statement> parseStatement(std::list<Token>::const_iterator& it) const;
 
+	std::unique_ptr<SpecifiedName> parseSpecifiedName(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<QualifiedName> parseQualifiedName(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<Alternative> parseAlternative(std::list<Token>::const_iterator& it) const;
 };

@@ -52,7 +52,7 @@ struct FADefinition : public MachineDefinition {
 	virtual ~FADefinition() = default;
 };
 
-enum class StatementType {
+enum class GrammarStatementType {
 	Regex,
 	Token,
 	Rule,
@@ -66,16 +66,99 @@ struct Statement {
 
 struct Alternative;
 struct GrammarStatement : public Statement {
-	StatementType type;
+	GrammarStatementType type;
 	StandardList<Alternative> alternatives;
 };
 
 struct QualifiedName;
+struct SpecifiedName;
 struct CategoryStatement : public Statement {
 	StandardList<QualifiedName> qualifiedNames;
 };
 
-struct QualifiedName {
+struct SpecifiedName {
 	std::list<std::string> queriedCategories;
+};
+
+struct QualifiedName : public SpecifiedName {
 	std::string instanceName;
+};
+
+struct QualifiedRegex;
+struct Alternative {
+	StandardList<QualifiedRegex> qualifiedRegexes;
+};
+
+struct NamableRegex;
+struct QualifiedRegex {
+	bool hasInstanceName;
+	std::string instanceName;
+	std::unique_ptr<NamableRegex> regex;
+};
+
+/* namable regexes differ from the regexes with alternatives in that they can not on their own have alternatives on their top level */
+struct NamableRegex {
+	
+};
+
+struct RepetitiveRegex : public NamableRegex {
+	unsigned int minRepetitions;
+	unsigned int maxRepetitions;
+};
+
+struct AtomicRegex;
+struct LookaheadRegex : public NamableRegex {
+	std::unique_ptr<AtomicRegex> match;
+	std::unique_ptr<NamableRegex> lookahead;
+};
+
+struct AtomicRegex : public NamableRegex { };
+
+struct RegexRange {
+	std::string start;
+	std::string end;
+};
+
+struct AnyLiteralRegex : public AtomicRegex {
+	std::list<std::string> literals;
+};
+
+struct AnyRangeRegex : public AtomicRegex {
+	std::list<RegexRange> ranges;
+};
+
+struct ExceptAnyLiteralRegex : public AtomicRegex {
+	std::list<std::string> literals;
+};
+
+struct ExceptAnyRangeRegex : public AtomicRegex {
+	std::list<RegexRange> ranges;
+};
+
+struct ConjunctiveRegex {
+	StandardList<NamableRegex> conjunction;
+};
+
+struct DisjunctiveRegex : public AtomicRegex {
+	StandardList<ConjunctiveRegex> disjunction;
+};
+
+struct LiteralRegex : public AtomicRegex {
+	
+};
+
+struct ReferenceRegex : public AtomicRegex {
+	SpecifiedName referenceName;
+};
+
+struct ArbitraryLiteralRegex : public AtomicRegex {
+	
+};
+
+struct LineBeginRegex : public AtomicRegex {
+
+};
+
+struct LineEndRegex : public AtomicRegex {
+
 };
