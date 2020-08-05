@@ -148,6 +148,7 @@
     <None Include="Grammar.apar" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Exception.h" />
     <ClInclude Include="Specification.h" />
     <ClInclude Include="LexicalAnalyzer.h" />
     <ClInclude Include="Parser.h" />
