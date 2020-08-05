@@ -74,3 +74,8 @@ struct QualifiedName;
 struct CategoryStatement : public Statement {
 	StandardList<QualifiedName> qualifiedNames;
 };
+
+struct QualifiedName {
+	std::list<std::string> queriedCategories;
+	std::string instanceName;
+};

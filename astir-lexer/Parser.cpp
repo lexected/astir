@@ -209,3 +209,36 @@ std::unique_ptr<Statement> Parser::parseStatement(std::list<Token>::const_iterat
 		return nullptr;
 	}
 }
+
+std::unique_ptr<QualifiedName> Parser::parseQualifiedName(std::list<Token>::const_iterator& it) const {
+	std::unique_ptr<QualifiedName> qname = make_unique<QualifiedName>();
+	if (it->type != TokenType::IDENTIFIER) {
+		return nullptr;
+	}
+	qname->queriedCategories.push_back(it->string);
+	++it;
+
+	do {
+		if (it->type != TokenType::OP_AMPERSAND) {
+			break;
+		}
+		++it;
+
+		if (it->type != TokenType::IDENTIFIER) {
+			throw UnexpectedTokenException(*it, "an identifier to follow the ampersand qualification operator", "for qualified name");
+		}
+		qname->queriedCategories.push_back(it->string);
+		++it;
+	} while (true);
+
+	if (it->type == TokenType::OP_AT) {
+		++it;
+		if (it->type != TokenType::IDENTIFIER) {
+			throw UnexpectedTokenException(*it, "an identifier for instance name", "for qualified name");
+		}
+		qname->instanceName = it->string;
+		++it;
+	}
+
+	return qname;
+}

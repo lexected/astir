@@ -19,6 +19,7 @@
 		KW_MACHINE_LOOKUP
 		KW_BACKTRACKING
 		KW_PREDICTION
+		KW_CATEGORY
 
 		IDENTIFIER
 		NUMBER
@@ -42,7 +43,8 @@
 		OP_QM
 		OP_OR
 		OP_FWDSLASH,
-		OP_COMMA
+		OP_COMMA,
+		OP_AT
 */
 
 production specification = 
