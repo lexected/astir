@@ -77,20 +77,21 @@ rule statementList =
 	;
 
 production statement =
-	tokenStatement
-	| regexStatement
+	statementType declarationName OP_EQUALS statementBody 
+	| statementType declarationName COLON declarationNameList OP_EQUALS namedStatementBody
+	| possiblyNamelessStatementType COLON declarationNameList OP_EQUALS statementBody
 	;
 
-production tokenStatement =
-	KW_TOKEN declarationName OP_EQUALS statementBody 
-	| KW_TOKEN declarationName COLON declarationNameList OP_EQUALS namedStatementBody
-	| KW_TOKEN COLON declarationNameList OP_EQUALS statementBody
+rule statementType =
+	KW_TOKEN
+	| KW_REGEX
+	| KW_RULE
+	| KW_PRODUCTION
 	;
 
-production regexStatement =
-	KW_REGEX declarationName OP_EQUALS namedStatementBody 
-	| KW_REGEX declarationName COLON declarationNameList OP_EQUALS namedStatementBody
-	| KW_REGEX COLON declarationNameList OP_EQUALS statementBody
+rule possiblyNamelessStatementType =
+	KW_REGEX
+	| KW_RULE
 	;
 
 rule declarationName =

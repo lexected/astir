@@ -44,7 +44,7 @@ struct FADefinition : public MachineDefinition {
 	std::map<FAFlag, bool> attributes;
 
 	FADefinition()
-		:  MachineDefinition(), attributes({
+		:  MachineDefinition(), type(FAType::Nondeterministic), attributes({
 			{ FAFlag::GroupedStringLiterals, false },
 			{ FAFlag::TableLookup, false }
 		}) { }
@@ -52,6 +52,25 @@ struct FADefinition : public MachineDefinition {
 	virtual ~FADefinition() = default;
 };
 
-struct Statement {
+enum class StatementType {
+	Regex,
+	Token,
+	Rule,
+	Production
+};
 
+struct Statement {
+	std::string name;
+	std::list<std::string> categories;
+};
+
+struct Alternative;
+struct GrammarStatement : public Statement {
+	StatementType type;
+	StandardList<Alternative> alternatives;
+};
+
+struct QualifiedName;
+struct CategoryStatement : public Statement {
+	StandardList<QualifiedName> qualifiedNames;
 };

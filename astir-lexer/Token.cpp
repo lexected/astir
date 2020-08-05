@@ -24,16 +24,55 @@ std::string Token::locationString() const {
 
 std::string Token::convertTypeToString(TokenType type) {
 	switch (type) {
+		case TokenType::KW_TOKEN:
+			return "KW_TOKEN";
+		case TokenType::KW_REGEX:
+			return "KW_REGEX";
+		case TokenType::KW_PRODUCTION:
+			return "KW_PRODUCTION";
+		case TokenType::KW_RULE:
+			return "KW_RULE";
+		case TokenType::KW_DETERMINISTIC:
+			return "KW_DETERMINISTIC";
+		case TokenType::KW_NONDETERMINISTIC:
+			return "KW_NONDETERMINISTIC";
+		case TokenType::KW_FINITE:
+			return "KW_FINITE";
+		case TokenType::KW_AUTOMATON:
+			return "KW_AUTOMATON";
+		case TokenType::KW_PARSER:
+			return "KW_PARSER";
+		case TokenType::KW_RECURSIVE_DESCENT:
+			return "KW_RECURSIVE_DESCENT";
+		case TokenType::KW_WITH:
+			return "KW_WITH";
+		case TokenType::KW_FOLLOWS:
+			return "KW_FOLLOWS";
+		case TokenType::KW_EXTENDS:
+			return "KW_EXTENDS";
+		case TokenType::KW_INDIVIDUAL_STRING_LITERALS:
+			return "KW_INDIVIDUAL_STRING_LITERALS";
+		case TokenType::KW_GROUPED_STRING_LITERALS:
+			return "KW_GROUPED_STRING_LITERALS";
+		case TokenType::KW_TABLE_LOOKUP:
+			return "KW_TABLE_LOOKUP";
+		case TokenType::KW_MACHINE_LOOKUP:
+			return "KW_MACHINE_LOOKUP";
+		case TokenType::KW_BACKTRACKING:
+			return "KW_BACKTRACKING";
+		case TokenType::KW_PREDICTION:
+			return "KW_PREDICTION";
+		case TokenType::KW_CATEGORY:
+			return "KW_CATEGORY";
+
+
 		case TokenType::CURLY_LEFT:
 			return "CURLY_LEFT";
 		case TokenType::CURLY_RIGHT:
 			return "CURLY_RIGHT";
 		case TokenType::IDENTIFIER:
 			return "IDENTIFIER";
-		case TokenType::KW_REGEX:
-			return "KW_REGEX";
-		case TokenType::KW_TOKEN:
-			return "KW_TOKEN";
+		
 		case TokenType::NUMBER:
 			return "NUMBER";
 		case TokenType::OP_AMPERSAND:

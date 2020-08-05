@@ -44,6 +44,7 @@ private:
 		std::pair<std::string, TokenType>("regex", TokenType::KW_REGEX),
 		std::pair<std::string, TokenType>("production", TokenType::KW_PRODUCTION),
 		std::pair<std::string, TokenType>("rule", TokenType::KW_RULE),
+		std::pair<std::string, TokenType>("category", TokenType::KW_CATEGORY),
 		std::pair<std::string, TokenType>("deterministic", TokenType::KW_DETERMINISTIC),
 		std::pair<std::string, TokenType>("non_deterministic", TokenType::KW_NONDETERMINISTIC),
 		std::pair<std::string, TokenType>("finite", TokenType::KW_FINITE),

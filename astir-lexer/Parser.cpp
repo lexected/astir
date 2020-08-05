@@ -132,6 +132,11 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 			}
 		} while (true);
 
+		if (it->type != TokenType::CURLY_RIGHT) {
+			throw UnexpectedTokenException(*it, "a statement or definition body opening bracket '}'", "for finite automaton definition", *savedIt);
+		}
+		++it;
+
 		// no need for move, according to 'internet'
 		return faDef;
 	}
@@ -140,6 +145,67 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 }
 
 std::unique_ptr<Statement> Parser::parseStatement(std::list<Token>::const_iterator& it) const {
-	// implement
-	return std::unique_ptr<Statement>();
+	auto initIt = it;
+	if (it->type == TokenType::KW_CATEGORY) {
+		++it;
+		std::unique_ptr<CategoryStatement> catstat = make_unique<CategoryStatement>();
+
+		if (it->type != TokenType::IDENTIFIER) {
+			throw UnexpectedTokenException(*it, "an identifier for the category name", "for category declaration", *initIt);
+		}
+		catstat->name = it->string;
+		++it;
+		
+		if (it->type == TokenType::OP_COLON) {
+			++it;
+			do {
+				if (it->type != TokenType::IDENTIFIER) {
+					throw UnexpectedTokenException(*it, "an category name identifier", "for inheritance in category declaration", *initIt);
+				}
+				catstat->categories.push_back(it->string);
+				++it;
+
+				if (it->type != TokenType::OP_COMMA) {
+					break;
+				}
+				++it;
+			} while (true);
+		}
+
+		if (it->type == TokenType::OP_SEMICOLON) {
+			return catstat;
+		}
+
+		if (it->type != TokenType::OP_EQUALS) {
+			throw UnexpectedTokenException(*it, "'=' followed by a list of qualified names", "for category declaration", *initIt);
+		}
+
+		std::unique_ptr<QualifiedName> lastName;
+		do {
+			auto savedIt = it;
+			lastName = Parser::parseQualifiedName(it);
+			if (lastName != nullptr) {
+				catstat->qualifiedNames.push_back(std::move(lastName));
+			} else {
+				it = savedIt;
+				break;
+			}
+		} while (true);
+
+		if (it->type != TokenType::OP_SEMICOLON) {
+			throw UnexpectedTokenException(*it, "the terminal semicolon ';'", "for category definition", *initIt);
+		}
+
+		return catstat;
+	} else if (it->type == TokenType::KW_REGEX) {
+		
+	} else if (it->type == TokenType::KW_TOKEN) {
+		
+	} else if (it->type == TokenType::KW_RULE) {
+		
+	} else if (it->type == TokenType::KW_PRODUCTION) {
+		
+	} else {
+		return nullptr;
+	}
 }
