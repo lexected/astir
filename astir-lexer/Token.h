@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "Exception.h"
+
 enum class TokenType {
 	KW_TOKEN,
 	KW_REGEX,
@@ -60,5 +62,14 @@ struct Token {
 	TokenType type;
 	std::string string;
 
-	Token() : line(1), column(1), type(TokenType::IDENTIFIER), string() {}
+	Token()
+		: line(1), column(1), type(TokenType::IDENTIFIER), string() {}
+
+	std::string typeString() const;
+	std::string locationString() const;
+
+	std::string toString() const;
+	std::string toHumanString() const;
+
+	static std::string convertTypeToString(TokenType type);
 };

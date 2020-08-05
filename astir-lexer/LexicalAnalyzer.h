@@ -5,6 +5,7 @@
 #include <map>
 
 #include "Token.h"
+#include "Exception.h"
 
 enum class LexicalAnalyzerState {
 	Default,
@@ -14,10 +15,10 @@ enum class LexicalAnalyzerState {
 	LeftArrow
 };
 
-class LexicalAnalyzerException : std::exception {
+class LexicalAnalyzerException : public Exception {
 public:
 	LexicalAnalyzerException(const std::string& errmsg)
-		: std::exception(errmsg.c_str()) {}
+		: Exception(errmsg) {}
 };
 
 class LexicalAnalyzer {
@@ -28,8 +29,6 @@ public:
 	void resetInternalState();
 	void resetPositionState();
 	void resetState();
-
-	static std::string tokenTypeToString(TokenType type);
 private:
 	unsigned int m_currentColumn;
 	unsigned int m_currentLine;

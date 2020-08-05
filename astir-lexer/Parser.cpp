@@ -1,5 +1,7 @@
 #include "Parser.h"
 
+#include <set>
+
 using namespace std;
 
 std::unique_ptr<Specification> Parser::parse(const std::list<Token>& tokens) const {
@@ -22,6 +24,7 @@ std::unique_ptr<Specification> Parser::parse(const std::list<Token>& tokens) con
 }
 
 std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Token>::const_iterator & it) const {
+	auto savedIt = it;
 	if (it->type == TokenType::KW_DETERMINISTIC || it->type == TokenType::KW_NONDETERMINISTIC || it->type == TokenType::KW_FINITE) {
 		std::unique_ptr<FADefinition> faDef = std::make_unique<FADefinition>();
 
@@ -33,36 +36,76 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 		faDef->type = faType;
 
 		if (it->type != TokenType::KW_FINITE) {
-			// throw
+			throw UnexpectedTokenException(*it, "the keyword 'finite'", "for finite automaton declaration", *savedIt);
 		}
 		++it;
 
 		if (it->type != TokenType::KW_AUTOMATON) {
-			// throw
+			throw UnexpectedTokenException(*it, "the keyword 'automaton'", "for finite automaton declaration", *savedIt);
 		}
 		++it;
 
 		if (it->type != TokenType::IDENTIFIER) {
-			//throw
+			throw UnexpectedTokenException(*it, "an identifier", "for finite automaton declaration", *savedIt);
 		}
 		faDef->machineName = it->string;
 		++it;
 
 		if (it->type == TokenType::KW_WITH) {
-			// handle the with clauses
+			++it;
+			std::set<TokenType> usedAttributes;
+			if (it->type == TokenType::KW_GROUPED_STRING_LITERALS) {
+				if (usedAttributes.find(TokenType::KW_GROUPED_STRING_LITERALS) != usedAttributes.cend()) { 
+					throw UnexpectedTokenException(*it, "a previously unused attribute", "finite automaton declaration", *savedIt);
+				} else if(usedAttributes.find(TokenType::KW_INDIVIDUAL_STRING_LITERALS) != usedAttributes.cend()) {
+					throw UnexpectedTokenException(*it, "an attribute that does not contradict the previously used 'individual_string_literals'", "finite automaton declaration", *savedIt);
+				} else {
+					usedAttributes.insert(TokenType::KW_GROUPED_STRING_LITERALS);
+					faDef->attributes[FAFlag::GroupedStringLiterals] = true;
+				}
+			} else if (it->type == TokenType::KW_INDIVIDUAL_STRING_LITERALS) {
+				if (usedAttributes.find(TokenType::KW_GROUPED_STRING_LITERALS) != usedAttributes.cend()) {
+					throw UnexpectedTokenException(*it, "an attribute that does not contradict the previously used 'grouped_string_literals'", "finite automaton declaration", *savedIt);
+				} else if (usedAttributes.find(TokenType::KW_INDIVIDUAL_STRING_LITERALS) != usedAttributes.cend()) {
+					throw UnexpectedTokenException(*it, "a previously unused attribute", "finite automaton declaration", *savedIt);
+				} else {
+					usedAttributes.insert(TokenType::KW_INDIVIDUAL_STRING_LITERALS);
+					faDef->attributes[FAFlag::GroupedStringLiterals] = false;
+				}
+			} else if (it->type == TokenType::KW_TABLE_LOOKUP) {
+				if (usedAttributes.find(TokenType::KW_TABLE_LOOKUP) != usedAttributes.cend()) {
+					throw UnexpectedTokenException(*it, "a previously unused attribute", "finite automaton declaration", *savedIt);
+				} else if (usedAttributes.find(TokenType::KW_MACHINE_LOOKUP) != usedAttributes.cend()) {
+					throw UnexpectedTokenException(*it, "an attribute that does not contradict the previously used 'machine_lookup'", "finite automaton declaration", *savedIt);
+				} else {
+					usedAttributes.insert(TokenType::KW_TABLE_LOOKUP);
+					faDef->attributes[FAFlag::TableLookup] = true;
+				}
+			} else if (it->type == TokenType::KW_MACHINE_LOOKUP) {
+				if (usedAttributes.find(TokenType::KW_TABLE_LOOKUP) != usedAttributes.cend()) {
+					throw UnexpectedTokenException(*it, "an attribute that does not contradict the previously used 'table_lookup'", "finite automaton declaration", *savedIt);
+				} else if (usedAttributes.find(TokenType::KW_MACHINE_LOOKUP) != usedAttributes.cend()) {
+					throw UnexpectedTokenException(*it, "a previously unused attribute", "finite automaton declaration", *savedIt);
+				} else {
+					usedAttributes.insert(TokenType::KW_MACHINE_LOOKUP);
+					faDef->attributes[FAFlag::TableLookup] = false;
+				}
+			} else {
+				throw UnexpectedTokenException(*it, "a valid finite automaton attribute", "finite automaton declaration", *savedIt);
+			}
 		}
 
 		if (it->type == TokenType::KW_EXTENDS) {
 			++it;
 			if (it->type != TokenType::IDENTIFIER) {
-				// throw
+				throw UnexpectedTokenException(*it, "an identifier for the target of 'extends'", "for finite automaton declaration", *savedIt);
 			}
 			faDef->extends = it->string;
 			++it;
 		} else if (it->type == TokenType::KW_FOLLOWS) {
 			++it;
 			if (it->type != TokenType::IDENTIFIER) {
-				// throw
+				throw UnexpectedTokenException(*it, "an identifier for the target of 'follows'", "for finite automaton declaration", *savedIt);
 			}
 			faDef->follows = it->string;
 			++it;
@@ -74,7 +117,7 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 		}
 
 		if (it->type != TokenType::CURLY_LEFT) {
-			// throw
+			throw UnexpectedTokenException(*it, "definition body opening bracket '{'", "for finite automaton definition", *savedIt);
 		}
 		++it;
 
@@ -96,7 +139,7 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 	return nullptr;
 }
 
-std::unique_ptr<MachineDefinition> Parser::parseStatement(std::list<Token>::const_iterator& it) const {
+std::unique_ptr<Statement> Parser::parseStatement(std::list<Token>::const_iterator& it) const {
 	// implement
-	return std::unique_ptr<MachineDefinition>();
+	return std::unique_ptr<Statement>();
 }

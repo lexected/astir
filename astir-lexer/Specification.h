@@ -2,6 +2,7 @@
 
 #include <list>
 #include <memory>
+#include <map>
 
 template <class ProductionType>
 using StandardList = std::list<std::unique_ptr<ProductionType>>;
@@ -30,11 +31,20 @@ enum class FAType {
 	Nondeterministic
 };
 
+enum class FAFlag {
+	GroupedStringLiterals,
+	TableLookup
+};
+
 struct FADefinition : public MachineDefinition {
 	FAType type;
+	std::map<FAFlag, bool> attributes;
 
 	FADefinition(FAType type, const std::string& name, const StandardList<Statement>& statements, const std::string& extends, const std::string& follows)
-		: type(type), MachineDefinition(name, statements, extends, follows) { }
+		: type(type), MachineDefinition(name, statements, extends, follows), attributes({ 
+			{ FAFlag::GroupedStringLiterals, false },
+			{ FAFlag::TableLookup, false } 
+		}) { }
 };
 
 struct Statement {
