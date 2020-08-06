@@ -1,5 +1,6 @@
 /*
 	RECOGNIZED TOKENS:
+		KW_USING
 		KW_TOKEN
 		KW_REGEX
 		KW_PRODUCTION
@@ -58,11 +59,16 @@
 */
 
 production specification = 
-	machineDefinitionList
+	specificationStatement*
 	;
 
-rule machineDefinitionList =
-	machineDefinition*
+production specificationStatement =
+	machineDefinition
+	| usingStatement
+	;
+
+production usingStatement =
+	KW_USING STRING
 	;
 
 production machineDefinition =

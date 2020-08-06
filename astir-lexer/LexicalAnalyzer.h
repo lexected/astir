@@ -40,6 +40,7 @@ private:
 	bool m_endOfStreamReached;
 
 	const std::map<std::string, TokenType> m_keywordMap = std::map<std::string, TokenType>({
+		std::pair<std::string, TokenType>("using", TokenType::KW_USING),
 		std::pair<std::string, TokenType>("token", TokenType::KW_TOKEN),
 		std::pair<std::string, TokenType>("regex", TokenType::KW_REGEX),
 		std::pair<std::string, TokenType>("production", TokenType::KW_PRODUCTION),

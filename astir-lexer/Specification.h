@@ -12,15 +12,23 @@ using StandardList = std::list<std::unique_ptr<ProductionType>>;
 	It's usually much better to create a 'minimal' initialization in in the default constructor and have everything else done from outside by the relevant parsing procedure.
 */
 
-struct MachineDefinition;
+struct SpecificationStatement;
 struct Specification {
-	StandardList<MachineDefinition> machineDefinitions;
+	StandardList<SpecificationStatement> statements;
 };
 
-struct Statement;
-struct MachineDefinition {
+struct SpecificationStatement {
+
+};
+
+struct UsingStatement : public SpecificationStatement {
+	std::string filePath;
+};
+
+struct MachineStatement;
+struct MachineDefinition : public SpecificationStatement {
 	std::string machineName;
-	StandardList<Statement> statements;
+	StandardList<MachineStatement> statements;
 	std::string extends;
 	std::string follows;
 
@@ -59,20 +67,20 @@ enum class GrammarStatementType {
 	Production
 };
 
-struct Statement {
+struct MachineStatement {
 	std::string name;
 	std::list<std::string> categories;
 };
 
 struct Alternative;
-struct GrammarStatement : public Statement {
+struct GrammarStatement : public MachineStatement {
 	GrammarStatementType type;
 	StandardList<Alternative> alternatives;
 };
 
 struct QualifiedName;
 struct SpecifiedName;
-struct CategoryStatement : public Statement {
+struct CategoryStatement : public MachineStatement {
 	StandardList<QualifiedName> qualifiedNames;
 };
 

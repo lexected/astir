@@ -10,16 +10,39 @@ std::unique_ptr<Specification> Parser::parse(const std::list<Token>& tokens) con
 	unique_ptr<Specification> specification(new Specification);
 	while (it->type != TokenType::EOS) {
 		auto savedIt = it;
-		auto machineDefinition = Parser::parseMachineDefinition(it);
-		if (machineDefinition == nullptr) {
-			it = savedIt;
-			// throw
+		unique_ptr<SpecificationStatement> specificationStatement;
+		if ((specificationStatement = Parser::parseUsingStatement(it)) != nullptr) {
+			specification->statements.push_back(move(specificationStatement));
+		} else if ((specificationStatement = Parser::parseMachineDefinition(it)) != nullptr) {
+			specification->statements.push_back(move(specificationStatement));
+		} else {
+			throw ParserException("Unexpected input on specification level, expected a machine definition or a 'using' statement", *it, *savedIt);
 		}
-
-		specification->machineDefinitions.push_back(std::move(machineDefinition));
 	}
 
 	return specification;
+}
+
+std::unique_ptr<UsingStatement> Parser::parseUsingStatement(std::list<Token>::const_iterator& it) const {
+	auto savedIt = it;
+	if (it->type != TokenType::KW_USING) {
+		return nullptr;
+	}
+	++it;
+
+	unique_ptr<UsingStatement> usingStatement = make_unique<UsingStatement>();
+	if (it->type != TokenType::STRING) {
+		throw UnexpectedTokenException(*it, "a string with file path", "for 'using' statement", *savedIt);
+	}
+	usingStatement->filePath = it->string;
+	++it;
+
+	if (it->type != TokenType::OP_SEMICOLON) {
+		throw UnexpectedTokenException(*it, "terminal semicolon", "for 'using' statement", *savedIt);
+	}
+	++it;
+
+	return usingStatement;
 }
 
 std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Token>::const_iterator & it) const {
@@ -120,10 +143,10 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 		}
 		++it;
 
-		std::unique_ptr<Statement> lastStatement;
+		std::unique_ptr<MachineStatement> lastStatement;
 		do {
 			auto savedIt = it;
-			lastStatement = Parser::parseStatement(it);
+			lastStatement = Parser::parseMachineStatement(it);
 			if (lastStatement != nullptr) {
 				faDef->statements.push_back(std::move(lastStatement));
 			} else {
@@ -144,7 +167,7 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 	return nullptr;
 }
 
-std::unique_ptr<Statement> Parser::parseStatement(std::list<Token>::const_iterator& it) const {
+std::unique_ptr<MachineStatement> Parser::parseMachineStatement(std::list<Token>::const_iterator& it) const {
 	auto initIt = it;
 	if (it->type == TokenType::KW_CATEGORY) {
 		++it;

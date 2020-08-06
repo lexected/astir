@@ -24,6 +24,8 @@ std::string Token::locationString() const {
 
 std::string Token::convertTypeToString(TokenType type) {
 	switch (type) {
+		case TokenType::KW_USING:
+			return "KW_USING";
 		case TokenType::KW_TOKEN:
 			return "KW_TOKEN";
 		case TokenType::KW_REGEX:

@@ -5,6 +5,7 @@
 #include "Exception.h"
 
 enum class TokenType {
+	KW_USING,
 	KW_TOKEN,
 	KW_REGEX,
 	KW_PRODUCTION,
