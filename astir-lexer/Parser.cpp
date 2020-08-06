@@ -201,28 +201,36 @@ std::unique_ptr<MachineStatement> Parser::parseMachineStatement(std::list<Token>
 		}
 
 		if (it->type == TokenType::OP_SEMICOLON) {
+			++it;
 			return catstat;
 		}
 
-		if (it->type != TokenType::OP_EQUALS) {
-			throw UnexpectedTokenException(*it, "'=' followed by a list of qualified names", "for category declaration", *initIt);
+		if (it->type != TokenType::CURLY_LEFT) {
+			throw UnexpectedTokenException(*it, "'{' followed by member declarations", "for category definition", *initIt);
 		}
+		++it;
 
-		std::unique_ptr<QualifiedName> lastName;
+		std::unique_ptr<MemberDeclaration> lastDeclaration;
 		do {
 			auto savedIt = it;
-			lastName = Parser::parseQualifiedName(it);
-			if (lastName != nullptr) {
-				catstat->qualifiedNames.push_back(std::move(lastName));
+			lastDeclaration = Parser::parseMemberDeclaration(it);
+			if (lastDeclaration != nullptr) {
+				catstat->members.push_back(std::move(lastDeclaration));
 			} else {
 				it = savedIt;
 				break;
 			}
 		} while (true);
 
+		if (it->type != TokenType::CURLY_RIGHT) {
+			throw UnexpectedTokenException(*it, "a token for member declaration or the matching closing right curly bracket '}'", "for category definition", *initIt);
+		}
+		++it;
+
 		if (it->type != TokenType::OP_SEMICOLON) {
 			throw UnexpectedTokenException(*it, "the terminal semicolon ';'", "for category definition", *initIt);
 		}
+		++it;
 
 		return catstat;
 	} else if (it->type == TokenType::KW_REGEX || it->type == TokenType::KW_TOKEN || it->type == TokenType::KW_RULE || it->type == TokenType::KW_PRODUCTION) {
@@ -268,6 +276,27 @@ std::unique_ptr<MachineStatement> Parser::parseMachineStatement(std::list<Token>
 			} while (true);
 		}
 
+		if (it->type == TokenType::CURLY_LEFT) {
+			++it;
+
+			std::unique_ptr<MemberDeclaration> lastDeclaration;
+			do {
+				auto savedIt = it;
+				lastDeclaration = Parser::parseMemberDeclaration(it);
+				if (lastDeclaration != nullptr) {
+					grastat->members.push_back(std::move(lastDeclaration));
+				} else {
+					it = savedIt;
+					break;
+				}
+			} while (true);
+
+			if (it->type != TokenType::CURLY_RIGHT) {
+				throw UnexpectedTokenException(*it, "a token for member declaration or the matching closing right curly bracket '}'", "for "+ grammarStatementType +" definition", *initIt);
+			}
+			++it;
+		}
+
 		if (it->type != TokenType::OP_EQUALS) {
 			throw UnexpectedTokenException(*it, "'=' followed by a list of qualified names", "for " + grammarStatementType + " declaration", *initIt);
 		}
@@ -293,6 +322,7 @@ std::unique_ptr<MachineStatement> Parser::parseMachineStatement(std::list<Token>
 		if (it->type != TokenType::OP_SEMICOLON) {
 			throw UnexpectedTokenException(*it, "the terminal semicolon ';'", "for " + grammarStatementType + " definition", *initIt);
 		}
+		++it;
 
 		return grastat;
 	} else {
@@ -300,35 +330,51 @@ std::unique_ptr<MachineStatement> Parser::parseMachineStatement(std::list<Token>
 	}
 }
 
-std::unique_ptr<SpecifiedName> Parser::parseSpecifiedName(std::list<Token>::const_iterator& it) const {
-	std::unique_ptr<SpecifiedName> sname = make_unique<SpecifiedName>();
-	if (it->type != TokenType::IDENTIFIER) {
-		return nullptr;
-	}
-	sname->name = it->string;
-	++it;
-
-	return sname;
-}
-
-std::unique_ptr<QualifiedName> Parser::parseQualifiedName(std::list<Token>::const_iterator& it) const {
+std::unique_ptr<MemberDeclaration> Parser::parseMemberDeclaration(std::list<Token>::const_iterator& it) const {
 	auto savedIt = it;
-	auto specifiedName = parseSpecifiedName(it);
-	std::unique_ptr<QualifiedName> qname = make_unique<QualifiedName>();
-	qname->name = std::move(specifiedName->name);
+	MemberDeclaration* md;
+	if (it->type == TokenType::KW_FLAG || it->type == TokenType::KW_RAW) {
+		std::string typeForANicePersonalizedExceptionMessage = it->string;
+		md = it->type == TokenType::KW_FLAG ? dynamic_cast<MemberDeclaration *>(new FlagDeclaration) : dynamic_cast<MemberDeclaration*>(new RawDeclaration);
+		++it;
 
-	if (it->type != TokenType::OP_AT) {
-		throw UnexpectedTokenException(*it, "qualification operator '@'", "for qualified name in category definition body", *savedIt);
-	} 
-	++it;
+		if (it->type != TokenType::IDENTIFIER) {
+			throw UnexpectedTokenException(*it, "an identifier for member name to follow '" + typeForANicePersonalizedExceptionMessage + "'", "member declaration", *savedIt);
+		}
+		md->name = it->string;
+		++it;
+	} else {
+		if (it->type != TokenType::IDENTIFIER) {
+			return nullptr;
+		}
+		std::string typeName = it->string;
+		++it;
 
-	if (it->type != TokenType::IDENTIFIER) {
-		throw UnexpectedTokenException(*it, "an identifier for instance name", "for qualified name in category definition body", *savedIt);
+		auto vtd = new VariablyTypedDeclaration;
+		if (it->type == TokenType::KW_LIST) {
+			md = new ListDeclaration;
+			++it;
+		} else if (it->type == TokenType::KW_ITEM) {
+			md = new ItemDeclaration;
+			++it;
+		} else if (it->type == TokenType::IDENTIFIER) {
+			md = new ItemDeclaration;
+		} else {
+			throw UnexpectedTokenException(*it, "'list', 'item', or an identifier for item (implicitly assumed) name", "for member declaration");
+		}
+
+		vtd->name = it->string;
+		vtd->type = std::move(typeName);
+		md = vtd;
+		++it;
 	}
-	qname->instanceName = it->string;
+
+	if (it->type != TokenType::OP_SEMICOLON) {
+		throw UnexpectedTokenException(*it, "the terminal semicolon ';'", "for member declaration");
+	}
 	++it;
 
-	return qname;
+	return std::unique_ptr<MemberDeclaration>(md);
 }
 
 std::unique_ptr<Alternative> Parser::parseAlternative(std::list<Token>::const_iterator& it) const {
@@ -542,7 +588,7 @@ std::unique_ptr<AtomicRegex> Parser::parseAtomicRegex(std::list<Token>::const_it
 		return make_unique<LineEndRegex>();
 	} else if (it->type == TokenType::IDENTIFIER) {
 		auto rr = make_unique<ReferenceRegex>();
-		rr->referenceName.name = it->string;
+		rr->referenceName = it->string;
 		return rr;
 	} else {
 		throw UnexpectedTokenException(*it, "a token to begin an atomic regex", "for atomic regex", *savedIt);

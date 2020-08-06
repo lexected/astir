@@ -16,8 +16,7 @@ public:
 	std::unique_ptr<MachineDefinition> parseMachineDefinition(std::list<Token>::const_iterator & it) const;
 	std::unique_ptr<MachineStatement> parseMachineStatement(std::list<Token>::const_iterator& it) const;
 
-	std::unique_ptr<SpecifiedName> parseSpecifiedName(std::list<Token>::const_iterator& it) const;
-	std::unique_ptr<QualifiedName> parseQualifiedName(std::list<Token>::const_iterator& it) const;
+	std::unique_ptr<MemberDeclaration> parseMemberDeclaration(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<Alternative> parseAlternative(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<RootRegex> parseRootRegex(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<RepetitiveRegex> parseRepetitiveRegex(std::list<Token>::const_iterator& it) const;

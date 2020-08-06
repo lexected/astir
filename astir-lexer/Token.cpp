@@ -86,6 +86,13 @@ std::string Token::convertTypeToString(TokenType type) {
 		case TokenType::KW_RIGHT_TRIM:
 			return "KW_RIGHT_TRIM";
 
+		case TokenType::KW_ITEM:
+			return "KW_ITEM";
+		case TokenType::KW_LIST:
+			return "KW_LIST";
+		case TokenType::KW_RAW:
+			return "KW_RAW";
+
 		case TokenType::CURLY_LEFT:
 			return "CURLY_LEFT";
 		case TokenType::CURLY_RIGHT:

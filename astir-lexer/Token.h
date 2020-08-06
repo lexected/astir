@@ -37,6 +37,10 @@ enum class TokenType {
 	KW_LEFT_TRIM,
 	KW_RIGHT_TRIM,
 
+	KW_ITEM,
+	KW_LIST,
+	KW_RAW,
+
 	IDENTIFIER,
 	STRING,
 	NUMBER,

@@ -67,9 +67,17 @@ enum class GrammarStatementType {
 	Production
 };
 
+struct MemberDeclaration;
 struct MachineStatement {
 	std::string name;
 	std::list<std::string> categories;
+	StandardList<MemberDeclaration> members;
+
+	virtual ~MachineStatement() = default;
+};
+
+struct CategoryStatement : public MachineStatement {
+
 };
 
 struct Alternative;
@@ -78,18 +86,30 @@ struct GrammarStatement : public MachineStatement {
 	StandardList<Alternative> alternatives;
 };
 
-struct QualifiedName;
-struct SpecifiedName;
-struct CategoryStatement : public MachineStatement {
-	StandardList<QualifiedName> qualifiedNames;
-};
-
-struct SpecifiedName {
+struct MemberDeclaration {
 	std::string name;
+
+	virtual ~MemberDeclaration() = default;
 };
 
-struct QualifiedName : public SpecifiedName {
-	std::string instanceName;
+struct FlagDeclaration : public MemberDeclaration {
+	
+};
+
+struct RawDeclaration : public MemberDeclaration {
+
+};
+
+struct VariablyTypedDeclaration : public MemberDeclaration {
+	std::string type;
+};
+
+struct ItemDeclaration : public VariablyTypedDeclaration {
+	
+};
+
+struct ListDeclaration : public VariablyTypedDeclaration {
+
 };
 
 struct RootRegex;
@@ -98,7 +118,7 @@ struct Alternative {
 };
 
 struct RootRegex {
-	
+	virtual ~RootRegex() = default;
 };
 
 struct ActionAtomicRegex;
@@ -141,7 +161,7 @@ struct ActionAtomicRegex : public RootRegex {
 };
 
 struct AtomicRegex {
-
+	virtual ~AtomicRegex() = default;
 };
 
 struct RegexRange {
@@ -171,7 +191,7 @@ struct LiteralRegex : public AtomicRegex {
 };
 
 struct ReferenceRegex : public AtomicRegex {
-	SpecifiedName referenceName;
+	std::string referenceName;
 };
 
 struct ArbitraryLiteralRegex : public AtomicRegex {

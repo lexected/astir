@@ -26,12 +26,15 @@ nondeterministic finite automaton ExampleTokenizer with individual_string_litera
 }
 
 recursive_descent parser ExampleParser follows ExampleTokenizer {
-	category declaration =
-		identifier@name
-	;
+	category declaration {
+		identifier item name;
+		identifier list interfaces;
+		flag isAlsoDefinition;
+		string _randomText;
+	};
 
-	production functionSpecification =
-		keyword_function identifier@name "(" functionArgument*@parameters ")" ";" : declaration
-		| keyword_function identifier@name "(" functionArgument*@parameters ")" "{" functionBodyStatement*@statements "}" : declaration, definition
+	production functionSpecification : declaration =
+		keyword_function identifier@set:name "(" functionArgument*@parameters ")" ";"
+		| keyword_function identifier@set:name "(" functionArgument*@parameters ")" "{"@flag:isAlsoDefinition functionBodyStatement*@statements "}"
 		;
 }

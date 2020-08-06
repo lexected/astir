@@ -69,6 +69,9 @@ private:
 		std::pair<std::string, TokenType>("prepend", TokenType::KW_PREPEND),
 		std::pair<std::string, TokenType>("clear", TokenType::KW_CLEAR),
 		std::pair<std::string, TokenType>("left_trim", TokenType::KW_LEFT_TRIM),
-		std::pair<std::string, TokenType>("right_trim", TokenType::KW_RIGHT_TRIM)
+		std::pair<std::string, TokenType>("right_trim", TokenType::KW_RIGHT_TRIM),
+		std::pair<std::string, TokenType>("item", TokenType::KW_ITEM),
+		std::pair<std::string, TokenType>("list", TokenType::KW_LIST),
+		std::pair<std::string, TokenType>("raw", TokenType::KW_RAW)
 		});
 };

@@ -22,6 +22,10 @@
 		KW_PREDICTION
 		KW_CATEGORY
 
+		KW_ITEM
+		KW_LIST
+		KW_RAW
+
 		KW_SET
 		KW_UNSET
 		KW_FLAG
@@ -99,10 +103,20 @@ production statement =
 	;
 
 production categoryStatement =
-	KW_CATEGORY IDENTIFIER OP_EQUALS categoryStatementBody OP_SEMICOLON
-	| KW_CATEGORY IDENTIFIER OP_COLON declarationNameList OP_EQUALS categoryStatementBody OP_SEMICOLON
-	| KW_CATEGORY IDENTIFIER OP_COLON declarationNameList OP_SEMICOLON
-	| KW_CATEGORY IDENTIFIER OP_SEMICOLON
+	KW_CATEGORY IDENTIFIER memberDeclarationBody? OP_EQUALS categoryStatementBody OP_SEMICOLON
+	| KW_CATEGORY IDENTIFIER OP_COLON declarationNameList memberDeclarationBody? OP_EQUALS categoryStatementBody OP_SEMICOLON
+	| KW_CATEGORY IDENTIFIER OP_COLON declarationNameList memberDeclarationBody? OP_SEMICOLON
+	| KW_CATEGORY IDENTIFIER memberDeclarationBody? OP_SEMICOLON
+	;
+
+rule memberDeclarationBody = 
+	(CURLY_LEFT memberDeclaration* CURLY_RIGHT)
+	;
+
+production memberDeclaration =
+	KW_FLAG IDENTIFIER OP_SEMICOLON
+	| KW_RAW IDENTIFIER OP_SEMICOLON
+	| IDENTIFIER (KW_LIST|KW_ITEM?) IDENTIFIER OP_SEMICOLON
 	;
 
 rule categoryStatementBody =
@@ -116,8 +130,8 @@ production qualifiedName =
 	;
 
 production grammarStatement =
-	grammarStatementType IDENTIFIER OP_EQUALS grammarStatementBody OP_SEMICOLON
-	| grammarStatementType IDENTIFIER OP_COLON declarationNameList OP_EQUALS grammarStatementBody OP_SEMICOLON
+	grammarStatementType IDENTIFIER memberDeclarationBody? OP_EQUALS grammarStatementBody OP_SEMICOLON
+	| grammarStatementType IDENTIFIER OP_COLON declarationNameList memberDeclarationBody? OP_EQUALS grammarStatementBody OP_SEMICOLON
 	;
 
 rule grammarStatementType =
