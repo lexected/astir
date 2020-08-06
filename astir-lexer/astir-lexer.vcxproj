@@ -145,7 +145,7 @@
     <ClCompile Include="Token.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="ExampleFile.alex" />
+    <None Include="ExampleFile.astir" />
     <None Include="Grammar.apar" />
   </ItemGroup>
   <ItemGroup>

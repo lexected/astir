@@ -4,7 +4,7 @@
 #include "LexicalAnalyzer.h"
 
 int main(int argc, char* argv[]) {
-	std::fstream inputFile("ExampleFile.alex");
+	std::fstream inputFile("ExampleFile.astir");
 
 	LexicalAnalyzer analyzer;
 	auto tokenList = analyzer.process(inputFile);
