@@ -124,6 +124,9 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 						case '-':
 							m_currentToken.type = TokenType::OP_DASH;
 							break;
+						case '@':
+							m_currentToken.type = TokenType::OP_AT;
+							break;
 						default:
 							throw LexicalAnalyzerException("Unrecognized character '" + m_currentToken.string + "' found on line " + std::to_string(m_currentLine) + ":" + std::to_string(m_currentColumn));
 							break;
@@ -133,7 +136,7 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 				}
 				break;
 			case LexicalAnalyzerState::Identifier:
-				if (std::isalnum(m_currentCharacter) && !m_endOfStreamReached) {
+				if ((std::isalnum(m_currentCharacter) || m_currentCharacter == '_') && !m_endOfStreamReached) {
 					m_currentToken.string.append(std::string({ m_currentCharacter }));
 				} else {
 					decltype(m_keywordMap)::const_iterator it;

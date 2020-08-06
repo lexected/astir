@@ -21,6 +21,16 @@
 		KW_PREDICTION
 		KW_CATEGORY
 
+		KW_SET
+		KW_UNSET
+		KW_FLAG
+		KW_UNFLAG
+		KW_APPEND
+		KW_PREPEND
+		KW_CLEAR
+		KW_LEFT_TRIM
+		KW_RIGHT_TRIM
+
 		IDENTIFIER
 		NUMBER
 		STRING
@@ -94,7 +104,9 @@ rule categoryStatementBody =
 	;
 
 production qualifiedName =
-	specializedName OP_AT identifier
+	specifiedName OP_AT KW_ITEM OP_COLON identifier
+	| specifiedName OP_AT KW_LIST OP_COLON identifier
+	| specifiedName OP_AT KW_FLAG OP_COLON identifier
 	;
 
 production grammarStatement =
@@ -119,41 +131,42 @@ production grammarStatementBody =
 	;
 
 production alternative = 
-	qualifiedRegex*
+	rootRegex*
 	;
 
-production qualifiedRegex =
-	namableRegex (OP_AT IDENTIFIER)?
-	;
-
-production namableRegex =
+production rootRegex =
 	repetitiveRegex
 	| lookaheadRegex
-	| atomicRegex
+	| actionAtomicRegex
 	;
 
 production repetitiveRegex =
-	atomicRegex OP_STAR
-	| atomicRegex OP_PLUS
-	| atomicRegex CURLY_LEFT NUMBER, NUMBER CURLY_RIGHT
-	| atomicRegex OP_QM
+	actionAtomicRegex OP_STAR
+	| actionAtomicRegex OP_PLUS
+	| actionAtomicRegex CURLY_LEFT NUMBER, NUMBER CURLY_RIGHT
+	| actionAtomicRegex OP_QM
 	;
 
 production lookaheadRegex =
-	atomicRegex OP_FWDSLASH namableRegex
+	actionAtomicRegex OP_FWDSLASH rootRegex
 	;
 
-production atomicRegex : namableRegex =
+production actionAtomicRegex =
+	PAR_LEFT atomicRegex (OP_AT action : IDENTIFIER)* PAR_RIGHT
+	| atomicRegex (OP_AT action : IDENTIFIER)*
+	;
+	
+production atomicRegex : rootRegex =
 	SQUARE_LEFT OP_CARET STRING+ SQUARE_RIGHT
 	| SQUARE_LEFT OP_CARET regexRange+ SQUARE_RIGHT
 	| SQUARE_LEFT STRING+ SQUARE_RIGHT
 	| SQUARE_LEFT regexRange+ SQUARE_RIGHT
 	| PAR_LEFT disjunctiveRegex PAR_RIGHT
 	| STRING
-	| specializedName
 	| OP_DOT
 	| OP_CARET
 	| OP_DOLLAR
+	| specifiedName
 	;
 
 production regexRange =
@@ -161,13 +174,29 @@ production regexRange =
 	;
 
 production disjunctiveRegex =
-	conjuctiveRegex+
+	conjuctiveRegex (OP_OR conjuctiveRegex)*
 	;
 
 production conjunctiveRegex =
-	namableRegex+
+	rootRegex+
 	;
 
-production specializedName =
-	IDENTIFIER (OP_AMPERSAND IDENTIFIER)*
+production specifiedName =
+	IDENTIFIER
+	;
+
+production operationalName =
+	specifiedName (OP_AT action OP_COLON IDENTIFIER)
+	;
+
+production action =
+	KW_SET
+	| KW_UNSET
+	| KW_FLAG
+	| KW_UNFLAG
+	| KW_APPEND
+	| KW_PREPEND
+	| KW_CLEAR
+	| KW_LEFT_TRIM
+	| KW_RIGHT_TRIM
 	;

@@ -65,6 +65,24 @@ std::string Token::convertTypeToString(TokenType type) {
 		case TokenType::KW_CATEGORY:
 			return "KW_CATEGORY";
 
+		case TokenType::KW_SET:
+			return "KW_SET";
+		case TokenType::KW_UNSET:
+			return "KW_UNSET";
+		case TokenType::KW_FLAG:
+			return "KW_FLAG";
+		case TokenType::KW_UNFLAG:
+			return "KW_UNFLAG";
+		case TokenType::KW_APPEND:
+			return "KW_APPEND";
+		case TokenType::KW_PREPEND:
+			return "KW_PREPEND";
+		case TokenType::KW_CLEAR:
+			return "KW_CLEAR";
+		case TokenType::KW_LEFT_TRIM:
+			return "KW_LEFT_TRIM";
+		case TokenType::KW_RIGHT_TRIM:
+			return "KW_RIGHT_TRIM";
 
 		case TokenType::CURLY_LEFT:
 			return "CURLY_LEFT";
