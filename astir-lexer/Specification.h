@@ -85,66 +85,81 @@ struct CategoryStatement : public MachineStatement {
 };
 
 struct SpecifiedName {
-	std::list<std::string> queriedCategories;
+	std::string name;
 };
 
 struct QualifiedName : public SpecifiedName {
 	std::string instanceName;
 };
 
-struct QualifiedRegex;
+struct RootRegex;
 struct Alternative {
-	StandardList<QualifiedRegex> qualifiedRegexes;
+	StandardList<RootRegex> rootRegexes;
 };
 
-struct NamableRegex;
-struct QualifiedRegex {
-	bool hasInstanceName;
-	std::string instanceName;
-	std::unique_ptr<NamableRegex> regex;
-};
-
-/* namable regexes differ from the regexes with alternatives in that they can not on their own have alternatives on their top level */
-struct NamableRegex {
+struct RootRegex {
 	
 };
 
-struct RepetitiveRegex : public NamableRegex {
-	unsigned int minRepetitions;
-	unsigned int maxRepetitions;
+struct ActionAtomicRegex;
+struct RepetitiveRegex : public RootRegex {
+	std::unique_ptr<ActionAtomicRegex> actionAtomicRegex;
+	unsigned long minRepetitions;
+	unsigned long maxRepetitions;
+
+	const unsigned long INFINITE_REPETITIONS = (unsigned long)((signed int)-1);
+
+	RepetitiveRegex() : minRepetitions(0), maxRepetitions(0) { }
 };
 
 struct AtomicRegex;
-struct LookaheadRegex : public NamableRegex {
-	std::unique_ptr<AtomicRegex> match;
-	std::unique_ptr<NamableRegex> lookahead;
+struct LookaheadRegex : public RootRegex {
+	std::unique_ptr<ActionAtomicRegex> match;
+	std::unique_ptr<AtomicRegex> lookahead;
 };
 
-struct AtomicRegex : public NamableRegex { };
+enum class RegexAction {
+	Set,
+	Unset,
+	Flag,
+	Unflag,
+	Append,
+	Prepend,
+	Clear,
+	LeftTrim,
+	RightTrim,
+
+	None
+};
+struct ActionTargetPair {
+	RegexAction action = RegexAction::None;
+	std::string target;
+};
+struct ActionAtomicRegex : public RootRegex {
+	std::list<ActionTargetPair> actionTargetPairs;
+	std::unique_ptr<AtomicRegex> regex;
+};
+
+struct AtomicRegex {
+
+};
 
 struct RegexRange {
-	std::string start;
-	std::string end;
+	char start;
+	char end;
 };
 
-struct AnyLiteralRegex : public AtomicRegex {
+struct AnyRegex : public AtomicRegex {
 	std::list<std::string> literals;
-};
-
-struct AnyRangeRegex : public AtomicRegex {
 	std::list<RegexRange> ranges;
 };
 
-struct ExceptAnyLiteralRegex : public AtomicRegex {
-	std::list<std::string> literals;
-};
-
-struct ExceptAnyRangeRegex : public AtomicRegex {
-	std::list<RegexRange> ranges;
+struct ExceptAnyRegex : public AnyRegex {
+	
 };
 
 struct ConjunctiveRegex {
-	StandardList<NamableRegex> conjunction;
+	StandardList<RootRegex> conjunction;
 };
 
 struct DisjunctiveRegex : public AtomicRegex {
@@ -152,7 +167,7 @@ struct DisjunctiveRegex : public AtomicRegex {
 };
 
 struct LiteralRegex : public AtomicRegex {
-	
+	std::string literal;
 };
 
 struct ReferenceRegex : public AtomicRegex {

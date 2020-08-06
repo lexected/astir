@@ -30,8 +30,8 @@ public:
 	void resetPositionState();
 	void resetState();
 private:
-	unsigned int m_currentColumn;
-	unsigned int m_currentLine;
+	unsigned long m_currentColumn;
+	unsigned long m_currentLine;
 	LexicalAnalyzerState m_state;
 	Token m_currentToken;
 

@@ -19,6 +19,16 @@ public:
 	std::unique_ptr<SpecifiedName> parseSpecifiedName(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<QualifiedName> parseQualifiedName(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<Alternative> parseAlternative(std::list<Token>::const_iterator& it) const;
+	std::unique_ptr<RootRegex> parseRootRegex(std::list<Token>::const_iterator& it) const;
+	std::unique_ptr<RepetitiveRegex> parseRepetitiveRegex(std::list<Token>::const_iterator& it) const;
+	std::unique_ptr<LookaheadRegex> parseLookaheadRegex(std::list<Token>::const_iterator& it) const;
+	std::unique_ptr<ActionAtomicRegex> parseActionAtomicRegex(std::list<Token>::const_iterator& it) const;
+	RegexAction parseRegexAction(std::list<Token>::const_iterator& it) const;
+
+	std::unique_ptr<AtomicRegex> parseAtomicRegex(std::list<Token>::const_iterator& it) const;
+	std::unique_ptr<AnyRegex> parseAnyRegex(std::list<Token>::const_iterator& it) const;
+	std::unique_ptr<ConjunctiveRegex> parseConjunctiveRegex(std::list<Token>::const_iterator& it) const;
+	std::unique_ptr<DisjunctiveRegex> parseDisjunctiveRegex(std::list<Token>::const_iterator& it) const;
 };
 
 class ParserException : public Exception {

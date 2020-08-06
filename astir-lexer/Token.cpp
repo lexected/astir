@@ -136,6 +136,6 @@ std::string Token::convertTypeToString(TokenType type) {
 		case TokenType::STRING:
 			return "STRING";
 		default:
-			throw Exception("Unrecognized token type: " + std::to_string((unsigned int)type));
+			throw Exception("Unrecognized token type: " + std::to_string((unsigned long)type));
 	}
 }

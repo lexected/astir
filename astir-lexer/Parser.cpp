@@ -4,6 +4,11 @@
 
 using namespace std;
 
+/*
+	A VERY IMPORTANT RULE:
+	 --- IF YOU'RE RETURNING NULLPTR, YOU ARE RESPONSIBLE FOR MAKING SURE IT POINTS TO WHERE IT WAS POINTING WHEN IT WAS PASSED TO YOU ---
+*/
+
 std::unique_ptr<Specification> Parser::parse(const std::list<Token>& tokens) const {
 	auto it = tokens.begin();
 
@@ -266,6 +271,7 @@ std::unique_ptr<MachineStatement> Parser::parseMachineStatement(std::list<Token>
 		if (it->type != TokenType::OP_EQUALS) {
 			throw UnexpectedTokenException(*it, "'=' followed by a list of qualified names", "for " + grammarStatementType + " declaration", *initIt);
 		}
+		++it;
 
 		auto savedIt = it;
 		std::unique_ptr<Alternative> lastAlternative = Parser::parseAlternative(it);
@@ -299,21 +305,8 @@ std::unique_ptr<SpecifiedName> Parser::parseSpecifiedName(std::list<Token>::cons
 	if (it->type != TokenType::IDENTIFIER) {
 		return nullptr;
 	}
-	sname->queriedCategories.push_back(it->string);
+	sname->name = it->string;
 	++it;
-
-	do {
-		if (it->type != TokenType::OP_AMPERSAND) {
-			break;
-		}
-		++it;
-
-		if (it->type != TokenType::IDENTIFIER) {
-			throw UnexpectedTokenException(*it, "an identifier to follow the ampersand qualification operator", "for specialized name");
-		}
-		sname->queriedCategories.push_back(it->string);
-		++it;
-	} while (true);
 
 	return sname;
 }
@@ -322,7 +315,7 @@ std::unique_ptr<QualifiedName> Parser::parseQualifiedName(std::list<Token>::cons
 	auto savedIt = it;
 	auto specifiedName = parseSpecifiedName(it);
 	std::unique_ptr<QualifiedName> qname = make_unique<QualifiedName>();
-	qname->queriedCategories = std::move(specifiedName->queriedCategories);
+	qname->name = std::move(specifiedName->name);
 
 	if (it->type != TokenType::OP_AT) {
 		throw UnexpectedTokenException(*it, "qualification operator '@'", "for qualified name in category definition body", *savedIt);
@@ -339,5 +332,303 @@ std::unique_ptr<QualifiedName> Parser::parseQualifiedName(std::list<Token>::cons
 }
 
 std::unique_ptr<Alternative> Parser::parseAlternative(std::list<Token>::const_iterator& it) const {
-	return std::unique_ptr<Alternative>();
+	std::unique_ptr<Alternative> alternative = make_unique<Alternative>();
+
+	unique_ptr<RootRegex> lastRootRegex = parseRootRegex(it);
+	while (lastRootRegex != nullptr) {
+		alternative->rootRegexes.push_back(move(lastRootRegex));
+		lastRootRegex = parseRootRegex(it);
+	}
+	
+	return alternative;
+}
+
+std::unique_ptr<RootRegex> Parser::parseRootRegex(std::list<Token>::const_iterator& it) const {
+	unique_ptr<RootRegex> rr;
+	if ((rr = parseRepetitiveRegex(it)) != nullptr) {
+		return rr;
+	} else if ((rr = parseLookaheadRegex(it)) != nullptr) {
+		return rr;
+	} else if ((rr = parseActionAtomicRegex(it)) != nullptr) {
+		return rr;
+	} else {
+		return nullptr;
+	}
+}
+
+std::unique_ptr<RepetitiveRegex> Parser::parseRepetitiveRegex(std::list<Token>::const_iterator& it) const {
+	auto savedIt = it;
+	unique_ptr<ActionAtomicRegex> aar = parseActionAtomicRegex(it);
+	if (aar == nullptr) {
+		throw UnexpectedTokenException(*it, "token for action-atomic regex", "for repetitive regex as an alternative of root regex", *savedIt);
+	}
+
+	if (it->type == TokenType::OP_QM) {
+		++it;
+		unique_ptr<RepetitiveRegex> rr = make_unique<RepetitiveRegex>();
+		rr->minRepetitions = 0;
+		rr->maxRepetitions = 1;
+		rr->actionAtomicRegex = move(aar);
+		return rr;
+	} else if (it->type == TokenType::OP_STAR) {
+		++it;
+		unique_ptr<RepetitiveRegex> rr = make_unique<RepetitiveRegex>();
+		rr->minRepetitions = 0;
+		rr->maxRepetitions = rr->INFINITE_REPETITIONS;
+		rr->actionAtomicRegex = move(aar);
+		return rr;
+	} else if (it->type == TokenType::OP_PLUS) {
+		++it;
+		unique_ptr<RepetitiveRegex> rr = make_unique<RepetitiveRegex>();
+		rr->minRepetitions = 1;
+		rr->maxRepetitions = rr->INFINITE_REPETITIONS;
+		rr->actionAtomicRegex = move(aar);
+		return rr;
+	} else if (it->type == TokenType::CURLY_LEFT) {
+		++it;
+
+		unique_ptr<RepetitiveRegex> rr = make_unique<RepetitiveRegex>();
+		if (it->type != TokenType::NUMBER) {
+			throw UnexpectedTokenException(*it, "a number", "for repetition range regex", *savedIt);
+		}
+		rr->minRepetitions = (unsigned long)std::stoul(it->string);
+		++it;
+
+		if (it->type != TokenType::OP_COMMA) {
+			throw UnexpectedTokenException(*it, "a comma separating range numbers", "for repetition range regex", *savedIt);
+		}
+		++it;
+
+		if (it->type != TokenType::NUMBER) {
+			throw UnexpectedTokenException(*it, "a number", "for repetition range regex", *savedIt);
+		}
+		rr->maxRepetitions = (unsigned long)std::stoul(it->string);
+		if (rr->minRepetitions > rr->maxRepetitions) {
+			throw ParserException("The number for minimum repetitions in the regex is strictly larger than the number for maximum repetitions", *it, *savedIt);
+		}
+		++it;
+
+		if (it->type != TokenType::CURLY_RIGHT) {
+			throw UnexpectedTokenException(*it, "a curly right bracket '}'", "for repetition range regex", *savedIt);
+		}
+		++it;
+		
+		rr->actionAtomicRegex = move(aar);
+		return rr;
+	} else {
+		it = savedIt;
+		return nullptr;
+	}
+}
+
+std::unique_ptr<LookaheadRegex> Parser::parseLookaheadRegex(std::list<Token>::const_iterator& it) const {
+	auto savedIt = it;
+	unique_ptr<ActionAtomicRegex> aar = parseActionAtomicRegex(it);
+	if (aar == nullptr) {
+		throw UnexpectedTokenException(*it, "token for action-atomic regex", "for lookahead regex as an alternative of root regex", *savedIt);
+	}
+
+	if (it->type == TokenType::OP_FWDSLASH) {
+		++it;
+
+		unique_ptr<LookaheadRegex> lr = make_unique<LookaheadRegex>();
+		unique_ptr<AtomicRegex> ar = parseAtomicRegex(it);
+		if (ar == nullptr) {
+			throw UnexpectedTokenException(*it, "a token for atomic regex to follow '\\'", "for lookahead match regex", *savedIt);
+		}
+		lr->match = move(aar);
+		lr->lookahead = move(ar);
+		return lr;
+	} else {
+		return nullptr;
+	}
+}
+
+std::unique_ptr<ActionAtomicRegex> Parser::parseActionAtomicRegex(std::list<Token>::const_iterator& it) const {
+	auto savedIt = it;
+	if (it->type == TokenType::PAR_LEFT) {
+		++it;
+		auto aar = parseActionAtomicRegex(it);
+		
+		if (it->type != TokenType::PAR_RIGHT) {
+			throw UnexpectedTokenException(*it, "a matching closing right parenthesis ')'", "for action-atomic regex", *savedIt);
+		}
+		++it;
+	}
+
+	auto ar = parseAtomicRegex(it);
+	unique_ptr<ActionAtomicRegex> aar = make_unique<ActionAtomicRegex>();
+	aar->regex = move(ar);
+	while (it->type == TokenType::OP_AT) {
+		++it;
+
+		ActionTargetPair atp;
+		atp.action = parseRegexAction(it);
+
+		if (it->type != TokenType::OP_COLON) {
+			// throw
+		}
+		++it;
+
+		if (it->type != TokenType::IDENTIFIER) {
+			// throw
+		}
+		atp.target = it->string;
+		++it;
+
+		aar->actionTargetPairs.push_back(move(atp));
+	}
+
+	return aar;
+}
+
+RegexAction Parser::parseRegexAction(std::list<Token>::const_iterator& it) const {
+	RegexAction ret;
+	switch (it->type) {
+		case TokenType::KW_SET:
+			ret = RegexAction::Set;
+		case TokenType::KW_UNSET:
+			ret = RegexAction::Unset;
+		case TokenType::KW_FLAG:
+			ret = RegexAction::Flag;
+		case TokenType::KW_UNFLAG:
+			ret = RegexAction::Unflag;
+		case TokenType::KW_APPEND:
+			ret = RegexAction::Append;
+		case TokenType::KW_PREPEND:
+			ret = RegexAction::Prepend;
+		case TokenType::KW_CLEAR:
+			ret = RegexAction::Clear;
+		case TokenType::KW_LEFT_TRIM:
+			ret = RegexAction::LeftTrim;
+		case TokenType::KW_RIGHT_TRIM:
+			ret = RegexAction::RightTrim;
+		default:
+			throw UnexpectedTokenException(*it, "a valid action type keyword to follow the action operator '@'", "for action-atomic regex");
+	}
+	++it;
+
+	return ret;
+}
+
+std::unique_ptr<AtomicRegex> Parser::parseAtomicRegex(std::list<Token>::const_iterator& it) const {
+	/* perhaps rather surprisingly, this will be a lookahead bit of this parser */
+	auto savedIt = it; // for throwing purposes, heh
+	if (it->type == TokenType::PAR_LEFT) {
+		++it;
+
+		unique_ptr<DisjunctiveRegex> dr = parseDisjunctiveRegex(it);
+		if (dr == nullptr) {
+			throw UnexpectedTokenException(*it, "a beginning token for a disjunctive regex", "for atomic regex", *savedIt);
+		}
+
+		if (it->type != TokenType::PAR_RIGHT) {
+			throw UnexpectedTokenException(*it, "a matching closing right parenthesis ')'", "for bracketed disjunctive regex as a part of atomic regex", *savedIt);
+		}
+		++it;
+
+		return dr;
+	} else if (it->type == TokenType::SQUARE_LEFT) {
+		return parseAnyRegex(it);
+	} else if (it->type == TokenType::STRING) {
+		auto lr = make_unique<LiteralRegex>();
+		lr->literal = it->string;
+		return lr;
+	} else if (it->type == TokenType::OP_DOT) {
+		return make_unique<ArbitraryLiteralRegex>();
+	} else if (it->type == TokenType::OP_CARET) {
+		return make_unique<LineBeginRegex>();
+	} else if (it->type == TokenType::OP_DOLLAR) {
+		return make_unique<LineEndRegex>();
+	} else if (it->type == TokenType::IDENTIFIER) {
+		auto rr = make_unique<ReferenceRegex>();
+		rr->referenceName.name = it->string;
+		return rr;
+	} else {
+		throw UnexpectedTokenException(*it, "a token to begin an atomic regex", "for atomic regex", *savedIt);
+	}
+}
+
+std::unique_ptr<AnyRegex> Parser::parseAnyRegex(std::list<Token>::const_iterator& it) const {
+	if (it->type != TokenType::SQUARE_LEFT) {
+		return nullptr;
+	}
+	auto savedIt = it;
+	++it;
+	
+	AnyRegex* ar;
+	if (it->type == TokenType::OP_CARET) {
+		ar = new ExceptAnyRegex;
+		++it;
+	} else {
+		ar = new AnyRegex;
+	}
+
+	while (it->type == TokenType::STRING) {
+		std::string firstString = it->string;
+		++it;
+
+		if (it->type == TokenType::OP_DASH) {
+			++it;
+
+			if (it->type != TokenType::STRING) {
+				throw UnexpectedTokenException(*it, "a string literal for end of range to follow '-'", "for 'any/none-of' regex");
+			}
+
+			if (firstString[0] > it->string[0]) {
+				throw ParserException("In regex range capture, the end character was found to precede the beginning character", *it, *savedIt);
+			}
+			
+			ar->ranges.push_back({ firstString[0], it->string[0] });
+			++it;
+		} else {
+			ar->literals.push_back(move(firstString));
+		}
+	}
+
+	if (it->type != TokenType::SQUARE_RIGHT) {
+		throw UnexpectedTokenException(*it, "literal, literal range, or the matching right square bracket ']'", "for 'any/none-of' regex", *savedIt);
+	}
+	++it;
+
+	return std::unique_ptr<AnyRegex>(ar);
+}
+
+std::unique_ptr<ConjunctiveRegex> Parser::parseConjunctiveRegex(std::list<Token>::const_iterator& it) const {
+	auto rr = parseRootRegex(it);
+	if (rr == nullptr) {
+		return nullptr;
+	}
+
+	auto cr = make_unique<ConjunctiveRegex>();
+	while (rr != nullptr) {
+		cr->conjunction.push_back(move(rr));
+
+		rr = parseRootRegex(it);
+	}
+
+	return cr;
+}
+
+std::unique_ptr<DisjunctiveRegex> Parser::parseDisjunctiveRegex(std::list<Token>::const_iterator& it) const {
+	auto savedIt = it;
+	auto cr = parseConjunctiveRegex(it);
+	if (cr == nullptr) {
+		return nullptr;
+	}
+
+	auto dr = make_unique<DisjunctiveRegex>();
+	dr->disjunction.push_back(move(cr));
+
+	while (it->type == TokenType::OP_OR) {
+		++it;
+
+		cr = parseConjunctiveRegex(it);
+		if (cr == nullptr) {
+			throw UnexpectedTokenException(*it, "a beginning token for a conjunctive regex", "for disjunctive regex", *savedIt);
+		}
+		dr->disjunction.push_back(move(cr));
+	}
+
+	return dr;
 }

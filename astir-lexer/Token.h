@@ -70,8 +70,8 @@ enum class TokenType {
 };
 
 struct Token {
-	unsigned int line;
-	unsigned int column;
+	unsigned long line;
+	unsigned long column;
 	TokenType type;
 	std::string string;
 

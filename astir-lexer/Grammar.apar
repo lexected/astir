@@ -147,27 +147,25 @@ production rootRegex =
 	;
 
 production repetitiveRegex =
-	actionAtomicRegex OP_STAR
+	actionAtomicRegex OP_QM
+	| actionAtomicRegex OP_STAR
 	| actionAtomicRegex OP_PLUS
 	| actionAtomicRegex CURLY_LEFT NUMBER, NUMBER CURLY_RIGHT
-	| actionAtomicRegex OP_QM
 	;
 
 production lookaheadRegex =
-	actionAtomicRegex OP_FWDSLASH rootRegex
+	actionAtomicRegex OP_FWDSLASH atomicRegex
 	;
 
 production actionAtomicRegex =
-	PAR_LEFT atomicRegex (OP_AT action : IDENTIFIER)* PAR_RIGHT
-	| atomicRegex (OP_AT action : IDENTIFIER)*
+	PAR_LEFT actionAtomicRegex PAR_RIGHT
+	| atomicRegex (OP_AT action OP_COLON IDENTIFIER)*
 	;
 	
 production atomicRegex : rootRegex =
-	SQUARE_LEFT OP_CARET STRING+ SQUARE_RIGHT
-	| SQUARE_LEFT OP_CARET regexRange+ SQUARE_RIGHT
-	| SQUARE_LEFT STRING+ SQUARE_RIGHT
-	| SQUARE_LEFT regexRange+ SQUARE_RIGHT
-	| PAR_LEFT disjunctiveRegex PAR_RIGHT
+	PAR_LEFT disjunctiveRegex PAR_RIGHT
+	| SQUARE_LEFT OP_CARET (STRING|regexRange)+ SQUARE_RIGHT
+	| SQUARE_LEFT (STRING|regexRange)+ SQUARE_RIGHT
 	| STRING
 	| OP_DOT
 	| OP_CARET
