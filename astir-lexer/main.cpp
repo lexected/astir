@@ -2,9 +2,10 @@
 #include <fstream>
 
 #include "LexicalAnalyzer.h"
+#include "Parser.h"
 
 int main(int argc, char* argv[]) {
-	std::fstream inputFile("ExampleFile.astir");
+	std::fstream inputFile("ExampleTokenizer.alex");
 
 	LexicalAnalyzer analyzer;
 	auto tokenList = analyzer.process(inputFile);
@@ -16,4 +17,9 @@ int main(int argc, char* argv[]) {
 			<< std::endl
 			;
 	}
+
+	Parser parser;
+	auto specification = parser.parse(tokenList);
+
+	return 0;
 }

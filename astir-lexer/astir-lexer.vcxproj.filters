@@ -29,10 +29,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Grammar.apar">
+    <None Include="ExampleTokenizer.alex">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="ExampleFile.astir">
+    <None Include="ExampleParser.apar">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Grammar.astir">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

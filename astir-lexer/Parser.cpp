@@ -10,21 +10,21 @@ using namespace std;
 */
 
 std::unique_ptr<Specification> Parser::parse(const std::list<Token>& tokens) const {
-	auto it = tokens.begin();
+	auto it = tokens.cbegin();
 
-	unique_ptr<Specification> specification(new Specification);
+	unique_ptr<Specification> specification = make_unique<Specification>();
 	while (it->type != TokenType::EOS) {
 		auto savedIt = it;
 		unique_ptr<SpecificationStatement> specificationStatement;
-		if ((specificationStatement = Parser::parseUsingStatement(it)) != nullptr) {
+		if ((specificationStatement = Parser::parseUsingStatement(it))) {
 			specification->statements.push_back(move(specificationStatement));
-		} else if ((specificationStatement = Parser::parseMachineDefinition(it)) != nullptr) {
+		} else if ((specificationStatement = Parser::parseMachineDefinition(it))) {
 			specification->statements.push_back(move(specificationStatement));
 		} else {
 			throw ParserException("Unexpected input on specification level, expected a machine definition or a 'using' statement", *it, *savedIt);
 		}
 	}
-
+	
 	return specification;
 }
 
@@ -81,44 +81,53 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 		if (it->type == TokenType::KW_WITH) {
 			++it;
 			std::set<TokenType> usedAttributes;
-			if (it->type == TokenType::KW_GROUPED_STRING_LITERALS) {
-				if (usedAttributes.find(TokenType::KW_GROUPED_STRING_LITERALS) != usedAttributes.cend()) { 
-					throw UnexpectedTokenException(*it, "a previously unused attribute", "finite automaton declaration", *savedIt);
-				} else if(usedAttributes.find(TokenType::KW_INDIVIDUAL_STRING_LITERALS) != usedAttributes.cend()) {
-					throw UnexpectedTokenException(*it, "an attribute that does not contradict the previously used 'individual_string_literals'", "finite automaton declaration", *savedIt);
+			while(it->type == TokenType::KW_GROUPED_STRING_LITERALS || it->type == TokenType::KW_INDIVIDUAL_STRING_LITERALS || it->type == TokenType::KW_TABLE_LOOKUP || it->type == TokenType::KW_MACHINE_LOOKUP) {
+				if (it->type == TokenType::KW_GROUPED_STRING_LITERALS) {
+					if (usedAttributes.find(TokenType::KW_GROUPED_STRING_LITERALS) != usedAttributes.cend()) { 
+						throw UnexpectedTokenException(*it, "a previously unused attribute", "finite automaton declaration", *savedIt);
+					} else if(usedAttributes.find(TokenType::KW_INDIVIDUAL_STRING_LITERALS) != usedAttributes.cend()) {
+						throw UnexpectedTokenException(*it, "an attribute that does not contradict the previously used 'individual_string_literals'", "finite automaton declaration", *savedIt);
+					} else {
+						usedAttributes.insert(TokenType::KW_GROUPED_STRING_LITERALS);
+						faDef->attributes[FAFlag::GroupedStringLiterals] = true;
+					}
+				} else if (it->type == TokenType::KW_INDIVIDUAL_STRING_LITERALS) {
+					if (usedAttributes.find(TokenType::KW_GROUPED_STRING_LITERALS) != usedAttributes.cend()) {
+						throw UnexpectedTokenException(*it, "an attribute that does not contradict the previously used 'grouped_string_literals'", "finite automaton declaration", *savedIt);
+					} else if (usedAttributes.find(TokenType::KW_INDIVIDUAL_STRING_LITERALS) != usedAttributes.cend()) {
+						throw UnexpectedTokenException(*it, "a previously unused attribute", "finite automaton declaration", *savedIt);
+					} else {
+						usedAttributes.insert(TokenType::KW_INDIVIDUAL_STRING_LITERALS);
+						faDef->attributes[FAFlag::GroupedStringLiterals] = false;
+					}
+				} else if (it->type == TokenType::KW_TABLE_LOOKUP) {
+					if (usedAttributes.find(TokenType::KW_TABLE_LOOKUP) != usedAttributes.cend()) {
+						throw UnexpectedTokenException(*it, "a previously unused attribute", "finite automaton declaration", *savedIt);
+					} else if (usedAttributes.find(TokenType::KW_MACHINE_LOOKUP) != usedAttributes.cend()) {
+						throw UnexpectedTokenException(*it, "an attribute that does not contradict the previously used 'machine_lookup'", "finite automaton declaration", *savedIt);
+					} else {
+						usedAttributes.insert(TokenType::KW_TABLE_LOOKUP);
+						faDef->attributes[FAFlag::TableLookup] = true;
+					}
+				} else if (it->type == TokenType::KW_MACHINE_LOOKUP) {
+					if (usedAttributes.find(TokenType::KW_TABLE_LOOKUP) != usedAttributes.cend()) {
+						throw UnexpectedTokenException(*it, "an attribute that does not contradict the previously used 'table_lookup'", "finite automaton declaration", *savedIt);
+					} else if (usedAttributes.find(TokenType::KW_MACHINE_LOOKUP) != usedAttributes.cend()) {
+						throw UnexpectedTokenException(*it, "a previously unused attribute", "finite automaton declaration", *savedIt);
+					} else {
+						usedAttributes.insert(TokenType::KW_MACHINE_LOOKUP);
+						faDef->attributes[FAFlag::TableLookup] = false;
+					}
 				} else {
-					usedAttributes.insert(TokenType::KW_GROUPED_STRING_LITERALS);
-					faDef->attributes[FAFlag::GroupedStringLiterals] = true;
+					throw UnexpectedTokenException(*it, "a valid finite automaton attribute", "finite automaton declaration", *savedIt);
 				}
-			} else if (it->type == TokenType::KW_INDIVIDUAL_STRING_LITERALS) {
-				if (usedAttributes.find(TokenType::KW_GROUPED_STRING_LITERALS) != usedAttributes.cend()) {
-					throw UnexpectedTokenException(*it, "an attribute that does not contradict the previously used 'grouped_string_literals'", "finite automaton declaration", *savedIt);
-				} else if (usedAttributes.find(TokenType::KW_INDIVIDUAL_STRING_LITERALS) != usedAttributes.cend()) {
-					throw UnexpectedTokenException(*it, "a previously unused attribute", "finite automaton declaration", *savedIt);
-				} else {
-					usedAttributes.insert(TokenType::KW_INDIVIDUAL_STRING_LITERALS);
-					faDef->attributes[FAFlag::GroupedStringLiterals] = false;
+
+				++it;
+
+				if (it->type != TokenType::OP_COMMA) {
+					break;
 				}
-			} else if (it->type == TokenType::KW_TABLE_LOOKUP) {
-				if (usedAttributes.find(TokenType::KW_TABLE_LOOKUP) != usedAttributes.cend()) {
-					throw UnexpectedTokenException(*it, "a previously unused attribute", "finite automaton declaration", *savedIt);
-				} else if (usedAttributes.find(TokenType::KW_MACHINE_LOOKUP) != usedAttributes.cend()) {
-					throw UnexpectedTokenException(*it, "an attribute that does not contradict the previously used 'machine_lookup'", "finite automaton declaration", *savedIt);
-				} else {
-					usedAttributes.insert(TokenType::KW_TABLE_LOOKUP);
-					faDef->attributes[FAFlag::TableLookup] = true;
-				}
-			} else if (it->type == TokenType::KW_MACHINE_LOOKUP) {
-				if (usedAttributes.find(TokenType::KW_TABLE_LOOKUP) != usedAttributes.cend()) {
-					throw UnexpectedTokenException(*it, "an attribute that does not contradict the previously used 'table_lookup'", "finite automaton declaration", *savedIt);
-				} else if (usedAttributes.find(TokenType::KW_MACHINE_LOOKUP) != usedAttributes.cend()) {
-					throw UnexpectedTokenException(*it, "a previously unused attribute", "finite automaton declaration", *savedIt);
-				} else {
-					usedAttributes.insert(TokenType::KW_MACHINE_LOOKUP);
-					faDef->attributes[FAFlag::TableLookup] = false;
-				}
-			} else {
-				throw UnexpectedTokenException(*it, "a valid finite automaton attribute", "finite automaton declaration", *savedIt);
+				++it;
 			}
 		}
 
@@ -152,7 +161,7 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 		do {
 			auto savedIt = it;
 			lastStatement = Parser::parseMachineStatement(it);
-			if (lastStatement != nullptr) {
+			if (lastStatement) {
 				faDef->statements.push_back(std::move(lastStatement));
 			} else {
 				it = savedIt;
@@ -214,7 +223,7 @@ std::unique_ptr<MachineStatement> Parser::parseMachineStatement(std::list<Token>
 		do {
 			auto savedIt = it;
 			lastDeclaration = Parser::parseMemberDeclaration(it);
-			if (lastDeclaration != nullptr) {
+			if (lastDeclaration) {
 				catstat->members.push_back(std::move(lastDeclaration));
 			} else {
 				it = savedIt;
@@ -283,7 +292,7 @@ std::unique_ptr<MachineStatement> Parser::parseMachineStatement(std::list<Token>
 			do {
 				auto savedIt = it;
 				lastDeclaration = Parser::parseMemberDeclaration(it);
-				if (lastDeclaration != nullptr) {
+				if (lastDeclaration) {
 					grastat->members.push_back(std::move(lastDeclaration));
 				} else {
 					it = savedIt;
@@ -304,16 +313,17 @@ std::unique_ptr<MachineStatement> Parser::parseMachineStatement(std::list<Token>
 
 		auto savedIt = it;
 		std::unique_ptr<Alternative> lastAlternative = Parser::parseAlternative(it);
-		if (lastAlternative == nullptr) {
-			throw ParserException("Expected an alternative to follow the '=' on the intial token - none found.", *it, *savedIt);
+		if (!lastAlternative) {
+			throw ParserException("Expected an alternative (i.e. a valid astir regex) to follow the '=' on the intial token - none found.", *it, *savedIt);
 		}
+		grastat->alternatives.push_back(move(lastAlternative));
 		
 		while(it->type == TokenType::OP_OR) {
 			++it;
 
 			lastAlternative = Parser::parseAlternative(it);
-			if (lastAlternative == nullptr) {
-				throw UnexpectedTokenException(*it, "an alternative to follow the alternative operator '|'", "for " + grammarStatementType + " definition body", *initIt);
+			if (!lastAlternative) {
+				throw UnexpectedTokenException(*it, "an alternative (i.e. a valid astir regex) to follow the alternative operator '|'", "for " + grammarStatementType + " definition body", *initIt);
 			}
 
 			grastat->alternatives.push_back(move(lastAlternative));
@@ -381,7 +391,7 @@ std::unique_ptr<Alternative> Parser::parseAlternative(std::list<Token>::const_it
 	std::unique_ptr<Alternative> alternative = make_unique<Alternative>();
 
 	unique_ptr<RootRegex> lastRootRegex = parseRootRegex(it);
-	while (lastRootRegex != nullptr) {
+	while (lastRootRegex) {
 		alternative->rootRegexes.push_back(move(lastRootRegex));
 		lastRootRegex = parseRootRegex(it);
 	}
@@ -391,11 +401,11 @@ std::unique_ptr<Alternative> Parser::parseAlternative(std::list<Token>::const_it
 
 std::unique_ptr<RootRegex> Parser::parseRootRegex(std::list<Token>::const_iterator& it) const {
 	unique_ptr<RootRegex> rr;
-	if ((rr = parseRepetitiveRegex(it)) != nullptr) {
+	if ((rr = parseRepetitiveRegex(it))) {
 		return rr;
-	} else if ((rr = parseLookaheadRegex(it)) != nullptr) {
+	} else if ((rr = parseLookaheadRegex(it))) {
 		return rr;
-	} else if ((rr = parseActionAtomicRegex(it)) != nullptr) {
+	} else if ((rr = parseActionAtomicRegex(it))) {
 		return rr;
 	} else {
 		return nullptr;
@@ -405,8 +415,9 @@ std::unique_ptr<RootRegex> Parser::parseRootRegex(std::list<Token>::const_iterat
 std::unique_ptr<RepetitiveRegex> Parser::parseRepetitiveRegex(std::list<Token>::const_iterator& it) const {
 	auto savedIt = it;
 	unique_ptr<ActionAtomicRegex> aar = parseActionAtomicRegex(it);
-	if (aar == nullptr) {
-		throw UnexpectedTokenException(*it, "token for action-atomic regex", "for repetitive regex as an alternative of root regex", *savedIt);
+	if (!aar) {
+		// throw UnexpectedTokenException(*it, "token for action-atomic regex", "for repetitive regex as an alternative of root regex", *savedIt);
+		return nullptr;
 	}
 
 	if (it->type == TokenType::OP_QM) {
@@ -470,8 +481,9 @@ std::unique_ptr<RepetitiveRegex> Parser::parseRepetitiveRegex(std::list<Token>::
 std::unique_ptr<LookaheadRegex> Parser::parseLookaheadRegex(std::list<Token>::const_iterator& it) const {
 	auto savedIt = it;
 	unique_ptr<ActionAtomicRegex> aar = parseActionAtomicRegex(it);
-	if (aar == nullptr) {
-		throw UnexpectedTokenException(*it, "token for action-atomic regex", "for lookahead regex as an alternative of root regex", *savedIt);
+	if (!aar) {
+		// throw UnexpectedTokenException(*it, "token for action-atomic regex", "for lookahead regex as an alternative of root regex", *savedIt);
+		return nullptr;
 	}
 
 	if (it->type == TokenType::OP_FWDSLASH) {
@@ -479,30 +491,25 @@ std::unique_ptr<LookaheadRegex> Parser::parseLookaheadRegex(std::list<Token>::co
 
 		unique_ptr<LookaheadRegex> lr = make_unique<LookaheadRegex>();
 		unique_ptr<AtomicRegex> ar = parseAtomicRegex(it);
-		if (ar == nullptr) {
+		if (!ar) {
 			throw UnexpectedTokenException(*it, "a token for atomic regex to follow '\\'", "for lookahead match regex", *savedIt);
 		}
 		lr->match = move(aar);
 		lr->lookahead = move(ar);
 		return lr;
 	} else {
+		it = savedIt;
 		return nullptr;
 	}
 }
 
 std::unique_ptr<ActionAtomicRegex> Parser::parseActionAtomicRegex(std::list<Token>::const_iterator& it) const {
 	auto savedIt = it;
-	if (it->type == TokenType::PAR_LEFT) {
-		++it;
-		auto aar = parseActionAtomicRegex(it);
-		
-		if (it->type != TokenType::PAR_RIGHT) {
-			throw UnexpectedTokenException(*it, "a matching closing right parenthesis ')'", "for action-atomic regex", *savedIt);
-		}
-		++it;
-	}
 
 	auto ar = parseAtomicRegex(it);
+	if (!ar) {
+		return nullptr;
+	}
 	unique_ptr<ActionAtomicRegex> aar = make_unique<ActionAtomicRegex>();
 	aar->regex = move(ar);
 	while (it->type == TokenType::OP_AT) {
@@ -512,12 +519,12 @@ std::unique_ptr<ActionAtomicRegex> Parser::parseActionAtomicRegex(std::list<Toke
 		atp.action = parseRegexAction(it);
 
 		if (it->type != TokenType::OP_COLON) {
-			// throw
+			throw UnexpectedTokenException(*it, "a colon ':' to separate action from target", "for action-atomic regex", *savedIt);
 		}
 		++it;
 
 		if (it->type != TokenType::IDENTIFIER) {
-			// throw
+			throw UnexpectedTokenException(*it, "an identifier to specify the action target", "for action-atomic regex", *savedIt);
 		}
 		atp.target = it->string;
 		++it;
@@ -533,22 +540,31 @@ RegexAction Parser::parseRegexAction(std::list<Token>::const_iterator& it) const
 	switch (it->type) {
 		case TokenType::KW_SET:
 			ret = RegexAction::Set;
+			break;
 		case TokenType::KW_UNSET:
 			ret = RegexAction::Unset;
+			break;
 		case TokenType::KW_FLAG:
 			ret = RegexAction::Flag;
+			break;
 		case TokenType::KW_UNFLAG:
 			ret = RegexAction::Unflag;
+			break;
 		case TokenType::KW_APPEND:
 			ret = RegexAction::Append;
+			break;
 		case TokenType::KW_PREPEND:
 			ret = RegexAction::Prepend;
+			break;
 		case TokenType::KW_CLEAR:
 			ret = RegexAction::Clear;
+			break;
 		case TokenType::KW_LEFT_TRIM:
 			ret = RegexAction::LeftTrim;
+			break;
 		case TokenType::KW_RIGHT_TRIM:
 			ret = RegexAction::RightTrim;
+			break;
 		default:
 			throw UnexpectedTokenException(*it, "a valid action type keyword to follow the action operator '@'", "for action-atomic regex");
 	}
@@ -560,11 +576,12 @@ RegexAction Parser::parseRegexAction(std::list<Token>::const_iterator& it) const
 std::unique_ptr<AtomicRegex> Parser::parseAtomicRegex(std::list<Token>::const_iterator& it) const {
 	/* perhaps rather surprisingly, this will be a lookahead bit of this parser */
 	auto savedIt = it; // for throwing purposes, heh
+	
 	if (it->type == TokenType::PAR_LEFT) {
 		++it;
 
-		unique_ptr<DisjunctiveRegex> dr = parseDisjunctiveRegex(it);
-		if (dr == nullptr) {
+		auto dr = parseDisjunctiveRegex(it);
+		if (!dr) {
 			throw UnexpectedTokenException(*it, "a beginning token for a disjunctive regex", "for atomic regex", *savedIt);
 		}
 
@@ -574,25 +591,32 @@ std::unique_ptr<AtomicRegex> Parser::parseAtomicRegex(std::list<Token>::const_it
 		++it;
 
 		return dr;
-	} else if (it->type == TokenType::SQUARE_LEFT) {
+	}
+	
+	if (it->type == TokenType::SQUARE_LEFT) {
 		return parseAnyRegex(it);
-	} else if (it->type == TokenType::STRING) {
+	}
+
+	unique_ptr<AtomicRegex> ret;
+	if (it->type == TokenType::STRING) {
 		auto lr = make_unique<LiteralRegex>();
 		lr->literal = it->string;
-		return lr;
+		ret = move(lr);
 	} else if (it->type == TokenType::OP_DOT) {
-		return make_unique<ArbitraryLiteralRegex>();
+		ret = make_unique<ArbitraryLiteralRegex>();
 	} else if (it->type == TokenType::OP_CARET) {
-		return make_unique<LineBeginRegex>();
+		ret = make_unique<LineBeginRegex>();
 	} else if (it->type == TokenType::OP_DOLLAR) {
-		return make_unique<LineEndRegex>();
+		ret = make_unique<LineEndRegex>();
 	} else if (it->type == TokenType::IDENTIFIER) {
 		auto rr = make_unique<ReferenceRegex>();
 		rr->referenceName = it->string;
-		return rr;
+		ret = move(rr);
 	} else {
-		throw UnexpectedTokenException(*it, "a token to begin an atomic regex", "for atomic regex", *savedIt);
+		return nullptr; // needs to be like this
 	}
+	++it;
+	return ret;
 }
 
 std::unique_ptr<AnyRegex> Parser::parseAnyRegex(std::list<Token>::const_iterator& it) const {
@@ -642,12 +666,12 @@ std::unique_ptr<AnyRegex> Parser::parseAnyRegex(std::list<Token>::const_iterator
 
 std::unique_ptr<ConjunctiveRegex> Parser::parseConjunctiveRegex(std::list<Token>::const_iterator& it) const {
 	auto rr = parseRootRegex(it);
-	if (rr == nullptr) {
+	if (!rr) {
 		return nullptr;
 	}
 
 	auto cr = make_unique<ConjunctiveRegex>();
-	while (rr != nullptr) {
+	while (rr) {
 		cr->conjunction.push_back(move(rr));
 
 		rr = parseRootRegex(it);
@@ -659,7 +683,7 @@ std::unique_ptr<ConjunctiveRegex> Parser::parseConjunctiveRegex(std::list<Token>
 std::unique_ptr<DisjunctiveRegex> Parser::parseDisjunctiveRegex(std::list<Token>::const_iterator& it) const {
 	auto savedIt = it;
 	auto cr = parseConjunctiveRegex(it);
-	if (cr == nullptr) {
+	if (!cr) {
 		return nullptr;
 	}
 
@@ -670,7 +694,7 @@ std::unique_ptr<DisjunctiveRegex> Parser::parseDisjunctiveRegex(std::list<Token>
 		++it;
 
 		cr = parseConjunctiveRegex(it);
-		if (cr == nullptr) {
+		if (!cr) {
 			throw UnexpectedTokenException(*it, "a beginning token for a conjunctive regex", "for disjunctive regex", *savedIt);
 		}
 		dr->disjunction.push_back(move(cr));

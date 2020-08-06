@@ -47,7 +47,7 @@ private:
 		std::pair<std::string, TokenType>("rule", TokenType::KW_RULE),
 		std::pair<std::string, TokenType>("category", TokenType::KW_CATEGORY),
 		std::pair<std::string, TokenType>("deterministic", TokenType::KW_DETERMINISTIC),
-		std::pair<std::string, TokenType>("non_deterministic", TokenType::KW_NONDETERMINISTIC),
+		std::pair<std::string, TokenType>("nondeterministic", TokenType::KW_NONDETERMINISTIC),
 		std::pair<std::string, TokenType>("finite", TokenType::KW_FINITE),
 		std::pair<std::string, TokenType>("automaton", TokenType::KW_AUTOMATON),
 		std::pair<std::string, TokenType>("parser", TokenType::KW_PARSER),

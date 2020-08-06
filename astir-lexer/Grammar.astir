@@ -109,7 +109,7 @@ production categoryStatement =
 	| KW_CATEGORY IDENTIFIER memberDeclarationBody? OP_SEMICOLON
 	;
 
-rule memberDeclarationBody = 
+rule memberDeclarationBody =
 	(CURLY_LEFT memberDeclaration* CURLY_RIGHT)
 	;
 
@@ -172,8 +172,7 @@ production lookaheadRegex =
 	;
 
 production actionAtomicRegex =
-	PAR_LEFT actionAtomicRegex PAR_RIGHT
-	| atomicRegex (OP_AT action OP_COLON IDENTIFIER)*
+	atomicRegex (OP_AT action OP_COLON IDENTIFIER)*
 	;
 	
 production atomicRegex : rootRegex =

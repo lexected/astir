@@ -1,0 +1,13 @@
+recursive_descent parser ExampleParser follows ExampleTokenizer {
+	category declaration {
+		identifier item name;
+		identifier list interfaces;
+		flag isAlsoDefinition;
+		string _randomText;
+	};
+
+	production functionSpecification : declaration =
+		keyword_function identifier@set:name "(" functionArgument*@parameters ")" ";"
+		| keyword_function identifier@set:name "(" functionArgument*@parameters ")" "{"@flag:isAlsoDefinition functionBodyStatement*@statements "}"
+		;
+}

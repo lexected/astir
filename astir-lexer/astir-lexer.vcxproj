@@ -145,8 +145,9 @@
     <ClCompile Include="Token.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="ExampleFile.astir" />
-    <None Include="Grammar.apar" />
+    <None Include="ExampleParser.apar" />
+    <None Include="ExampleTokenizer.alex" />
+    <None Include="Grammar.astir" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h" />

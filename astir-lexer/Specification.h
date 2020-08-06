@@ -18,7 +18,7 @@ struct Specification {
 };
 
 struct SpecificationStatement {
-
+	virtual ~SpecificationStatement() = default;
 };
 
 struct UsingStatement : public SpecificationStatement {
@@ -33,8 +33,6 @@ struct MachineDefinition : public SpecificationStatement {
 	std::string follows;
 
 	MachineDefinition() = default;
-
-	virtual ~MachineDefinition() = default;
 };
 
 enum class FAType {
