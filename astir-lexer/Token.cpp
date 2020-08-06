@@ -125,6 +125,8 @@ std::string Token::convertTypeToString(TokenType type) {
 			return "OP_SEMICOLON";
 		case TokenType::OP_STAR:
 			return "OP_STAR";
+		case TokenType::OP_AT:
+			return "OP_AT";
 		case TokenType::PAR_LEFT:
 			return "PAR_LEFT";
 		case TokenType::PAR_RIGHT:
@@ -135,6 +137,8 @@ std::string Token::convertTypeToString(TokenType type) {
 			return "SQUARE_RIGHT";
 		case TokenType::STRING:
 			return "STRING";
+		case TokenType::EOS:
+			return "EOS";
 		default:
 			throw Exception("Unrecognized token type: " + std::to_string((unsigned long)type));
 	}
