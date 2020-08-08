@@ -5,13 +5,13 @@
 #include <memory>
 
 #include "Exception.h"
-#include "Specification.h"
+#include "SpecificationFile.h"
 
 class Parser {
 public:
 	Parser() = default;
 
-	std::unique_ptr<Specification> parse(const std::list<Token>& tokens) const;
+	std::unique_ptr<File> parse(const std::list<Token>& tokens) const;
 	std::unique_ptr<UsingStatement> parseUsingStatement(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<MachineDefinition> parseMachineDefinition(std::list<Token>::const_iterator & it) const;
 	std::unique_ptr<MachineStatement> parseMachineStatement(std::list<Token>::const_iterator& it) const;

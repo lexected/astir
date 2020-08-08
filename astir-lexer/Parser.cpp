@@ -9,13 +9,13 @@ using namespace std;
 	 --- IF YOU'RE RETURNING NULLPTR, YOU ARE RESPONSIBLE FOR MAKING SURE IT POINTS TO WHERE IT WAS POINTING WHEN IT WAS PASSED TO YOU ---
 */
 
-std::unique_ptr<Specification> Parser::parse(const std::list<Token>& tokens) const {
+std::unique_ptr<File> Parser::parse(const std::list<Token>& tokens) const {
 	auto it = tokens.cbegin();
 
-	unique_ptr<Specification> specification = make_unique<Specification>();
+	unique_ptr<File> specification = make_unique<File>();
 	while (it->type != TokenType::EOS) {
 		auto savedIt = it;
-		unique_ptr<SpecificationStatement> specificationStatement;
+		unique_ptr<FileStatement> specificationStatement;
 		if ((specificationStatement = Parser::parseUsingStatement(it))) {
 			specification->statements.push_back(move(specificationStatement));
 		} else if ((specificationStatement = Parser::parseMachineDefinition(it))) {

@@ -1,205 +1,38 @@
 #pragma once
 
-#include <list>
-#include <memory>
 #include <map>
+#include <string>
+#include <memory>
+#include <list>
 
-template <class ProductionType>
-using StandardList = std::list<std::unique_ptr<ProductionType>>;
+#include "Exception.h"
+#include "SpecificationFile.h"
 
-/*
-	As a general rule, avoid creating full insertive constructors for objects, since the container ownership of unique_ptrs then often gets quite tricky.
-	It's usually much better to create a 'minimal' initialization in in the default constructor and have everything else done from outside by the relevant parsing procedure.
-*/
-
-struct SpecificationStatement;
-struct Specification {
-	StandardList<SpecificationStatement> statements;
+class SemanticAnalysisException : public Exception {
+public:
+	SemanticAnalysisException(const std::string& message)
+		: Exception(message) { }
 };
 
-struct SpecificationStatement {
-	virtual ~SpecificationStatement() = default;
+class Machine;
+class Specification {
+public:
+	std::map<std::string, std::shared_ptr<Machine>> machines;
+
+	void initializeFromFile(const SpecificationFile& specificationFile);
+private:
+	bool containsDefinitionRecursion(const std::map<std::string, MachineDefinition*>& definitions, std::list<std::string>& namesEncountered, std::string nameConsidered) const;
 };
 
-struct UsingStatement : public SpecificationStatement {
-	std::string filePath;
-};
+class Machine {
+public:
+	const std::string name;
 
-struct MachineStatement;
-struct MachineDefinition : public SpecificationStatement {
-	std::string machineName;
-	StandardList<MachineStatement> statements;
-	std::string extends;
-	std::string follows;
+	std::shared_ptr<Machine> follows;
+	std::shared_ptr<Machine> extends;
 
-	MachineDefinition() = default;
-};
+	Machine(const std::string& name)
+		: name(name) { }
 
-enum class FAType {
-	Deterministic,
-	Nondeterministic
-};
-
-enum class FAFlag {
-	GroupedStringLiterals,
-	TableLookup
-};
-
-struct FADefinition : public MachineDefinition {
-	FAType type;
-	std::map<FAFlag, bool> attributes;
-
-	FADefinition()
-		:  MachineDefinition(), type(FAType::Nondeterministic), attributes({
-			{ FAFlag::GroupedStringLiterals, false },
-			{ FAFlag::TableLookup, false }
-		}) { }
-
-	virtual ~FADefinition() = default;
-};
-
-enum class GrammarStatementType {
-	Regex,
-	Token,
-	Rule,
-	Production
-};
-
-struct MemberDeclaration;
-struct MachineStatement {
-	std::string name;
-	std::list<std::string> categories;
-	StandardList<MemberDeclaration> members;
-
-	virtual ~MachineStatement() = default;
-};
-
-struct CategoryStatement : public MachineStatement {
-
-};
-
-struct Alternative;
-struct GrammarStatement : public MachineStatement {
-	GrammarStatementType type;
-	StandardList<Alternative> alternatives;
-};
-
-struct MemberDeclaration {
-	std::string name;
-
-	virtual ~MemberDeclaration() = default;
-};
-
-struct FlagDeclaration : public MemberDeclaration {
-	
-};
-
-struct RawDeclaration : public MemberDeclaration {
-
-};
-
-struct VariablyTypedDeclaration : public MemberDeclaration {
-	std::string type;
-};
-
-struct ItemDeclaration : public VariablyTypedDeclaration {
-	
-};
-
-struct ListDeclaration : public VariablyTypedDeclaration {
-
-};
-
-struct RootRegex;
-struct Alternative {
-	StandardList<RootRegex> rootRegexes;
-};
-
-struct RootRegex {
-	virtual ~RootRegex() = default;
-};
-
-struct ActionAtomicRegex;
-struct RepetitiveRegex : public RootRegex {
-	std::unique_ptr<ActionAtomicRegex> actionAtomicRegex;
-	unsigned long minRepetitions;
-	unsigned long maxRepetitions;
-
-	const unsigned long INFINITE_REPETITIONS = (unsigned long)((signed int)-1);
-
-	RepetitiveRegex() : minRepetitions(0), maxRepetitions(0) { }
-};
-
-struct AtomicRegex;
-struct LookaheadRegex : public RootRegex {
-	std::unique_ptr<ActionAtomicRegex> match;
-	std::unique_ptr<AtomicRegex> lookahead;
-};
-
-enum class RegexAction {
-	Set,
-	Unset,
-	Flag,
-	Unflag,
-	Append,
-	Prepend,
-	Clear,
-	LeftTrim,
-	RightTrim,
-
-	None
-};
-struct ActionTargetPair {
-	RegexAction action = RegexAction::None;
-	std::string target;
-};
-struct ActionAtomicRegex : public RootRegex {
-	std::list<ActionTargetPair> actionTargetPairs;
-	std::unique_ptr<AtomicRegex> regex;
-};
-
-struct AtomicRegex {
-	virtual ~AtomicRegex() = default;
-};
-
-struct RegexRange {
-	char start;
-	char end;
-};
-
-struct AnyRegex : public AtomicRegex {
-	std::list<std::string> literals;
-	std::list<RegexRange> ranges;
-};
-
-struct ExceptAnyRegex : public AnyRegex {
-	
-};
-
-struct ConjunctiveRegex {
-	StandardList<RootRegex> conjunction;
-};
-
-struct DisjunctiveRegex : public AtomicRegex {
-	StandardList<ConjunctiveRegex> disjunction;
-};
-
-struct LiteralRegex : public AtomicRegex {
-	std::string literal;
-};
-
-struct ReferenceRegex : public AtomicRegex {
-	std::string referenceName;
-};
-
-struct ArbitraryLiteralRegex : public AtomicRegex {
-	
-};
-
-struct LineBeginRegex : public AtomicRegex {
-
-};
-
-struct LineEndRegex : public AtomicRegex {
-
+	virtual void initializeFromDefinition(const MachineDefinition* definition);
 };
