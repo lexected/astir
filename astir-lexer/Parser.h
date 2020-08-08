@@ -19,7 +19,7 @@ public:
 	std::unique_ptr<CategoryStatement> parseCategoryStatement(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<GrammarStatement> parseGrammarStatement(std::list<Token>::const_iterator& it) const;
 
-	std::unique_ptr<MemberDeclaration> parseMemberDeclaration(std::list<Token>::const_iterator& it) const;
+	std::unique_ptr<FieldDeclaration> parseMemberDeclaration(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<RootRegex> parseRootRegex(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<RepetitiveRegex> parseRepetitiveRegex(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<LookaheadRegex> parseLookaheadRegex(std::list<Token>::const_iterator& it) const;

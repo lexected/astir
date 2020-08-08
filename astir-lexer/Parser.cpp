@@ -242,12 +242,12 @@ std::unique_ptr<CategoryStatement> Parser::parseCategoryStatement(std::list<Toke
 	}
 	++it;
 
-	std::unique_ptr<MemberDeclaration> lastDeclaration;
+	std::unique_ptr<FieldDeclaration> lastDeclaration;
 	do {
 		auto savedIt = it;
 		lastDeclaration = Parser::parseMemberDeclaration(it);
 		if (lastDeclaration) {
-			catstat->members.push_back(std::move(lastDeclaration));
+			catstat->fields.push_back(std::move(lastDeclaration));
 		} else {
 			it = savedIt;
 			break;
@@ -319,12 +319,12 @@ std::unique_ptr<GrammarStatement> Parser::parseGrammarStatement(std::list<Token>
 	if (it->type == TokenType::CURLY_LEFT) {
 		++it;
 
-		std::unique_ptr<MemberDeclaration> lastDeclaration;
+		std::unique_ptr<FieldDeclaration> lastDeclaration;
 		do {
 			auto savedIt = it;
 			lastDeclaration = Parser::parseMemberDeclaration(it);
 			if (lastDeclaration) {
-				grastat->members.push_back(std::move(lastDeclaration));
+				grastat->fields.push_back(std::move(lastDeclaration));
 			} else {
 				it = savedIt;
 				break;
@@ -357,12 +357,12 @@ std::unique_ptr<GrammarStatement> Parser::parseGrammarStatement(std::list<Token>
 	return grastat;
 }
 
-std::unique_ptr<MemberDeclaration> Parser::parseMemberDeclaration(std::list<Token>::const_iterator& it) const {
+std::unique_ptr<FieldDeclaration> Parser::parseMemberDeclaration(std::list<Token>::const_iterator& it) const {
 	auto savedIt = it;
-	MemberDeclaration* md;
+	FieldDeclaration* md;
 	if (it->type == TokenType::KW_FLAG || it->type == TokenType::KW_RAW) {
 		std::string typeForANicePersonalizedExceptionMessage = it->string;
-		md = it->type == TokenType::KW_FLAG ? dynamic_cast<MemberDeclaration *>(new FlagDeclaration) : dynamic_cast<MemberDeclaration*>(new RawDeclaration);
+		md = it->type == TokenType::KW_FLAG ? dynamic_cast<FieldDeclaration *>(new FlagFieldDeclaration) : dynamic_cast<FieldDeclaration*>(new RawFieldDeclaration);
 		++it;
 
 		if (it->type != TokenType::IDENTIFIER) {
@@ -377,16 +377,16 @@ std::unique_ptr<MemberDeclaration> Parser::parseMemberDeclaration(std::list<Toke
 		std::string typeName = it->string;
 		++it;
 
-		auto vtd = new VariablyTypedDeclaration;
+		auto vtd = new VariablyTypedFieldDeclaration;
 		
 		if (it->type == TokenType::KW_LIST) {
-			md = new ListDeclaration;
+			md = new ListFieldDeclaration;
 			++it;
 		} else if (it->type == TokenType::KW_ITEM) {
-			md = new ItemDeclaration;
+			md = new ItemFieldDeclaration;
 			++it;
 		} else if (it->type == TokenType::IDENTIFIER) {
-			md = new ItemDeclaration;
+			md = new ItemFieldDeclaration;
 		} else {
 			throw UnexpectedTokenException(*it, "'list', 'item', or an identifier for item (implicitly assumed) name", "for member declaration");
 		}
@@ -403,7 +403,7 @@ std::unique_ptr<MemberDeclaration> Parser::parseMemberDeclaration(std::list<Toke
 	++it;
 
 	md->copyLocation(*savedIt);
-	return std::unique_ptr<MemberDeclaration>(md);
+	return std::unique_ptr<FieldDeclaration>(md);
 }
 
 std::unique_ptr<RootRegex> Parser::parseRootRegex(std::list<Token>::const_iterator& it) const {

@@ -72,11 +72,11 @@ enum class GrammarStatementType {
 	Production
 };
 
-struct MemberDeclaration;
+struct FieldDeclaration;
 struct MachineStatement : public ParsedStructure {
 	std::string name;
 	std::list<std::string> categories;
-	StandardList<MemberDeclaration> members;
+	StandardList<FieldDeclaration> fields;
 
 	virtual ~MachineStatement() = default;
 };
@@ -91,29 +91,29 @@ struct GrammarStatement : public MachineStatement {
 	std::unique_ptr<DisjunctiveRegex> disjunction;
 };
 
-struct MemberDeclaration : public ParsedStructure {
+struct FieldDeclaration : public ParsedStructure {
 	std::string name;
 
-	virtual ~MemberDeclaration() = default;
+	virtual ~FieldDeclaration() = default;
 };
 
-struct FlagDeclaration : public MemberDeclaration {
+struct FlagFieldDeclaration : public FieldDeclaration {
 	
 };
 
-struct RawDeclaration : public MemberDeclaration {
+struct RawFieldDeclaration : public FieldDeclaration {
 
 };
 
-struct VariablyTypedDeclaration : public MemberDeclaration {
+struct VariablyTypedFieldDeclaration : public FieldDeclaration {
 	std::string type;
 };
 
-struct ItemDeclaration : public VariablyTypedDeclaration {
+struct ItemFieldDeclaration : public VariablyTypedFieldDeclaration {
 	
 };
 
-struct ListDeclaration : public VariablyTypedDeclaration {
+struct ListFieldDeclaration : public VariablyTypedFieldDeclaration {
 
 };
 
