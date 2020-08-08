@@ -11,13 +11,15 @@ class Parser {
 public:
 	Parser() = default;
 
-	std::unique_ptr<File> parse(const std::list<Token>& tokens) const;
+	std::unique_ptr<SpecificationFile> parse(const std::list<Token>& tokens) const;
 	std::unique_ptr<UsingStatement> parseUsingStatement(std::list<Token>::const_iterator& it) const;
-	std::unique_ptr<MachineDefinition> parseMachineDefinition(std::list<Token>::const_iterator & it) const;
+	std::unique_ptr<MachineDefinition> parseMachineDefinition(std::list<Token>::const_iterator& it) const;
+	std::unique_ptr<FADefinition> parseFADefinition(std::list<Token>::const_iterator & it) const;
 	std::unique_ptr<MachineStatement> parseMachineStatement(std::list<Token>::const_iterator& it) const;
+	std::unique_ptr<CategoryStatement> parseCategoryStatement(std::list<Token>::const_iterator& it) const;
+	std::unique_ptr<GrammarStatement> parseGrammarStatement(std::list<Token>::const_iterator& it) const;
 
 	std::unique_ptr<MemberDeclaration> parseMemberDeclaration(std::list<Token>::const_iterator& it) const;
-	std::unique_ptr<Alternative> parseAlternative(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<RootRegex> parseRootRegex(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<RepetitiveRegex> parseRepetitiveRegex(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<LookaheadRegex> parseLookaheadRegex(std::list<Token>::const_iterator& it) const;

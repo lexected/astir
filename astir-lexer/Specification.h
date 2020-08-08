@@ -12,6 +12,8 @@ class SemanticAnalysisException : public Exception {
 public:
 	SemanticAnalysisException(const std::string& message)
 		: Exception(message) { }
+	SemanticAnalysisException(const std::string& message, const ParsedStructure& parsedStructureToInferLocationFrom)
+		: Exception(message + parsedStructureToInferLocationFrom.locationString()) { }
 };
 
 class Machine;

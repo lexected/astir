@@ -4,7 +4,7 @@
 #include <cctype>
 
 LexicalAnalyzer::LexicalAnalyzer()
-	: m_currentLine(1), m_currentColumn(0), m_state(LexicalAnalyzerState::Default), m_currentToken(),
+	: m_currentLocation(1, 0), m_state(LexicalAnalyzerState::Default), m_currentToken(),
 	m_currentCharacter('\0'), m_endOfStreamReached(true), m_consumeNew(false) {
 }
 
@@ -22,10 +22,10 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 				}
 			} else {
 				if (m_currentCharacter == '\n') {
-					++m_currentLine;
-					m_currentColumn = 0;
+					++m_currentLocation.line;
+					m_currentLocation.column = 0;
 				} else {
-					++m_currentColumn;
+					++m_currentLocation.column;
 				}
 			}
 		} else {
@@ -38,31 +38,26 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 					m_state = LexicalAnalyzerState::Identifier;
 					m_currentToken.string.append(std::string({ m_currentCharacter }));
 					m_currentToken.type = TokenType::IDENTIFIER;
-					m_currentToken.column = m_currentColumn;
-					m_currentToken.line = m_currentLine;
+					m_currentToken.setLocation(m_currentLocation);
 				} else if(std::isalnum(m_currentCharacter) || m_currentCharacter == '_') {
 					m_state = LexicalAnalyzerState::Number;
 					m_currentToken.string.append(std::string({ m_currentCharacter }));
 					m_currentToken.type = TokenType::NUMBER;
-					m_currentToken.column = m_currentColumn;
-					m_currentToken.line = m_currentLine;
+					m_currentToken.setLocation(m_currentLocation);
 				} else if (isspace(m_currentCharacter)) {
 					/* do nothin' */
 				} else if (m_currentCharacter == '"') {
 					m_state = LexicalAnalyzerState::String;
 					m_currentToken.type = TokenType::STRING;
-					m_currentToken.column = m_currentColumn;
-					m_currentToken.line = m_currentLine;
+					m_currentToken.setLocation(m_currentLocation);
 				} else if (m_currentCharacter == '<') {
 					m_state = LexicalAnalyzerState::LeftArrow;
 					m_currentToken.string = "<-";
 					m_currentToken.type = TokenType::OP_LEFTARR;
-					m_currentToken.column = m_currentColumn;
-					m_currentToken.line = m_currentLine;
+					m_currentToken.setLocation(m_currentLocation);
 				} else {
 					m_currentToken.string = std::string({ m_currentCharacter });
-					m_currentToken.column = m_currentColumn;
-					m_currentToken.line = m_currentLine;
+					m_currentToken.setLocation(m_currentLocation);
 					switch (m_currentCharacter) {
 						case '(':
 							m_currentToken.type = TokenType::PAR_LEFT;
@@ -128,7 +123,7 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 							m_currentToken.type = TokenType::OP_AT;
 							break;
 						default:
-							throw LexicalAnalyzerException("Unrecognized character '" + m_currentToken.string + "' found on line " + std::to_string(m_currentLine) + ":" + std::to_string(m_currentColumn));
+							throw LexicalAnalyzerException("Unrecognized character '" + m_currentToken.string + "' found on line " + m_currentLocation.toString());
 							break;
 					}
 					ret.push_back(m_currentToken);
@@ -170,7 +165,7 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 				break;
 			case LexicalAnalyzerState::LeftArrow:
 				if (m_currentCharacter != '-' || m_endOfStreamReached) {
-					throw LexicalAnalyzerException("Unrecognized character '" + m_currentToken.string + "' found on line " + std::to_string(m_currentLine) + ":" + std::to_string(m_currentColumn) + ", expected '-' to complete the left-arrow operator '<-'");
+					throw LexicalAnalyzerException("Unrecognized character '" + m_currentToken.string + "' found on line " + m_currentLocation.toString() + ", expected '-' to complete the left-arrow operator '<-'");
 				} else {
 					ret.push_back(m_currentToken);
 					m_currentToken.string.clear();
@@ -193,8 +188,8 @@ void LexicalAnalyzer::resetInternalState() {
 }
 
 void LexicalAnalyzer::resetPositionState() {
-	m_currentColumn = 0;
-	m_currentLine = 1;
+	m_currentLocation.column = 0;
+	m_currentLocation.line = 1;
 }
 
 void LexicalAnalyzer::resetState() {

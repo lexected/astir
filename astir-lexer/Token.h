@@ -3,6 +3,7 @@
 #include <string>
 
 #include "Exception.h"
+#include "FileLocation.h"
 
 enum class TokenType {
 	KW_USING,
@@ -73,17 +74,15 @@ enum class TokenType {
 	EOS /* end of stream wiseapples */
 };
 
-struct Token {
-	unsigned long line;
-	unsigned long column;
+struct Token : public IFileLocalizable {
 	TokenType type;
 	std::string string;
 
 	Token()
-		: line(1), column(1), type(TokenType::IDENTIFIER), string() {}
+		: IFileLocalizable(1, 1), type(TokenType::IDENTIFIER), string() {}
 
+	void setLocation(const FileLocation& loc);
 	std::string typeString() const;
-	std::string locationString() const;
 
 	std::string toString() const;
 	std::string toHumanString() const;

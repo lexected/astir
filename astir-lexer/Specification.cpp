@@ -7,17 +7,16 @@ void Specification::initializeFromFile(const SpecificationFile& specificationFil
 	for (const auto & statementPtr: specificationFile.statements) {
 		MachineDefinition* md;
 		if ((md = dynamic_cast<MachineDefinition*>(statementPtr.get())) != nullptr) {
-			machineDefinitions[md->machineName] = md;
-
-			auto prevDefIt = machines.find(md->machineName);
-			if (prevDefIt != machines.cend()) {
-				throw SemanticAnalysisException("A machine with name '" + md->machineName + "' already defined");
+			auto prevDefIt = machineDefinitions.find(md->machineName);
+			if (prevDefIt != machineDefinitions.cend()) {
+				throw SemanticAnalysisException("A machine with name '" + md->machineName + "' already defined", *prevDefIt->second);
 			}
+			machineDefinitions[md->machineName] = md;
 
 			auto machinePtr = std::make_shared<Machine>(md->machineName);
 			machines[md->machineName] = move(machinePtr);
 		} else {
-			throw SemanticAnalysisException("Unsupported statement type encountered");
+			throw SemanticAnalysisException("Unsupported statement type encountered", *statementPtr);
 		}
 	}
 
@@ -69,4 +68,8 @@ bool Specification::containsDefinitionRecursion(const std::map<std::string, Mach
 
 	namesEncountered.pop_back();
 	return false;
+}
+
+void Machine::initializeFromDefinition(const MachineDefinition* definition) {
+	// implement
 }

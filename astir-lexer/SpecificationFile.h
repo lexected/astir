@@ -3,6 +3,9 @@
 #include <list>
 #include <memory>
 #include <map>
+#include <string>
+
+#include "FileLocation.h"
 
 template <class ProductionType>
 using StandardList = std::list<std::unique_ptr<ProductionType>>;
@@ -12,12 +15,16 @@ using StandardList = std::list<std::unique_ptr<ProductionType>>;
 	It's usually much better to create a 'minimal' initialization in in the default constructor and have everything else done from outside by the relevant parsing procedure.
 */
 
+struct ParsedStructure : public IFileLocalizable {
+
+};
+
 struct SpecificationFileStatement;
 struct SpecificationFile {
 	StandardList<SpecificationFileStatement> statements;
 };
 
-struct SpecificationFileStatement {
+struct SpecificationFileStatement : public ParsedStructure {
 	virtual ~SpecificationFileStatement() = default;
 };
 
@@ -66,7 +73,7 @@ enum class GrammarStatementType {
 };
 
 struct MemberDeclaration;
-struct MachineStatement {
+struct MachineStatement : public ParsedStructure {
 	std::string name;
 	std::list<std::string> categories;
 	StandardList<MemberDeclaration> members;
@@ -78,13 +85,13 @@ struct CategoryStatement : public MachineStatement {
 
 };
 
-struct Alternative;
+struct DisjunctiveRegex;
 struct GrammarStatement : public MachineStatement {
 	GrammarStatementType type;
-	StandardList<Alternative> alternatives;
+	std::unique_ptr<DisjunctiveRegex> disjunction;
 };
 
-struct MemberDeclaration {
+struct MemberDeclaration : public ParsedStructure {
 	std::string name;
 
 	virtual ~MemberDeclaration() = default;
@@ -110,12 +117,7 @@ struct ListDeclaration : public VariablyTypedDeclaration {
 
 };
 
-struct RootRegex;
-struct Alternative {
-	StandardList<RootRegex> rootRegexes;
-};
-
-struct RootRegex {
+struct RootRegex : public ParsedStructure {
 	virtual ~RootRegex() = default;
 };
 
@@ -158,8 +160,18 @@ struct ActionAtomicRegex : public RootRegex {
 	std::unique_ptr<AtomicRegex> regex;
 };
 
-struct AtomicRegex {
+struct AtomicRegex : public ParsedStructure {
 	virtual ~AtomicRegex() = default;
+};
+
+struct ConjunctiveRegex;
+struct DisjunctiveRegex : public AtomicRegex {
+	StandardList<ConjunctiveRegex> disjunction;
+};
+
+struct RootRegex;
+struct ConjunctiveRegex : public ParsedStructure {
+	StandardList<RootRegex> conjunction;
 };
 
 struct RegexRange {
@@ -174,14 +186,6 @@ struct AnyRegex : public AtomicRegex {
 
 struct ExceptAnyRegex : public AnyRegex {
 	
-};
-
-struct ConjunctiveRegex {
-	StandardList<RootRegex> conjunction;
-};
-
-struct DisjunctiveRegex : public AtomicRegex {
-	StandardList<ConjunctiveRegex> disjunction;
 };
 
 struct LiteralRegex : public AtomicRegex {

@@ -147,11 +147,15 @@ rule declarationNameList =
 	;
 
 production grammarStatementBody = 
-	alternative*
+	disjunctiveRegex*
 	;
 
-production alternative = 
-	rootRegex*
+production disjunctiveRegex =
+	conjuctiveRegex (OP_OR conjuctiveRegex)*
+	;
+
+production conjunctiveRegex =
+	rootRegex+
 	;
 
 production rootRegex =
@@ -188,14 +192,6 @@ production atomicRegex : rootRegex =
 
 production regexRange =
 	STRING OP_DASH STRING
-	;
-
-production disjunctiveRegex =
-	conjuctiveRegex (OP_OR conjuctiveRegex)*
-	;
-
-production conjunctiveRegex =
-	rootRegex+
 	;
 
 production specifiedName =
