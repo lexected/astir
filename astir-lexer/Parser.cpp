@@ -85,7 +85,7 @@ std::unique_ptr<FADefinition> Parser::parseFADefinition(std::list<Token>::const_
 	if (it->type != TokenType::IDENTIFIER) {
 		throw UnexpectedTokenException(*it, "an identifier", "for finite automaton declaration", *savedIt);
 	}
-	faDef->machineName = it->string;
+	faDef->name = it->string;
 	++it;
 
 	if (it->type == TokenType::KW_WITH) {
@@ -377,16 +377,16 @@ std::unique_ptr<FieldDeclaration> Parser::parseMemberDeclaration(std::list<Token
 		std::string typeName = it->string;
 		++it;
 
-		auto vtd = new VariablyTypedFieldDeclaration;
+		VariablyTypedFieldDeclaration* vtd;
 		
 		if (it->type == TokenType::KW_LIST) {
-			md = new ListFieldDeclaration;
+			vtd = new ListFieldDeclaration;
 			++it;
 		} else if (it->type == TokenType::KW_ITEM) {
-			md = new ItemFieldDeclaration;
+			vtd = new ItemFieldDeclaration;
 			++it;
 		} else if (it->type == TokenType::IDENTIFIER) {
-			md = new ItemFieldDeclaration;
+			vtd = new ItemFieldDeclaration;
 		} else {
 			throw UnexpectedTokenException(*it, "'list', 'item', or an identifier for item (implicitly assumed) name", "for member declaration");
 		}

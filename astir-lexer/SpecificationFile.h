@@ -6,6 +6,7 @@
 #include <string>
 
 #include "FileLocation.h"
+#include "Specification.h"
 
 template <class ProductionType>
 using StandardList = std::list<std::unique_ptr<ProductionType>>;
@@ -15,13 +16,15 @@ using StandardList = std::list<std::unique_ptr<ProductionType>>;
 	It's usually much better to create a 'minimal' initialization in in the default constructor and have everything else done from outside by the relevant parsing procedure.
 */
 
-struct ParsedStructure : public IFileLocalizable {
-
-};
+struct ParsedStructure : public IFileLocalizable { };
 
 struct SpecificationFileStatement;
-struct SpecificationFile {
+struct SpecificationFile : public ISpecificationInitializable<Specification> {
 	StandardList<SpecificationFileStatement> statements;
+
+	std::shared_ptr<Specification> makeSpecificationComponent() const override;
+private:
+	void initializeMachineWithDependencies(Machine* machine, const std::map<std::string, MachineDefinition*>& definitions, std::map<std::string, bool>& initializationMap) const;
 };
 
 struct SpecificationFileStatement : public ParsedStructure {
@@ -33,18 +36,14 @@ struct UsingStatement : public SpecificationFileStatement {
 };
 
 struct MachineStatement;
-struct MachineDefinition : public SpecificationFileStatement {
-	std::string machineName;
+struct MachineDefinition : public SpecificationFileStatement, public ISpecificationInitializable<Machine> {
+public:
+	std::string name;
 	StandardList<MachineStatement> statements;
 	std::string extends;
 	std::string follows;
-
-	MachineDefinition() = default;
-};
-
-enum class FAType {
-	Deterministic,
-	Nondeterministic
+	
+	void initializeSpecificationComponent(Machine* machine) const override;
 };
 
 enum class FAFlag {
@@ -62,7 +61,7 @@ struct FADefinition : public MachineDefinition {
 			{ FAFlag::TableLookup, false }
 		}) { }
 
-	virtual ~FADefinition() = default;
+	std::shared_ptr<Machine> makeSpecificationComponent() const override;
 };
 
 enum class GrammarStatementType {
@@ -73,36 +72,36 @@ enum class GrammarStatementType {
 };
 
 struct FieldDeclaration;
-struct MachineStatement : public ParsedStructure {
+struct MachineStatement : public ParsedStructure, public ISpecificationInitializable<MachineEntity> {
 	std::string name;
 	std::list<std::string> categories;
 	StandardList<FieldDeclaration> fields;
-
+	
 	virtual ~MachineStatement() = default;
 };
 
 struct CategoryStatement : public MachineStatement {
-
+	std::shared_ptr<MachineEntity> makeSpecificationComponent() const override;
 };
 
 struct DisjunctiveRegex;
 struct GrammarStatement : public MachineStatement {
 	GrammarStatementType type;
 	std::unique_ptr<DisjunctiveRegex> disjunction;
+
+	std::shared_ptr<MachineEntity> makeSpecificationComponent() const override;
 };
 
-struct FieldDeclaration : public ParsedStructure {
+struct FieldDeclaration : public ParsedStructure, public ISpecificationInitializable<Field> {
 	std::string name;
-
-	virtual ~FieldDeclaration() = default;
 };
 
 struct FlagFieldDeclaration : public FieldDeclaration {
-	
+	std::shared_ptr<Field> makeSpecificationComponent() const override;
 };
 
 struct RawFieldDeclaration : public FieldDeclaration {
-
+	std::shared_ptr<Field> makeSpecificationComponent() const override;
 };
 
 struct VariablyTypedFieldDeclaration : public FieldDeclaration {
@@ -110,11 +109,11 @@ struct VariablyTypedFieldDeclaration : public FieldDeclaration {
 };
 
 struct ItemFieldDeclaration : public VariablyTypedFieldDeclaration {
-	
+	std::shared_ptr<Field> makeSpecificationComponent() const override;
 };
 
 struct ListFieldDeclaration : public VariablyTypedFieldDeclaration {
-
+	std::shared_ptr<Field> makeSpecificationComponent() const override;
 };
 
 struct RootRegex : public ParsedStructure {
