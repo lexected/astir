@@ -23,8 +23,8 @@ bool Specification::containsDeclarationCategoryRecursion(const std::map<std::str
 	return false;
 }
 
-std::shared_ptr<MachineEntity> Machine::contextFindMachineEntity(const std::string& name) const {
-	std::shared_ptr<MachineEntity> ret;
+std::shared_ptr<MachineComponent> Machine::contextFindMachineEntity(const std::string& name) const {
+	std::shared_ptr<MachineComponent> ret;
 	if (extends && (ret = extends->contextFindMachineEntity(name))) {
 		return ret;
 	}
@@ -33,8 +33,8 @@ std::shared_ptr<MachineEntity> Machine::contextFindMachineEntity(const std::stri
 		return ret;
 	}
 
-	auto it = entities.find(name);
-	if (it != entities.cend()) {
+	auto it = components.find(name);
+	if (it != components.cend()) {
 		return it->second;
 	}
 

@@ -2,11 +2,11 @@
 
 #include "Specification.h"
 
-std::shared_ptr<MachineEntity> CategoryStatement::makeSpecificationComponent() const {
+std::shared_ptr<MachineComponent> CategoryStatement::makeSpecificationEntity() const {
 	return std::make_shared<Category>(this->name);
 }
 
-std::shared_ptr<MachineEntity> GrammarStatement::makeSpecificationComponent() const {
+std::shared_ptr<MachineComponent> GrammarStatement::makeSpecificationEntity() const {
 	bool recursionAllowed;
 	bool typeForming;
 
@@ -26,26 +26,26 @@ std::shared_ptr<MachineEntity> GrammarStatement::makeSpecificationComponent() co
 		throw SemanticAnalysisException("Unrecognized GrammarStatement type. This should never happen in practice.");
 	}
 
-	return std::make_shared<Production>(this->name, recursionAllowed, typeForming);
+	return std::make_shared<Production>(this->name, recursionAllowed, typeForming, this->disjunction);
 }
 
-std::shared_ptr<Field> FlagFieldDeclaration::makeSpecificationComponent() const {
+std::shared_ptr<Field> FlagFieldDeclaration::makeSpecificationEntity() const {
 	return std::make_shared<FlagField>(name);
 }
 
-std::shared_ptr<Field> RawFieldDeclaration::makeSpecificationComponent() const {
+std::shared_ptr<Field> RawFieldDeclaration::makeSpecificationEntity() const {
 	return std::make_shared<RawField>(name);
 }
 
-std::shared_ptr<Field> ItemFieldDeclaration::makeSpecificationComponent() const {
+std::shared_ptr<Field> ItemFieldDeclaration::makeSpecificationEntity() const {
 	return std::make_shared<ItemField>(name, type);
 }
 
-std::shared_ptr<Field> ListFieldDeclaration::makeSpecificationComponent() const {
+std::shared_ptr<Field> ListFieldDeclaration::makeSpecificationEntity() const {
 	return std::make_shared<ListField>(name, type);
 }
 
-std::shared_ptr<Specification> SpecificationFile::makeSpecificationComponent() const {
+std::shared_ptr<Specification> SpecificationFile::makeSpecificationEntity() const {
 	std::shared_ptr<Specification> specification = std::make_shared<Specification>();
 
 	// build up the name database
@@ -59,7 +59,7 @@ std::shared_ptr<Specification> SpecificationFile::makeSpecificationComponent() c
 			}
 			machineDefinitions[md->name] = md;
 
-			specification->machines[md->name] = md->makeSpecificationComponent();
+			specification->machines[md->name] = md->makeSpecificationEntity();
 		} else {
 			throw SemanticAnalysisException("Unsupported statement type encountered", *statementPtr);
 		}
@@ -117,11 +117,11 @@ void SpecificationFile::initializeMachineWithDependencies(Machine* machine, cons
 	}
 
 	auto defIt = definitions.find(machine->name);
-	defIt->second->initializeSpecificationComponent(machine);
+	defIt->second->initializeSpecificationEntity(machine);
 	initializationMap[machine->name] = true;
 }
 
-void MachineDefinition::initializeSpecificationComponent(Machine* machine) const {
+void MachineDefinition::initializeSpecificationEntity(Machine* machine) const {
 	// build up the name database
 	std::map<std::string, MachineStatement*> statements;
 	for (const auto& statementUPtr : this->statements) {
@@ -131,9 +131,8 @@ void MachineDefinition::initializeSpecificationComponent(Machine* machine) const
 
 		MachineStatement* statement = statementUPtr.get();
 		statements[statement->name] = statement;
-		std::shared_ptr<MachineEntity> entity = statement->makeSpecificationComponent();
 
-		machine->entities[entity->name] = entity;
+		machine->components[statement->name] = statement->makeSpecificationEntity();
 	}
 
 	// check for possible category reference recursion (and obviously whether the referenced category is indeed a category)
@@ -149,11 +148,22 @@ void MachineDefinition::initializeSpecificationComponent(Machine* machine) const
 		}
 	}
 
-	// at this point we need to build the initialize the MachineEntities, in particular their fields
+	// at this point we need to initialize the MachineComponents, in particular their fields
+	for (const auto& statementPair : statements) {
+		statementPair.second->initializeSpecificationEntity(machine->components[statementPair.second->name].get());
+	}
 
 	// the last bit is to check that there is no disallowed recursion within the productions themselves
+
+	// as an inherited check, finite automata can then only focus on finding out whether all their productions are 
 }
 
-std::shared_ptr<Machine> FADefinition::makeSpecificationComponent() const {
+std::shared_ptr<Machine> FADefinition::makeSpecificationEntity() const {
 	return std::make_shared<FAMachine>(name, type);
+}
+
+void MachineStatement::initializeSpecificationEntity(MachineComponent* machine) const {
+	for (const auto& fieldPtr : fields) {
+		machine->fields.push_back(fieldPtr->makeSpecificationEntity());
+	}
 }

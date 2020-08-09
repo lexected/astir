@@ -10,10 +10,11 @@
 /*
 	A few forward declarations
 */
-
+struct ParsedStructure;
 struct MachineStatement;
 struct MachineDefinition;
-struct ParsedStructure;
+struct DisjunctiveRegex;
+
 
 class SemanticAnalysisException : public Exception {
 public:
@@ -27,8 +28,8 @@ class ISpecificationInitializable {
 public:
 	virtual ~ISpecificationInitializable() = default;
 
-	virtual std::shared_ptr<CorrespondingSpecificationType> makeSpecificationComponent() const = 0;
-	virtual void initializeSpecificationComponent(CorrespondingSpecificationType* specificationComponent) const { };
+	virtual std::shared_ptr<CorrespondingSpecificationType> makeSpecificationEntity() const = 0;
+	virtual void initializeSpecificationEntity(CorrespondingSpecificationType* specificationEntity) const { };
 
 protected:
 	ISpecificationInitializable() = default;
@@ -42,7 +43,7 @@ public:
 	bool containsDeclarationCategoryRecursion(const std::map<std::string, MachineDefinition*>& definitions, std::list<std::string>& namesEncountered, std::string nameConsidered) const;
 };
 
-class MachineEntity;
+class MachineComponent;
 class Category;
 class Production;
 class Machine {
@@ -50,12 +51,12 @@ public:
 	const std::string name;
 	std::shared_ptr<Machine> follows;
 	std::shared_ptr<Machine> extends;
-	std::map<std::string, std::shared_ptr<MachineEntity>> entities;
+	std::map<std::string, std::shared_ptr<MachineComponent>> components;
 
 	Machine(const std::string& name)
 		: name(name) { }
 
-	std::shared_ptr<MachineEntity> contextFindMachineEntity(const std::string& name) const;
+	std::shared_ptr<MachineComponent> contextFindMachineEntity(const std::string& name) const;
 	bool containsDeclarationCategoryRecursion(const std::map<std::string, MachineStatement*>& statements, std::list<std::string>& namesEncountered, std::string nameConsidered, bool mustBeACategory = false) const;
 };
 
@@ -73,29 +74,31 @@ public:
 };
 
 class Field;
-class MachineEntity {
+class MachineComponent {
 public:
 	const std::string name;
 	std::shared_ptr<Category> categories;
 	std::list<std::shared_ptr<Field>> fields;
 
-	MachineEntity(const std::string& name)
+	MachineComponent(const std::string& name)
 		: name(name) { }
 };
 
-class Category : public MachineEntity {
+class Category : public MachineComponent {
 public:
 	Category(const std::string& name)
-		: MachineEntity(name) { }
+		: MachineComponent(name) { }
 };
 
-class Production : public MachineEntity {
+class Production : public MachineComponent {
 public:
 	const bool recursionAllowed;
 	const bool typeForming;
 
-	Production(const std::string& name, bool recursionAllowed, bool typeForming)
-		: MachineEntity(name), recursionAllowed(recursionAllowed), typeForming(typeForming) { }
+	std::shared_ptr<DisjunctiveRegex> regex;
+
+	Production(const std::string& name, bool recursionAllowed, bool typeForming, const std::shared_ptr<DisjunctiveRegex>& regex)
+		: MachineComponent(name), recursionAllowed(recursionAllowed), typeForming(typeForming), regex(regex) { }
 };
 
 class Field {

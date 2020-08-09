@@ -343,7 +343,7 @@ std::unique_ptr<GrammarStatement> Parser::parseGrammarStatement(std::list<Token>
 	++it;
 
 	auto prevIt = it;
-	std::unique_ptr<DisjunctiveRegex> disjunction = Parser::parseDisjunctiveRegex(it);
+	std::shared_ptr<DisjunctiveRegex> disjunction = Parser::parseDisjunctiveRegex(it);
 	if (!disjunction) {
 		throw ParserException("Expected an alternative (i.e. a valid, possibly disjunctive, astir regex) to follow the '=' on the intial token - none found.", *it, *prevIt);
 	}

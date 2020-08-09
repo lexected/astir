@@ -22,7 +22,7 @@ struct SpecificationFileStatement;
 struct SpecificationFile : public ISpecificationInitializable<Specification> {
 	StandardList<SpecificationFileStatement> statements;
 
-	std::shared_ptr<Specification> makeSpecificationComponent() const override;
+	std::shared_ptr<Specification> makeSpecificationEntity() const override;
 private:
 	void initializeMachineWithDependencies(Machine* machine, const std::map<std::string, MachineDefinition*>& definitions, std::map<std::string, bool>& initializationMap) const;
 };
@@ -43,7 +43,7 @@ public:
 	std::string extends;
 	std::string follows;
 	
-	void initializeSpecificationComponent(Machine* machine) const override;
+	void initializeSpecificationEntity(Machine* machine) const override;
 };
 
 enum class FAFlag {
@@ -61,7 +61,7 @@ struct FADefinition : public MachineDefinition {
 			{ FAFlag::TableLookup, false }
 		}) { }
 
-	std::shared_ptr<Machine> makeSpecificationComponent() const override;
+	std::shared_ptr<Machine> makeSpecificationEntity() const override;
 };
 
 enum class GrammarStatementType {
@@ -72,24 +72,26 @@ enum class GrammarStatementType {
 };
 
 struct FieldDeclaration;
-struct MachineStatement : public ParsedStructure, public ISpecificationInitializable<MachineEntity> {
+struct MachineStatement : public ParsedStructure, public ISpecificationInitializable<MachineComponent> {
 	std::string name;
 	std::list<std::string> categories;
 	StandardList<FieldDeclaration> fields;
 	
 	virtual ~MachineStatement() = default;
+
+	void initializeSpecificationEntity(MachineComponent* machine) const override;
 };
 
 struct CategoryStatement : public MachineStatement {
-	std::shared_ptr<MachineEntity> makeSpecificationComponent() const override;
+	std::shared_ptr<MachineComponent> makeSpecificationEntity() const override;
 };
 
 struct DisjunctiveRegex;
 struct GrammarStatement : public MachineStatement {
 	GrammarStatementType type;
-	std::unique_ptr<DisjunctiveRegex> disjunction;
+	std::shared_ptr<DisjunctiveRegex> disjunction;
 
-	std::shared_ptr<MachineEntity> makeSpecificationComponent() const override;
+	std::shared_ptr<MachineComponent> makeSpecificationEntity() const override;
 };
 
 struct FieldDeclaration : public ParsedStructure, public ISpecificationInitializable<Field> {
@@ -97,11 +99,11 @@ struct FieldDeclaration : public ParsedStructure, public ISpecificationInitializ
 };
 
 struct FlagFieldDeclaration : public FieldDeclaration {
-	std::shared_ptr<Field> makeSpecificationComponent() const override;
+	std::shared_ptr<Field> makeSpecificationEntity() const override;
 };
 
 struct RawFieldDeclaration : public FieldDeclaration {
-	std::shared_ptr<Field> makeSpecificationComponent() const override;
+	std::shared_ptr<Field> makeSpecificationEntity() const override;
 };
 
 struct VariablyTypedFieldDeclaration : public FieldDeclaration {
@@ -109,11 +111,11 @@ struct VariablyTypedFieldDeclaration : public FieldDeclaration {
 };
 
 struct ItemFieldDeclaration : public VariablyTypedFieldDeclaration {
-	std::shared_ptr<Field> makeSpecificationComponent() const override;
+	std::shared_ptr<Field> makeSpecificationEntity() const override;
 };
 
 struct ListFieldDeclaration : public VariablyTypedFieldDeclaration {
-	std::shared_ptr<Field> makeSpecificationComponent() const override;
+	std::shared_ptr<Field> makeSpecificationEntity() const override;
 };
 
 struct RootRegex : public ParsedStructure {
