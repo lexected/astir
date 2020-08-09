@@ -30,8 +30,7 @@ public:
 	void resetPositionState();
 	void resetState();
 private:
-	unsigned long m_currentColumn;
-	unsigned long m_currentLine;
+	FileLocation m_currentLocation;
 	LexicalAnalyzerState m_state;
 	Token m_currentToken;
 

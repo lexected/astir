@@ -11,7 +11,7 @@ int main(int argc, char* argv[]) {
 	auto tokenList = analyzer.process(inputFile);
 
 	for (const Token& token : tokenList) {
-		std::cout << "[" << token.line << ":" << token.column << "] "
+		std::cout << "[" << token.locationString() << "] "
 			<< token.typeString()
 			<< ": \"" << token.string << "\""
 			<< std::endl

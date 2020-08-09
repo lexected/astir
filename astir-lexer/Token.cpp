@@ -6,6 +6,10 @@ std::string Token::toString() const {
 	return std::string("type ") + typeString() + ", string \'" + string + "\', location " + locationString();
 }
 
+void Token::setLocation(const FileLocation& loc) {
+	this->IFileLocalizable::setLocation(loc);
+}
+
 std::string Token::typeString() const {
 	return Token::convertTypeToString(this->type);
 }
@@ -16,10 +20,6 @@ std::string Token::toHumanString() const {
 	} else {
 		return string;
 	}
-}
-
-std::string Token::locationString() const {
-	return std::to_string(line) + ":" + std::to_string(column);
 }
 
 std::string Token::convertTypeToString(TokenType type) {
