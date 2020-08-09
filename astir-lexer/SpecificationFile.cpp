@@ -68,7 +68,7 @@ std::shared_ptr<Specification> SpecificationFile::makeSpecificationEntity() cons
 	// check for recursion
 	std::list<std::string> namesEncountered;
 	for (const auto& pair : machineDefinitions) {
-		if (specification->containsDeclarationCategoryRecursion(machineDefinitions, namesEncountered, pair.first)) {
+		if (specification->containsMachineHierarchyRecursion(machineDefinitions, namesEncountered, pair.first)) {
 			std::string hierarchyPath = namesEncountered.front();
 			namesEncountered.pop_front();
 			for (const auto& nameEncountered : namesEncountered) {
@@ -125,7 +125,7 @@ void MachineDefinition::initializeSpecificationEntity(Machine* machine) const {
 	// build up the name database
 	std::map<std::string, MachineStatement*> statements;
 	for (const auto& statementUPtr : this->statements) {
-		if (machine->contextFindMachineEntity(statementUPtr->name)) {
+		if (machine->contextFindMachineComponent(statementUPtr->name)) {
 			throw SemanticAnalysisException("Name '" + statementUPtr->name + "' encountered in machine '" + machine->name + "' already defined"); // TODO: could use an improvement; already defined where?
 		}
 
@@ -154,16 +154,69 @@ void MachineDefinition::initializeSpecificationEntity(Machine* machine) const {
 	}
 
 	// the last bit is to check that there is no disallowed recursion within the productions themselves
-
-	// as an inherited check, finite automata can then only focus on finding out whether all their productions are 
+	std::list<std::string> namesEncounteredInComponentRecursion;
+	if (machine->containsDisallowedComponentRecursion(namesEncounteredInComponentRecursion)) {
+		std::string hierarchyPath = namesEncounteredInComponentRecursion.front();
+		namesEncountered.pop_front();
+		for (const auto& nameEncountered : namesEncounteredInComponentRecursion) {
+			hierarchyPath += "-" + nameEncountered;
+		}
+		throw SemanticAnalysisException("Production/category reference recursion found in the path " + hierarchyPath);
+	}
 }
 
 std::shared_ptr<Machine> FADefinition::makeSpecificationEntity() const {
 	return std::make_shared<FAMachine>(name, type);
 }
 
-void MachineStatement::initializeSpecificationEntity(MachineComponent* machine) const {
+void MachineStatement::initializeSpecificationEntity(MachineComponent* machineComponent) const {
 	for (const auto& fieldPtr : fields) {
-		machine->fields.push_back(fieldPtr->makeSpecificationEntity());
+		machineComponent->fields.push_back(fieldPtr->makeSpecificationEntity());
 	}
+}
+
+void MachineStatement::initializeSpecificationEntity(const Machine* context, MachineComponent* machineComponent) const {
+	initializeSpecificationEntity(machineComponent);
+
+	for (const auto& categoryName : this->categories) {
+		auto categoryComponent = dynamic_cast<Category*>(context->contextFindMachineComponent(categoryName));
+		machineComponent->categories.push_back(categoryComponent);
+		categoryComponent->references[machineComponent->name] = machineComponent;
+	}
+}
+
+bool RepetitiveRegex::componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const {
+	return actionAtomicRegex->componentRecursivelyReferenced(machine, namesEncountered);
+}
+
+bool LookaheadRegex::componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const {
+	return match->componentRecursivelyReferenced(machine, namesEncountered) || lookahead->componentRecursivelyReferenced(machine, namesEncountered);
+}
+
+bool ActionAtomicRegex::componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const {
+	return regex->componentRecursivelyReferenced(machine, namesEncountered);
+}
+
+bool DisjunctiveRegex::componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const {
+	for (const auto& conjunctiveRegexPtr : disjunction) {
+		if (conjunctiveRegexPtr->componentRecursivelyReferenced(machine, namesEncountered)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool ConjunctiveRegex::componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const {
+	for (const auto& rootRegexPtr : conjunction) {
+		if (rootRegexPtr->componentRecursivelyReferenced(machine, namesEncountered)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool ReferenceRegex::componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const {
+	return machine.componentRecursivelyReferenced(namesEncountered, *this);
 }

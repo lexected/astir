@@ -2,7 +2,7 @@
 
 #include "SpecificationFile.h"
 
-bool Specification::containsDeclarationCategoryRecursion(const std::map<std::string, MachineDefinition*>& definitions, std::list<std::string>& namesEncountered, std::string nameConsidered) const {
+bool Specification::containsMachineHierarchyRecursion(const std::map<std::string, MachineDefinition*>& definitions, std::list<std::string>& namesEncountered, std::string nameConsidered) const {
 
 	bool retNow = std::find(namesEncountered.cbegin(), namesEncountered.cend(), nameConsidered) == namesEncountered.cend();
 	namesEncountered.push_back(nameConsidered);
@@ -11,11 +11,11 @@ bool Specification::containsDeclarationCategoryRecursion(const std::map<std::str
 	}
 
 	const MachineDefinition* definitionConsidered = definitions.find(nameConsidered)->second;
-	if (containsDeclarationCategoryRecursion(definitions, namesEncountered, definitionConsidered->follows)) {
+	if (containsMachineHierarchyRecursion(definitions, namesEncountered, definitionConsidered->follows)) {
 		return true;
 	}
 
-	if (containsDeclarationCategoryRecursion(definitions, namesEncountered, definitionConsidered->extends)) {
+	if (containsMachineHierarchyRecursion(definitions, namesEncountered, definitionConsidered->extends)) {
 		return true;
 	}
 
@@ -23,19 +23,19 @@ bool Specification::containsDeclarationCategoryRecursion(const std::map<std::str
 	return false;
 }
 
-std::shared_ptr<MachineComponent> Machine::contextFindMachineEntity(const std::string& name) const {
-	std::shared_ptr<MachineComponent> ret;
-	if (extends && (ret = extends->contextFindMachineEntity(name))) {
+MachineComponent* Machine::contextFindMachineComponent(const std::string& name) const {
+	MachineComponent* ret;
+	if (extends && (ret = extends->contextFindMachineComponent(name))) {
 		return ret;
 	}
 	
-	if (follows && (ret = follows->contextFindMachineEntity(name))) {
+	if (follows && (ret = follows->contextFindMachineComponent(name))) {
 		return ret;
 	}
 
 	auto it = components.find(name);
 	if (it != components.cend()) {
-		return it->second;
+		return it->second.get();
 	}
 
 	return nullptr;
@@ -48,7 +48,12 @@ bool Machine::containsDeclarationCategoryRecursion(const std::map<std::string, M
 		return true;
 	}
 
-	const MachineStatement* statementConsidered = statements.find(nameConsidered)->second;
+	auto statIt = statements.find(nameConsidered);
+	if (statIt == statements.cend()) {
+		throw SemanticAnalysisException(nameConsidered + "' is not recognized as category name in the present context but was referenced as such in the declaration of " + namesEncountered.back());
+	}
+
+	const MachineStatement* statementConsidered = statIt->second;
 	if (mustBeACategory && dynamic_cast<const CategoryStatement*>(statementConsidered) == nullptr) {
 		throw SemanticAnalysisException(nameConsidered + "' is not a category but was referenced as a category in the declaration of " + namesEncountered.back());
 	}
@@ -63,5 +68,70 @@ bool Machine::containsDeclarationCategoryRecursion(const std::map<std::string, M
 	return false;
 }
 
+bool Machine::componentRecursivelyReferenced(std::list<std::string>& namesEncountered, const ReferenceRegex& componentReference) const {
+	auto component = contextFindMachineComponent(componentReference.referenceName);
+	if (!component) {
+		throw SemanticAnalysisException("Unknown component name '" + componentReference.referenceName + "' encountered", componentReference);
+	}
+	
+	return component->componentRecursivelyReferenced(*this, namesEncountered);
+}
+
 SemanticAnalysisException::SemanticAnalysisException(const std::string& message, const ParsedStructure& parsedStructureToInferLocationFrom)
 	: Exception(message + parsedStructureToInferLocationFrom.locationString()) { }
+
+bool Category::componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const {
+	bool ret = std::find(namesEncountered.cbegin(), namesEncountered.cend(), name) != namesEncountered.cend();
+	namesEncountered.push_back(name);
+	if(ret) {
+		return true;
+	}
+
+	for (auto reference : this->references) {
+		if (reference.second->componentRecursivelyReferenced(machine, namesEncountered)) {
+			return true;
+		}
+	}
+
+	namesEncountered.pop_back();
+	return false;
+}
+
+bool Category::containsDisallowedComponentRecursion(const Machine& machine, std::list<std::string>& namesEncountered, bool isAllRecursionDisallowed) const {
+	if (isAllRecursionDisallowed) {
+		return componentRecursivelyReferenced(machine, namesEncountered);
+	}
+
+	return false;
+}
+
+bool Production::componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const {
+	bool ret = std::find(namesEncountered.cbegin(), namesEncountered.cend(), name) != namesEncountered.cend();
+	namesEncountered.push_back(name);
+	if (ret) {
+		return true;
+	}
+
+	regex->componentRecursivelyReferenced(machine, namesEncountered);
+
+	namesEncountered.pop_back();
+	return false;
+}
+
+bool Production::containsDisallowedComponentRecursion(const Machine& machine, std::list<std::string>& namesEncountered, bool isAllRecursionDisallowed) const {
+	if (recursionAllowed && !isAllRecursionDisallowed) {
+		return false;
+	}
+
+	return componentRecursivelyReferenced(machine, namesEncountered);
+}
+
+bool FAMachine::containsDisallowedComponentRecursion(std::list<std::string>& namesEncountered) const {
+	for (const auto& componentPair : components) {
+		if (componentPair.second->containsDisallowedComponentRecursion(*this, namesEncountered, true)) {
+			return true;
+		}
+	}
+
+	return false;
+}

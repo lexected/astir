@@ -9,7 +9,7 @@
 #include "Specification.h"
 
 template <class ProductionType>
-using StandardList = std::list<std::unique_ptr<ProductionType>>;
+using UniqueList = std::list<std::unique_ptr<ProductionType>>;
 
 /*
 	As a general rule, avoid creating full insertive constructors for objects, since the container ownership of unique_ptrs then often gets quite tricky.
@@ -20,7 +20,7 @@ struct ParsedStructure : public IFileLocalizable { };
 
 struct SpecificationFileStatement;
 struct SpecificationFile : public ISpecificationInitializable<Specification> {
-	StandardList<SpecificationFileStatement> statements;
+	UniqueList<SpecificationFileStatement> statements;
 
 	std::shared_ptr<Specification> makeSpecificationEntity() const override;
 private:
@@ -39,7 +39,7 @@ struct MachineStatement;
 struct MachineDefinition : public SpecificationFileStatement, public ISpecificationInitializable<Machine> {
 public:
 	std::string name;
-	StandardList<MachineStatement> statements;
+	UniqueList<MachineStatement> statements;
 	std::string extends;
 	std::string follows;
 	
@@ -75,11 +75,12 @@ struct FieldDeclaration;
 struct MachineStatement : public ParsedStructure, public ISpecificationInitializable<MachineComponent> {
 	std::string name;
 	std::list<std::string> categories;
-	StandardList<FieldDeclaration> fields;
+	UniqueList<FieldDeclaration> fields;
 	
 	virtual ~MachineStatement() = default;
 
-	void initializeSpecificationEntity(MachineComponent* machine) const override;
+	void initializeSpecificationEntity(MachineComponent* machineComponent) const override;
+	virtual void initializeSpecificationEntity(const Machine* context, MachineComponent* machineComponent) const;
 };
 
 struct CategoryStatement : public MachineStatement {
@@ -118,7 +119,7 @@ struct ListFieldDeclaration : public VariablyTypedFieldDeclaration {
 	std::shared_ptr<Field> makeSpecificationEntity() const override;
 };
 
-struct RootRegex : public ParsedStructure {
+struct RootRegex : public ParsedStructure, public IProductionReferencable {
 	virtual ~RootRegex() = default;
 };
 
@@ -131,12 +132,16 @@ struct RepetitiveRegex : public RootRegex {
 	const unsigned long INFINITE_REPETITIONS = (unsigned long)((signed int)-1);
 
 	RepetitiveRegex() : minRepetitions(0), maxRepetitions(0) { }
+
+	bool componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const override;
 };
 
 struct AtomicRegex;
 struct LookaheadRegex : public RootRegex {
 	std::unique_ptr<ActionAtomicRegex> match;
 	std::unique_ptr<AtomicRegex> lookahead;
+
+	bool componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const override;
 };
 
 enum class RegexAction {
@@ -159,20 +164,26 @@ struct ActionTargetPair {
 struct ActionAtomicRegex : public RootRegex {
 	std::list<ActionTargetPair> actionTargetPairs;
 	std::unique_ptr<AtomicRegex> regex;
+
+	bool componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const override;
 };
 
-struct AtomicRegex : public ParsedStructure {
+struct AtomicRegex : public ParsedStructure, public IProductionReferencable {
 	virtual ~AtomicRegex() = default;
 };
 
 struct ConjunctiveRegex;
 struct DisjunctiveRegex : public AtomicRegex {
-	StandardList<ConjunctiveRegex> disjunction;
+	UniqueList<ConjunctiveRegex> disjunction;
+
+	bool componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const override;
 };
 
 struct RootRegex;
-struct ConjunctiveRegex : public ParsedStructure {
-	StandardList<RootRegex> conjunction;
+struct ConjunctiveRegex : public ParsedStructure, public IProductionReferencable {
+	UniqueList<RootRegex> conjunction;
+
+	bool componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const override;
 };
 
 struct RegexRange {
@@ -195,6 +206,8 @@ struct LiteralRegex : public AtomicRegex {
 
 struct ReferenceRegex : public AtomicRegex {
 	std::string referenceName;
+
+	bool componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const override;
 };
 
 struct ArbitraryLiteralRegex : public AtomicRegex {
