@@ -105,7 +105,7 @@ bool Category::containsDisallowedComponentRecursion(const Machine& machine, std:
 	return false;
 }
 
-bool Production::componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const {
+bool Rule::componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const {
 	bool ret = std::find(namesEncountered.cbegin(), namesEncountered.cend(), name) != namesEncountered.cend();
 	namesEncountered.push_back(name);
 	if (ret) {
@@ -118,8 +118,8 @@ bool Production::componentRecursivelyReferenced(const Machine& machine, std::lis
 	return false;
 }
 
-bool Production::containsDisallowedComponentRecursion(const Machine& machine, std::list<std::string>& namesEncountered, bool isAllRecursionDisallowed) const {
-	if (recursionAllowed && !isAllRecursionDisallowed) {
+bool Rule::containsDisallowedComponentRecursion(const Machine& machine, std::list<std::string>& namesEncountered, bool isAllRecursionDisallowed) const {
+	if (!terminal && !isAllRecursionDisallowed) {
 		return false;
 	}
 

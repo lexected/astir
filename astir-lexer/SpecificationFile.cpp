@@ -26,7 +26,7 @@ std::shared_ptr<MachineComponent> GrammarStatement::makeSpecificationEntity() co
 		throw SemanticAnalysisException("Unrecognized GrammarStatement type. This should never happen in practice.");
 	}
 
-	return std::make_shared<Production>(this->name, recursionAllowed, typeForming, this->disjunction);
+	return std::make_shared<Rule>(this->name, recursionAllowed, typeForming, this->disjunction);
 }
 
 std::shared_ptr<Field> FlagFieldDeclaration::makeSpecificationEntity() const {
@@ -161,7 +161,7 @@ void MachineDefinition::initializeSpecificationEntity(Machine* machine) const {
 		for (const auto& nameEncountered : namesEncounteredInComponentRecursion) {
 			hierarchyPath += "-" + nameEncountered;
 		}
-		throw SemanticAnalysisException("Production/category reference recursion found in the path " + hierarchyPath);
+		throw SemanticAnalysisException("Rule/category reference recursion found in the path " + hierarchyPath);
 	}
 }
 

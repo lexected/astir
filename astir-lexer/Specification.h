@@ -56,7 +56,7 @@ public:
 
 class MachineComponent;
 class Category;
-class Production;
+class Rule;
 struct ReferenceRegex;
 class Machine {
 public:
@@ -113,15 +113,15 @@ public:
 	bool containsDisallowedComponentRecursion(const Machine& machine, std::list<std::string>& namesEncountered, bool isAllRecursionDisallowed = false) const override;
 };
 
-class Production : public MachineComponent {
+class Rule : public MachineComponent {
 public:
-	const bool recursionAllowed;
+	const bool terminal;
 	const bool typeForming;
 
 	std::shared_ptr<DisjunctiveRegex> regex; // shared ptr really really appropriate here
 
-	Production(const std::string& name, bool recursionAllowed, bool typeForming, const std::shared_ptr<DisjunctiveRegex>& regex)
-		: MachineComponent(name), recursionAllowed(recursionAllowed), typeForming(typeForming), regex(regex) { }
+	Rule(const std::string& name, bool terminal, bool typeForming, const std::shared_ptr<DisjunctiveRegex>& regex)
+		: MachineComponent(name), terminal(terminal), typeForming(typeForming), regex(regex) { }
 
 	bool componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const override;
 	bool containsDisallowedComponentRecursion(const Machine& machine, std::list<std::string>& namesEncountered, bool isAllRecursionDisallowed = false) const override;
@@ -168,4 +168,3 @@ public:
 	ListField(const std::string& name, const std::string& type)
 		: VariablyTypedField(name, type) { }
 };
-
