@@ -186,38 +186,32 @@ struct ConjunctiveRegex : public ParsedStructure, public IProductionReferencable
 	bool componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const override;
 };
 
+struct PrimitiveRegex : public AtomicRegex { };
+
 struct RegexRange {
 	char start;
 	char end;
 };
 
-struct AnyRegex : public AtomicRegex {
+struct AnyRegex : PrimitiveRegex {
 	std::list<std::string> literals;
 	std::list<RegexRange> ranges;
 };
 
-struct ExceptAnyRegex : public AnyRegex {
-	
-};
+struct ExceptAnyRegex : public AnyRegex { };
 
-struct LiteralRegex : public AtomicRegex {
+struct LiteralRegex : public PrimitiveRegex {
 	std::string literal;
 };
 
-struct ReferenceRegex : public AtomicRegex {
+struct ReferenceRegex : public PrimitiveRegex {
 	std::string referenceName;
 
 	bool componentRecursivelyReferenced(const Machine& machine, std::list<std::string>& namesEncountered) const override;
 };
 
-struct ArbitraryLiteralRegex : public AtomicRegex {
-	
-};
+struct ArbitraryLiteralRegex : public PrimitiveRegex { };
 
-struct LineBeginRegex : public AtomicRegex {
+struct LineBeginRegex : public PrimitiveRegex { };
 
-};
-
-struct LineEndRegex : public AtomicRegex {
-
-};
+struct LineEndRegex : public PrimitiveRegex { };

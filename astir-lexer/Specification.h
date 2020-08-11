@@ -15,6 +15,9 @@ struct MachineStatement;
 struct MachineDefinition;
 struct DisjunctiveRegex;
 
+/*
+	VISITOR PATTERN WITH TWO TRAVERSAL METHODS!!!
+*/
 
 class SemanticAnalysisException : public Exception {
 public:
@@ -168,4 +171,3 @@ public:
 	ListField(const std::string& name, const std::string& type)
 		: VariablyTypedField(name, type) { }
 };
-
