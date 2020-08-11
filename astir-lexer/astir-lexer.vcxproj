@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClCompile Include="LexicalAnalyzer.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="NFA.cpp" />
     <ClCompile Include="Parser.cpp" />
     <ClCompile Include="Specification.cpp" />
     <ClCompile Include="SpecificationFile.cpp" />
@@ -155,6 +156,7 @@
     <ClInclude Include="Exception.h" />
     <ClInclude Include="FileLocation.h" />
     <ClInclude Include="LexicalAnalyzer.h" />
+    <ClInclude Include="NFA.h" />
     <ClInclude Include="Parser.h" />
     <ClInclude Include="Specification.h" />
     <ClInclude Include="SpecificationFile.h" />
