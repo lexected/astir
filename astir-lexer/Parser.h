@@ -5,13 +5,13 @@
 #include <memory>
 
 #include "Exception.h"
-#include "SpecificationFile.h"
+#include "SyntacticTree.h"
 
 class Parser {
 public:
 	Parser() = default;
 
-	std::unique_ptr<SpecificationFile> parse(const std::list<Token>& tokens) const;
+	std::unique_ptr<SyntacticTree> parse(const std::list<Token>& tokens) const;
 private:
 	std::unique_ptr<UsesStatement> parseUsesStatement(std::list<Token>::const_iterator& it) const;
 	
@@ -19,11 +19,10 @@ private:
 	bool tryParseMachineFlag(std::list<Token>::const_iterator& it, std::map<MachineFlag, MachineDefinitionAttribute>& attributes) const;
 	std::unique_ptr<MachineDefinition> parseMachineType(std::list<Token>::const_iterator & it) const;
 
-	std::unique_ptr<MachineStatement> parseMachineStatement(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<CategoryStatement> parseCategoryStatement(std::list<Token>::const_iterator& it) const;
-	std::unique_ptr<GrammarStatement> parseGrammarStatement(std::list<Token>::const_iterator& it) const;
+	std::unique_ptr<RuleStatement> parseRuleStatement(std::list<Token>::const_iterator& it) const;
 
-	std::unique_ptr<FieldDeclaration> parseMemberDeclaration(std::list<Token>::const_iterator& it) const;
+	std::unique_ptr<Field> parseMemberDeclaration(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<RootRegex> parseRootRegex(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<RepetitiveRegex> parseRepetitiveRegex(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<LookaheadRegex> parseLookaheadRegex(std::list<Token>::const_iterator& it) const;

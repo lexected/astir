@@ -9,20 +9,26 @@ using namespace std;
 	 --- IF YOU'RE RETURNING NULLPTR, YOU ARE RESPONSIBLE FOR MAKING SURE IT POINTS TO WHERE IT WAS POINTING WHEN IT WAS PASSED TO YOU ---
 */
 
-std::unique_ptr<SpecificationFile> Parser::parse(const std::list<Token>& tokens) const {
+std::unique_ptr<SyntacticTree> Parser::parse(const std::list<Token>& tokens) const {
 	auto it = tokens.cbegin();
 
-	unique_ptr<SpecificationFile> specificationFile = make_unique<SpecificationFile>();
+	unique_ptr<SyntacticTree> specificationFile = make_unique<SyntacticTree>();
 	while (it->type != TokenType::EOS) {
 		auto savedIt = it;
-		unique_ptr<SpecificationFileStatement> specificationFileStatement;
-		if ((specificationFileStatement = Parser::parseUsesStatement(it))) {
-			specificationFile->statements.push_back(move(specificationFileStatement));
-		} else if ((specificationFileStatement = Parser::parseMachineDefinition(it))) {
-			specificationFile->statements.push_back(move(specificationFileStatement));
-		} else {
-			throw ParserException("Unexpected input on specification file level, expected a machine definition or a 'uses' statement", *it, *savedIt);
+		
+		unique_ptr<UsesStatement> usesStatement;
+		if ((usesStatement = Parser::parseUsesStatement(it))) {
+			specificationFile->usesStatements.push_back(move(usesStatement));
+			continue;
+		} 
+
+		unique_ptr<MachineDefinition> machineDefinition;
+		if ((machineDefinition = Parser::parseMachineDefinition(it))) {
+			specificationFile->machineDefinitions.push_back(move(machineDefinition));
+			continue;
 		}
+
+		throw ParserException("Unexpected input on specification file level, expected a machine definition or a 'uses' statement", *it, *savedIt);
 	}
 	
 	return specificationFile;
@@ -116,14 +122,19 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 
 	std::unique_ptr<MachineStatement> lastStatement;
 	do {
-		auto savedIt = it;
-		lastStatement = Parser::parseMachineStatement(it);
-		if (lastStatement) {
-			machineDefinition->statements.push_back(std::move(lastStatement));
-		} else {
-			it = savedIt;
-			break;
+		std::shared_ptr<CategoryStatement> categoryStatement;
+		if (categoryStatement = Parser::parseCategoryStatement(it)) {
+			machineDefinition->categoryStatements.push_back(categoryStatement);
+			continue;
 		}
+
+		std::shared_ptr<RuleStatement> ruleStatement;
+		if (ruleStatement = Parser::parseRuleStatement(it)) {
+			machineDefinition->ruleStatements.push_back(ruleStatement);
+			continue;
+		}
+
+		break;
 	} while (true);
 
 	if (it->type != TokenType::CURLY_RIGHT) {
@@ -159,12 +170,12 @@ bool Parser::tryParseMachineFlag(std::list<Token>::const_iterator& it, std::map<
 std::unique_ptr<MachineDefinition> Parser::parseMachineType(std::list<Token>::const_iterator& it) const {
 	auto savedIt = it;
 	if (it->type == TokenType::KW_DETERMINISTIC || it->type == TokenType::KW_NONDETERMINISTIC || it->type == TokenType::KW_FINITE) {
-		std::unique_ptr<FADefinition> faDef = std::make_unique<FADefinition>();
+		std::unique_ptr<FiniteAutomatonDefinition> faDef = std::make_unique<FiniteAutomatonDefinition>();
 		faDef->copyLocation(*savedIt);
 
-		FAType faType = FAType::Nondeterministic;
+		FiniteAutomatonType faType = FiniteAutomatonType::Nondeterministic;
 		if (it->type != TokenType::KW_FINITE) {
-			faType = (it->type == TokenType::KW_DETERMINISTIC ? FAType::Deterministic : FAType::Nondeterministic);
+			faType = (it->type == TokenType::KW_DETERMINISTIC ? FiniteAutomatonType::Deterministic : FiniteAutomatonType::Nondeterministic);
 			++it;
 		}
 		faDef->type = faType;
@@ -180,18 +191,6 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineType(std::list<Token>::co
 		++it;
 
 		return faDef;
-	} else {
-		return nullptr;
-	}
-}
-
-std::unique_ptr<MachineStatement> Parser::parseMachineStatement(std::list<Token>::const_iterator& it) const {
-	auto savedIt = it;
-	std::unique_ptr<MachineStatement> machineStatement;
-	if (machineStatement = Parser::parseCategoryStatement(it)) {
-		return machineStatement;
-	} else if (machineStatement = Parser::parseGrammarStatement(it)) {
-		return machineStatement;
 	} else {
 		return nullptr;
 	}
@@ -239,7 +238,7 @@ std::unique_ptr<CategoryStatement> Parser::parseCategoryStatement(std::list<Toke
 	}
 	++it;
 
-	std::unique_ptr<FieldDeclaration> lastDeclaration;
+	std::unique_ptr<Field> lastDeclaration;
 	do {
 		auto savedIt = it;
 		lastDeclaration = Parser::parseMemberDeclaration(it);
@@ -264,7 +263,7 @@ std::unique_ptr<CategoryStatement> Parser::parseCategoryStatement(std::list<Toke
 	return catstat;
 }
 
-std::unique_ptr<GrammarStatement> Parser::parseGrammarStatement(std::list<Token>::const_iterator& it) const {
+std::unique_ptr<RuleStatement> Parser::parseRuleStatement(std::list<Token>::const_iterator& it) const {
 	if (it->type != TokenType::KW_TERMINAL
 		&& it->type != TokenType::KW_NONTERMINAL
 		&& it->type != TokenType::KW_PATTERN
@@ -274,7 +273,7 @@ std::unique_ptr<GrammarStatement> Parser::parseGrammarStatement(std::list<Token>
 	}
 
 	auto savedIt = it;
-	std::unique_ptr<GrammarStatement> grastat = make_unique<GrammarStatement>();
+	std::unique_ptr<RuleStatement> grastat = make_unique<RuleStatement>();
 	grastat->copyLocation(*savedIt);
 
 	if (it->type == TokenType::KW_TERMINAL) {
@@ -290,13 +289,13 @@ std::unique_ptr<GrammarStatement> Parser::parseGrammarStatement(std::list<Token>
 	std::string grammarStatementType = "production";
 	if (it->type == TokenType::KW_PATTERN) {
 		grastat->typeSpecified = true;
-		grastat->type = GrammarStatementType::Pattern;
+		grastat->type = RuleStatementType::Pattern;
 		++it;
 
 		grammarStatementType = "pattern";
 	} else if (it->type == TokenType::KW_PRODUCTION) {
 		grastat->typeSpecified = true;
-		grastat->type = GrammarStatementType::Production;
+		grastat->type = RuleStatementType::Production;
 		++it;
 	}
 
@@ -325,7 +324,7 @@ std::unique_ptr<GrammarStatement> Parser::parseGrammarStatement(std::list<Token>
 	if (it->type == TokenType::CURLY_LEFT) {
 		++it;
 
-		std::unique_ptr<FieldDeclaration> lastDeclaration;
+		std::unique_ptr<Field> lastDeclaration;
 		do {
 			auto savedIt = it;
 			lastDeclaration = Parser::parseMemberDeclaration(it);
@@ -363,12 +362,12 @@ std::unique_ptr<GrammarStatement> Parser::parseGrammarStatement(std::list<Token>
 	return grastat;
 }
 
-std::unique_ptr<FieldDeclaration> Parser::parseMemberDeclaration(std::list<Token>::const_iterator& it) const {
+std::unique_ptr<Field> Parser::parseMemberDeclaration(std::list<Token>::const_iterator& it) const {
 	auto savedIt = it;
-	FieldDeclaration* md;
+	Field* md;
 	if (it->type == TokenType::KW_FLAG || it->type == TokenType::KW_RAW) {
 		std::string typeForANicePersonalizedExceptionMessage = it->string;
-		md = it->type == TokenType::KW_FLAG ? dynamic_cast<FieldDeclaration *>(new FlagFieldDeclaration) : dynamic_cast<FieldDeclaration*>(new RawFieldDeclaration);
+		md = it->type == TokenType::KW_FLAG ? dynamic_cast<Field *>(new FlagField) : dynamic_cast<Field*>(new RawField);
 		++it;
 
 		if (it->type != TokenType::IDENTIFIER) {
@@ -383,16 +382,16 @@ std::unique_ptr<FieldDeclaration> Parser::parseMemberDeclaration(std::list<Token
 		std::string typeName = it->string;
 		++it;
 
-		VariablyTypedFieldDeclaration* vtd;
+		VariablyTypedField* vtd;
 		
 		if (it->type == TokenType::KW_LIST) {
-			vtd = new ListFieldDeclaration;
+			vtd = new ListField;
 			++it;
 		} else if (it->type == TokenType::KW_ITEM) {
-			vtd = new ItemFieldDeclaration;
+			vtd = new ItemField;
 			++it;
 		} else if (it->type == TokenType::IDENTIFIER) {
-			vtd = new ItemFieldDeclaration;
+			vtd = new ItemField;
 		} else {
 			throw UnexpectedTokenException(*it, "'list', 'item', or an identifier for item (implicitly assumed) name", "for member declaration");
 		}
@@ -409,7 +408,7 @@ std::unique_ptr<FieldDeclaration> Parser::parseMemberDeclaration(std::list<Token
 	++it;
 
 	md->copyLocation(*savedIt);
-	return std::unique_ptr<FieldDeclaration>(md);
+	return std::unique_ptr<Field>(md);
 }
 
 std::unique_ptr<RootRegex> Parser::parseRootRegex(std::list<Token>::const_iterator& it) const {

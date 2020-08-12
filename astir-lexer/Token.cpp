@@ -7,7 +7,7 @@ std::string Token::toString() const {
 }
 
 void Token::setLocation(const FileLocation& loc) {
-	this->IFileLocalizable::setLocation(loc);
+	m_fileLocation = loc;
 }
 
 std::string Token::typeString() const {
@@ -20,6 +20,10 @@ std::string Token::toHumanString() const {
 	} else {
 		return string;
 	}
+}
+
+const FileLocation& Token::location() const {
+	return m_fileLocation;
 }
 
 std::string Token::convertTypeToString(TokenType type) {
