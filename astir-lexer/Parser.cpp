@@ -16,35 +16,35 @@ std::unique_ptr<SpecificationFile> Parser::parse(const std::list<Token>& tokens)
 	while (it->type != TokenType::EOS) {
 		auto savedIt = it;
 		unique_ptr<SpecificationFileStatement> specificationFileStatement;
-		if ((specificationFileStatement = Parser::parseUsingStatement(it))) {
+		if ((specificationFileStatement = Parser::parseUsesStatement(it))) {
 			specificationFile->statements.push_back(move(specificationFileStatement));
 		} else if ((specificationFileStatement = Parser::parseMachineDefinition(it))) {
 			specificationFile->statements.push_back(move(specificationFileStatement));
 		} else {
-			throw ParserException("Unexpected input on specification file level, expected a machine definition or a 'using' statement", *it, *savedIt);
+			throw ParserException("Unexpected input on specification file level, expected a machine definition or a 'uses' statement", *it, *savedIt);
 		}
 	}
 	
 	return specificationFile;
 }
 
-std::unique_ptr<UsingStatement> Parser::parseUsingStatement(std::list<Token>::const_iterator& it) const {
+std::unique_ptr<UsesStatement> Parser::parseUsesStatement(std::list<Token>::const_iterator& it) const {
 	auto savedIt = it;
-	if (it->type != TokenType::KW_USING) {
+	if (it->type != TokenType::KW_USES) {
 		return nullptr;
 	}
 	++it;
 
-	unique_ptr<UsingStatement> usingStatement = make_unique<UsingStatement>();
+	unique_ptr<UsesStatement> usingStatement = make_unique<UsesStatement>();
 	usingStatement->copyLocation(*savedIt);
 	if (it->type != TokenType::STRING) {
-		throw UnexpectedTokenException(*it, "a string with file path", "for 'using' statement", *savedIt);
+		throw UnexpectedTokenException(*it, "a string with file path", "for 'uses' statement", *savedIt);
 	}
 	usingStatement->filePath = it->string;
 	++it;
 
 	if (it->type != TokenType::OP_SEMICOLON) {
-		throw UnexpectedTokenException(*it, "terminal semicolon", "for 'using' statement", *savedIt);
+		throw UnexpectedTokenException(*it, "terminal semicolon", "for 'uses' statement", *savedIt);
 	}
 	++it;
 
@@ -53,117 +53,64 @@ std::unique_ptr<UsingStatement> Parser::parseUsingStatement(std::list<Token>::co
 
 std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Token>::const_iterator & it) const {
 	auto savedIt = it;
-	if (it->type == TokenType::KW_DETERMINISTIC || it->type == TokenType::KW_NONDETERMINISTIC || it->type == TokenType::KW_FINITE) {
-		return parseFADefinition(it);
+	auto machineDefinition = parseMachineType(it);
+	if (!machineDefinition) {
+		return nullptr;
 	}
-
-	return nullptr;
-}
-
-std::unique_ptr<FADefinition> Parser::parseFADefinition(std::list<Token>::const_iterator& it) const {
-	auto savedIt = it;
-	std::unique_ptr<FADefinition> faDef = std::make_unique<FADefinition>();
-	faDef->copyLocation(*savedIt);
-
-	FAType faType = FAType::Nondeterministic;
-	if (it->type != TokenType::KW_FINITE) {
-		faType = (it->type == TokenType::KW_DETERMINISTIC ? FAType::Deterministic : FAType::Nondeterministic);
-		++it;
-	}
-	faDef->type = faType;
-
-	if (it->type != TokenType::KW_FINITE) {
-		throw UnexpectedTokenException(*it, "the keyword 'finite'", "for finite automaton declaration", *savedIt);
-	}
-	++it;
-
-	if (it->type != TokenType::KW_AUTOMATON) {
-		throw UnexpectedTokenException(*it, "the keyword 'automaton'", "for finite automaton declaration", *savedIt);
-	}
-	++it;
 
 	if (it->type != TokenType::IDENTIFIER) {
-		throw UnexpectedTokenException(*it, "an identifier", "for finite automaton declaration", *savedIt);
+		throw UnexpectedTokenException(*it, "an identifier", "for machine declaration", *savedIt);
 	}
-	faDef->name = it->string;
+	machineDefinition->name = it->string;
 	++it;
 
 	if (it->type == TokenType::KW_WITH) {
 		++it;
-		std::set<TokenType> usedAttributes;
-		while (it->type == TokenType::KW_GROUPED_STRING_LITERALS || it->type == TokenType::KW_INDIVIDUAL_STRING_LITERALS || it->type == TokenType::KW_TABLE_LOOKUP || it->type == TokenType::KW_MACHINE_LOOKUP) {
-			if (it->type == TokenType::KW_GROUPED_STRING_LITERALS) {
-				if (usedAttributes.find(TokenType::KW_GROUPED_STRING_LITERALS) != usedAttributes.cend()) {
-					throw UnexpectedTokenException(*it, "a previously unused attribute", "finite automaton declaration", *savedIt);
-				} else if (usedAttributes.find(TokenType::KW_INDIVIDUAL_STRING_LITERALS) != usedAttributes.cend()) {
-					throw UnexpectedTokenException(*it, "an attribute that does not contradict the previously used 'individual_string_literals'", "finite automaton declaration", *savedIt);
-				} else {
-					usedAttributes.insert(TokenType::KW_GROUPED_STRING_LITERALS);
-					faDef->attributes[FAFlag::GroupedStringLiterals] = true;
-				}
-			} else if (it->type == TokenType::KW_INDIVIDUAL_STRING_LITERALS) {
-				if (usedAttributes.find(TokenType::KW_GROUPED_STRING_LITERALS) != usedAttributes.cend()) {
-					throw UnexpectedTokenException(*it, "an attribute that does not contradict the previously used 'grouped_string_literals'", "finite automaton declaration", *savedIt);
-				} else if (usedAttributes.find(TokenType::KW_INDIVIDUAL_STRING_LITERALS) != usedAttributes.cend()) {
-					throw UnexpectedTokenException(*it, "a previously unused attribute", "finite automaton declaration", *savedIt);
-				} else {
-					usedAttributes.insert(TokenType::KW_INDIVIDUAL_STRING_LITERALS);
-					faDef->attributes[FAFlag::GroupedStringLiterals] = false;
-				}
-			} else if (it->type == TokenType::KW_TABLE_LOOKUP) {
-				if (usedAttributes.find(TokenType::KW_TABLE_LOOKUP) != usedAttributes.cend()) {
-					throw UnexpectedTokenException(*it, "a previously unused attribute", "finite automaton declaration", *savedIt);
-				} else if (usedAttributes.find(TokenType::KW_MACHINE_LOOKUP) != usedAttributes.cend()) {
-					throw UnexpectedTokenException(*it, "an attribute that does not contradict the previously used 'machine_lookup'", "finite automaton declaration", *savedIt);
-				} else {
-					usedAttributes.insert(TokenType::KW_TABLE_LOOKUP);
-					faDef->attributes[FAFlag::TableLookup] = true;
-				}
-			} else if (it->type == TokenType::KW_MACHINE_LOOKUP) {
-				if (usedAttributes.find(TokenType::KW_TABLE_LOOKUP) != usedAttributes.cend()) {
-					throw UnexpectedTokenException(*it, "an attribute that does not contradict the previously used 'table_lookup'", "finite automaton declaration", *savedIt);
-				} else if (usedAttributes.find(TokenType::KW_MACHINE_LOOKUP) != usedAttributes.cend()) {
-					throw UnexpectedTokenException(*it, "a previously unused attribute", "finite automaton declaration", *savedIt);
-				} else {
-					usedAttributes.insert(TokenType::KW_MACHINE_LOOKUP);
-					faDef->attributes[FAFlag::TableLookup] = false;
-				}
-			} else {
-				throw UnexpectedTokenException(*it, "a valid finite automaton attribute", "finite automaton declaration", *savedIt);
-			}
-
+		
+		if (!tryParseMachineFlag(it, machineDefinition->attributes)) {
+			throw UnexpectedTokenException(*it, "an attribute-setting keyword to follow 'with'", "for machine declaration", *savedIt);
+		}
+		while (it->type == TokenType::OP_COMMA) {
 			++it;
-
-			if (it->type != TokenType::OP_COMMA) {
-				break;
+			if (!tryParseMachineFlag(it, machineDefinition->attributes)) {
+				throw UnexpectedTokenException(*it, "an attribute-setting keyword to follow comma in the 'with' clause", "for machine declaration", *savedIt);
 			}
-			++it;
 		}
 	}
 
-	if (it->type == TokenType::KW_EXTENDS) {
+	if (it->type == TokenType::KW_USES) {
 		++it;
 		if (it->type != TokenType::IDENTIFIER) {
-			throw UnexpectedTokenException(*it, "an identifier for the target of 'extends'", "for finite automaton declaration", *savedIt);
+			throw UnexpectedTokenException(*it, "an identifier for the machine to \"use\" to follow the 'uses' keyword", "for machine declaration", *savedIt);
 		}
-		faDef->extends = it->string;
-		++it;
+		machineDefinition->uses.push_back(it->string);
+
+		while (it->type == TokenType::OP_COMMA) {
+			++it;
+
+			if (it->type != TokenType::IDENTIFIER) {
+				throw UnexpectedTokenException(*it, "an identifier for the machine to \"use\" in the 'uses' clause", "for machine declaration", *savedIt);
+			}
+
+			machineDefinition->uses.push_back(it->string);
+			++it;
+		}
 	} else if (it->type == TokenType::KW_FOLLOWS) {
 		++it;
 		if (it->type != TokenType::IDENTIFIER) {
-			throw UnexpectedTokenException(*it, "an identifier for the target of 'follows'", "for finite automaton declaration", *savedIt);
+			throw UnexpectedTokenException(*it, "an identifier for the target of 'follows'", "for machine declaration", *savedIt);
 		}
-		faDef->follows = it->string;
+		machineDefinition->follows = it->string;
 		++it;
 	}
 
 	if (it->type == TokenType::OP_SEMICOLON) {
 		++it;
-		return faDef;
+		return machineDefinition;
 	}
 
 	if (it->type != TokenType::CURLY_LEFT) {
-		throw UnexpectedTokenException(*it, "definition body opening bracket '{'", "for finite automaton definition", *savedIt);
+		throw UnexpectedTokenException(*it, "definition body opening bracket '{'", "for machine definition", *savedIt);
 	}
 	++it;
 
@@ -172,7 +119,7 @@ std::unique_ptr<FADefinition> Parser::parseFADefinition(std::list<Token>::const_
 		auto savedIt = it;
 		lastStatement = Parser::parseMachineStatement(it);
 		if (lastStatement) {
-			faDef->statements.push_back(std::move(lastStatement));
+			machineDefinition->statements.push_back(std::move(lastStatement));
 		} else {
 			it = savedIt;
 			break;
@@ -180,12 +127,62 @@ std::unique_ptr<FADefinition> Parser::parseFADefinition(std::list<Token>::const_
 	} while (true);
 
 	if (it->type != TokenType::CURLY_RIGHT) {
-		throw UnexpectedTokenException(*it, "a statement or definition body opening bracket '}'", "for finite automaton definition", *savedIt);
+		throw UnexpectedTokenException(*it, "a statement or definition body opening bracket '}'", "for machine definition", *savedIt);
 	}
 	++it;
 
-	// no need for move, according to 'internet'
-	return faDef;
+	return machineDefinition;
+}
+
+bool Parser::tryParseMachineFlag(std::list<Token>::const_iterator& it, std::map<MachineFlag, MachineDefinitionAttribute>& attributes) const {
+	std::pair<MachineFlag, bool> setting;
+	if (it->type == TokenType::KW_GROUPED_STRING_LITERALS) {
+		setting = make_pair<MachineFlag, bool>(MachineFlag::GroupedStringLiterals, true);
+	} else if (it->type == TokenType::KW_INDIVIDUAL_STRING_LITERALS) {
+		setting = make_pair<MachineFlag, bool>(MachineFlag::GroupedStringLiterals, false);
+	} else {
+		return false;
+	}
+	
+	
+	if (attributes[setting.first].set) {
+		throw ParserException("The attribute setting '" + it->string + "' in 'with' clause of a machine definition attempts to configure machine on an attribute that has already been explicitly set - check for repetitive or contradictory use of attribute settings", *it);
+	} else {
+		attributes[setting.first].set = false;
+		attributes[setting.first].value = setting.second;
+	}
+
+	++it;
+	return true;
+}
+
+std::unique_ptr<MachineDefinition> Parser::parseMachineType(std::list<Token>::const_iterator& it) const {
+	auto savedIt = it;
+	if (it->type == TokenType::KW_DETERMINISTIC || it->type == TokenType::KW_NONDETERMINISTIC || it->type == TokenType::KW_FINITE) {
+		std::unique_ptr<FADefinition> faDef = std::make_unique<FADefinition>();
+		faDef->copyLocation(*savedIt);
+
+		FAType faType = FAType::Nondeterministic;
+		if (it->type != TokenType::KW_FINITE) {
+			faType = (it->type == TokenType::KW_DETERMINISTIC ? FAType::Deterministic : FAType::Nondeterministic);
+			++it;
+		}
+		faDef->type = faType;
+
+		if (it->type != TokenType::KW_FINITE) {
+			throw UnexpectedTokenException(*it, "the keyword 'finite'", "for finite automaton declaration", *savedIt);
+		}
+		++it;
+
+		if (it->type != TokenType::KW_AUTOMATON) {
+			throw UnexpectedTokenException(*it, "the keyword 'automaton'", "for finite automaton declaration", *savedIt);
+		}
+		++it;
+
+		return faDef;
+	} else {
+		return nullptr;
+	}
 }
 
 std::unique_ptr<MachineStatement> Parser::parseMachineStatement(std::list<Token>::const_iterator& it) const {
@@ -268,34 +265,43 @@ std::unique_ptr<CategoryStatement> Parser::parseCategoryStatement(std::list<Toke
 }
 
 std::unique_ptr<GrammarStatement> Parser::parseGrammarStatement(std::list<Token>::const_iterator& it) const {
-	if (it->type != TokenType::KW_REGEX && it->type != TokenType::KW_TOKEN && it->type != TokenType::KW_RULE && it->type != TokenType::KW_PRODUCTION) {
+	if (it->type != TokenType::KW_TERMINAL
+		&& it->type != TokenType::KW_NONTERMINAL
+		&& it->type != TokenType::KW_PATTERN
+		&& it->type != TokenType::KW_PRODUCTION
+		&& it->type != TokenType::IDENTIFIER) {
 		return nullptr;
 	}
 
 	auto savedIt = it;
-	string grammarStatementType = it->toHumanString();
 	std::unique_ptr<GrammarStatement> grastat = make_unique<GrammarStatement>();
 	grastat->copyLocation(*savedIt);
-	switch (it->type) {
-		case TokenType::KW_REGEX:
-			grastat->type = GrammarStatementType::Regex;
-			break;
-		case TokenType::KW_TOKEN:
-			grastat->type = GrammarStatementType::Token;
-			break;
-		case TokenType::KW_RULE:
-			grastat->type = GrammarStatementType::Rule;
-			break;
-		case TokenType::KW_PRODUCTION:
-			grastat->type = GrammarStatementType::Production;
-			break;
-		default:
-			throw ParserException("Unrecognized token '" + grammarStatementType + "' accepted as a grammar statement type at " + it->locationString());
+
+	if (it->type == TokenType::KW_TERMINAL) {
+		grastat->terminalitySpecified = true;
+		grastat->terminality = true;
+		++it;
+	} else if(it->type == TokenType::KW_NONTERMINAL) {
+		grastat->terminalitySpecified = true;
+		grastat->terminality = false;
+		++it;
 	}
-	++it;
+
+	std::string grammarStatementType = "production";
+	if (it->type == TokenType::KW_PATTERN) {
+		grastat->typeSpecified = true;
+		grastat->type = GrammarStatementType::Pattern;
+		++it;
+
+		grammarStatementType = "pattern";
+	} else if (it->type == TokenType::KW_PRODUCTION) {
+		grastat->typeSpecified = true;
+		grastat->type = GrammarStatementType::Production;
+		++it;
+	}
 
 	if (it->type != TokenType::IDENTIFIER) {
-		throw UnexpectedTokenException(*it, "an identifier for the " + grammarStatementType + " name", "for " + grammarStatementType + " declaration", *savedIt);
+		throw UnexpectedTokenException(*it, "an identifier to serve as "+ grammarStatementType+" name", " for " + grammarStatementType + " declaration", *savedIt);
 	}
 	grastat->name = it->string;
 	++it;

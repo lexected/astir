@@ -31,43 +31,53 @@ struct SpecificationFileStatement : public ParsedStructure {
 	virtual ~SpecificationFileStatement() = default;
 };
 
-struct UsingStatement : public SpecificationFileStatement {
+struct UsesStatement : public SpecificationFileStatement {
 	std::string filePath;
+};
+
+enum class MachineFlag {
+	GroupedStringLiterals
+};
+
+struct MachineDefinitionAttribute {
+	bool set;
+	bool value;
+
+	MachineDefinitionAttribute()
+		: set(false), value(false) { }
+
+	MachineDefinitionAttribute(bool value)
+		: set(false), value(value) { }
 };
 
 struct MachineStatement;
 struct MachineDefinition : public SpecificationFileStatement, public ISpecificationInitializable<Machine> {
 public:
 	std::string name;
-	UniqueList<MachineStatement> statements;
-	std::string extends;
+	std::map<MachineFlag, MachineDefinitionAttribute> attributes;
+	std::list<std::string> uses;
 	std::string follows;
+	UniqueList<MachineStatement> statements;
 	
 	void initializeSpecificationEntity(Machine* machine) const override;
-};
 
-enum class FAFlag {
-	GroupedStringLiterals,
-	TableLookup
+	MachineDefinition()
+		: attributes({
+				{ MachineFlag::GroupedStringLiterals, MachineDefinitionAttribute(false) }
+			}) { }
 };
 
 struct FADefinition : public MachineDefinition {
 	FAType type;
-	std::map<FAFlag, bool> attributes;
-
+	
 	FADefinition()
-		:  MachineDefinition(), type(FAType::Nondeterministic), attributes({
-			{ FAFlag::GroupedStringLiterals, false },
-			{ FAFlag::TableLookup, false }
-		}) { }
+		:  MachineDefinition(), type(FAType::Nondeterministic) { }
 
 	std::shared_ptr<Machine> makeSpecificationEntity() const override;
 };
 
 enum class GrammarStatementType {
-	Regex,
-	Token,
-	Rule,
+	Pattern,
 	Production
 };
 
@@ -89,8 +99,14 @@ struct CategoryStatement : public MachineStatement {
 
 struct DisjunctiveRegex;
 struct GrammarStatement : public MachineStatement {
+	bool terminalitySpecified;
+	bool terminality;
+	bool typeSpecified;
 	GrammarStatementType type;
 	std::shared_ptr<DisjunctiveRegex> disjunction;
+
+	GrammarStatement()
+		: terminalitySpecified(false), terminality(false), typeSpecified(false), type(GrammarStatementType::Production) { }
 
 	std::shared_ptr<MachineComponent> makeSpecificationEntity() const override;
 };

@@ -15,8 +15,10 @@ bool Specification::containsMachineHierarchyRecursion(const std::map<std::string
 		return true;
 	}
 
-	if (containsMachineHierarchyRecursion(definitions, namesEncountered, definitionConsidered->extends)) {
-		return true;
+	for(const auto& used : definitionConsidered->uses) {
+		if (containsMachineHierarchyRecursion(definitions, namesEncountered, used)) {
+			return true;
+		}
 	}
 
 	namesEncountered.pop_back();

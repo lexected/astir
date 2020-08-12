@@ -16,7 +16,7 @@ struct MachineDefinition;
 struct DisjunctiveRegex;
 
 /*
-	VISITOR PATTERN WITH TWO TRAVERSAL METHODS!!!
+	HOW ABOUT A VISITOR PATTERN WITH TWO TRAVERSAL METHODS?
 */
 
 class SemanticAnalysisException : public Exception {
