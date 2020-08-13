@@ -92,7 +92,7 @@ void Machine::initialize() {
 
 	// now that the fields are initialized, we can proceed to checking that there are no name collisions and that all types used are valid
 	for (const auto& componentPair : components) {
-		componentPair.second->checkFields(*this);
+		componentPair.second->checkFieldDeclarations(*this);
 	}
 
 	// the last bit is to check that there is no disallowed recursion within the productions themselves
@@ -194,7 +194,7 @@ void MachineComponent::initialize() {
 	}
 }
 
-void MachineComponent::checkFieldNameDeclaration(Machine& context, const Field* field) const {
+void MachineComponent::checkFieldName(Machine& context, const Field* field) const {
 	for (const auto& f : fields) {
 		if (f->name == field->name && f.get() != field) {
 			throw SemanticAnalysisException("The field '" + field->name + "' declared at " + field->locationString() + " uses the name already taken by the field declared at " + f->locationString());
@@ -202,11 +202,11 @@ void MachineComponent::checkFieldNameDeclaration(Machine& context, const Field* 
 	}
 
 	for (const Category* category : this->categories) {
-		category->checkFieldNameDeclaration(context, field);
+		category->checkFieldName(context, field);
 	}
 }
 
-void MachineComponent::checkFields(Machine& context) const {
+void MachineComponent::checkFieldDeclarations(Machine& context) const {
 	for (const auto& field : fields) {
 		const VariablyTypedField* vtf = dynamic_cast<const VariablyTypedField*>(field.get());
 		if (vtf) {
@@ -216,8 +216,25 @@ void MachineComponent::checkFields(Machine& context) const {
 			}
 		}
 
-		checkFieldNameDeclaration(context, field.get());
+		checkFieldName(context, field.get());
 	}
+}
+
+const Field* MachineComponent::findField(const std::string& name) const {
+	for (const auto& fieldPtr : fields) {
+		if (fieldPtr->name == name) {
+			return fieldPtr.get();
+		}
+	}
+
+	for (const Category* category : categories) {
+		auto maybeAField = category->findField(name);
+		if (maybeAField) {
+			return maybeAField;
+		}
+	}
+
+	return nullptr;
 }
 
 const IFileLocalizable* Category::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
@@ -241,6 +258,16 @@ const IFileLocalizable* Category::findRecursiveReference(const Machine& machine,
 
 const std::shared_ptr<const ISyntacticEntity>& Category::underlyingSyntacticEntity() const {
 	return m_categoryStatement;
+}
+
+void Rule::initialize() {
+	if (initialized()) {
+		return;
+	}
+
+	MachineComponent::initialize();
+
+	regex->checkActionUsage(this);
 }
 
 const IFileLocalizable* Rule::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {

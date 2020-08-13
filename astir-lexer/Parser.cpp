@@ -531,6 +531,7 @@ std::unique_ptr<ActionAtomicRegex> Parser::parseActionAtomicRegex(std::list<Toke
 	aar->copyLocation(*savedIt);
 	aar->regex = move(ar);
 	while (it->type == TokenType::OP_AT) {
+		auto interimIt = it;
 		++it;
 
 		ActionTargetPair atp;
@@ -545,6 +546,7 @@ std::unique_ptr<ActionAtomicRegex> Parser::parseActionAtomicRegex(std::list<Toke
 			throw UnexpectedTokenException(*it, "an identifier to specify the action target", "for action-atomic regex", *savedIt);
 		}
 		atp.target = it->string;
+		atp.copyLocation(*interimIt);
 		++it;
 
 		aar->actionTargetPairs.push_back(move(atp));
@@ -587,7 +589,7 @@ RegexAction Parser::parseRegexAction(std::list<Token>::const_iterator& it) const
 			throw UnexpectedTokenException(*it, "a valid action type keyword to follow the action operator '@'", "for action-atomic regex");
 	}
 	++it;
-
+	
 	return ret;
 }
 

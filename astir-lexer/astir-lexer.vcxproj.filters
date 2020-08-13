@@ -45,6 +45,9 @@
     <ClCompile Include="IProductionReferencable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="NFABuilder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="ExampleTokenizer.alex">
@@ -95,6 +98,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="FileLocation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NFABuilder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="INFABuildable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IActing.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

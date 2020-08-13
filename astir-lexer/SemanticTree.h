@@ -8,10 +8,12 @@
 #include "Exception.h"
 #include "ISyntacticEntity.h"
 #include "ISemanticEntity.h"
+#include "IActing.h"
 
 /*
 	A few forward declarations
 */
+
 struct SyntacticTree;
 struct MachineDefinition;
 struct FiniteAutomatonDefinition;
@@ -22,7 +24,7 @@ struct DisjunctiveRegex;
 struct Field;
 
 /*
-	HOW ABOUT A VISITOR PATTERN WITH TWO TRAVERSAL METHODS?
+	The main exception type
 */
 
 class SemanticAnalysisException : public Exception {
@@ -32,6 +34,9 @@ public:
 	SemanticAnalysisException(const std::string& message, const IFileLocalizable& somethingLocalizableToPinpointLocationBy);
 };
 
+/*
+	The core of the file
+*/
 
 class SemanticTree : public ISemanticEntity {
 public:
@@ -100,8 +105,9 @@ public:
 		: name(name) { }
 
 	void initialize() override;
-	void checkFieldNameDeclaration(Machine& context, const Field* field) const;
-	void checkFields(Machine& context) const;
+	void checkFieldName(Machine& context, const Field* field) const;
+	void checkFieldDeclarations(Machine& context) const;
+	const Field* findField(const std::string& name) const;
 };
 
 class Category : public MachineComponent {
@@ -113,7 +119,6 @@ public:
 
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const override;
 	const std::shared_ptr<const ISyntacticEntity>& underlyingSyntacticEntity() const override;
-
 private:
 	std::shared_ptr<const CategoryStatement> m_categoryStatement;
 };
@@ -126,11 +131,10 @@ public:
 
 	Rule(const std::shared_ptr<const RuleStatement>& ruleStatement, const std::string& name, bool terminal, bool typeForming, const std::shared_ptr<DisjunctiveRegex>& regex)
 		: m_ruleStatement(ruleStatement), MachineComponent(name), terminal(terminal), typeForming(typeForming), regex(regex) { }
-
+	void initialize() override;
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const override;
-
 	const std::shared_ptr<const ISyntacticEntity>& underlyingSyntacticEntity() const override;
-
+	
 private:
 	std::shared_ptr<const RuleStatement> m_ruleStatement;
 };

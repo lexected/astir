@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="IProductionReferencable.cpp" />
+    <ClCompile Include="NFABuilder.cpp" />
     <ClCompile Include="ISyntacticEntity.cpp" />
     <ClCompile Include="LexicalAnalyzer.cpp" />
     <ClCompile Include="main.cpp" />
@@ -158,7 +159,10 @@
   <ItemGroup>
     <ClInclude Include="Exception.h" />
     <ClInclude Include="FileLocation.h" />
+    <ClInclude Include="IActing.h" />
     <ClInclude Include="IFileLocalizable.h" />
+    <ClInclude Include="INFABuildable.h" />
+    <ClInclude Include="NFABuilder.h" />
     <ClInclude Include="ISemanticEntity.h" />
     <ClInclude Include="ISyntacticEntity.h" />
     <ClInclude Include="IProductionReferencable.h" />

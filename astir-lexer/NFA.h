@@ -4,7 +4,7 @@
 #include <vector>
 #include <list>
 
-#include "SpecificationFile.h"
+#include "Regex.h"
 
 using State = size_t;
 
@@ -43,16 +43,5 @@ public:
 	void addTransition(State state, const Transition& transition);
 	Transition& addEmptyTransition(State state, State target);
 	State concentrateFinalStates();
-
-	static NFA buildFromRegex(const DisjunctiveRegex* regex);
-	static NFA buildFromRegex(const ConjunctiveRegex* regex);
-	
-	static NFA buildFromRegex(const RootRegex* regex);
-	static NFA buildFromRegex(const RepetitiveRegex* regex);
-	static NFA buildFromRegex(const LookaheadRegex* regex);
-	static NFA buildFromRegex(const ActionAtomicRegex* regex);
-	
-	static NFA buildFromRegex(const AtomicRegex* regex);
-	static NFA buildFromRegex(const PrimitiveRegex* regex);
 };
 

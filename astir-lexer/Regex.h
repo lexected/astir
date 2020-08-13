@@ -4,8 +4,12 @@
 
 #include "ISyntacticEntity.h"
 #include "IProductionReferencable.h"
+#include "INFABuildable.h"
+#include "IActing.h"
 
-struct RootRegex : public ISyntacticEntity, public IProductionReferencable {
+struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IProductionReferencable { };
+
+struct RootRegex : public Regex {
 	virtual ~RootRegex() = default;
 };
 
@@ -19,6 +23,10 @@ struct RepetitiveRegex : public RootRegex {
 	RepetitiveRegex() : minRepetitions(0), maxRepetitions(0) { }
 
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+
+	NFA accept(const NFABuilder& nfaBuilder) const override;
+
+	void checkActionUsage(const MachineComponent* context) const override;
 };
 
 struct AtomicRegex;
@@ -27,6 +35,10 @@ struct LookaheadRegex : public RootRegex {
 	std::unique_ptr<AtomicRegex> lookahead;
 
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+
+	NFA accept(const NFABuilder& nfaBuilder) const override;
+
+	void checkActionUsage(const MachineComponent* context) const override;
 };
 
 enum class RegexAction {
@@ -42,7 +54,7 @@ enum class RegexAction {
 
 	None
 };
-struct ActionTargetPair {
+struct ActionTargetPair : public ISyntacticEntity {
 	RegexAction action = RegexAction::None;
 	std::string target;
 };
@@ -51,27 +63,39 @@ struct ActionAtomicRegex : public RootRegex {
 	std::unique_ptr<AtomicRegex> regex;
 
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+
+	NFA accept(const NFABuilder& nfaBuilder) const override;
+
+	void checkActionUsage(const MachineComponent* context) const override;
 };
 
-struct AtomicRegex : public ISyntacticEntity, public IProductionReferencable {
-	virtual ~AtomicRegex() = default;
-};
+struct AtomicRegex : public Regex { };
 
 struct ConjunctiveRegex;
 struct DisjunctiveRegex : public AtomicRegex {
 	std::list<std::unique_ptr<ConjunctiveRegex>> disjunction;
 
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+
+	NFA accept(const NFABuilder& nfaBuilder) const override;
+
+	void checkActionUsage(const MachineComponent* context) const override;
 };
 
 struct RootRegex;
-struct ConjunctiveRegex : public ISyntacticEntity, public IProductionReferencable {
+struct ConjunctiveRegex : public Regex {
 	std::list<std::unique_ptr<RootRegex>> conjunction;
 
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+
+	NFA accept(const NFABuilder& nfaBuilder) const override;
+
+	void checkActionUsage(const MachineComponent* context) const override;
 };
 
-struct PrimitiveRegex : public AtomicRegex { };
+struct PrimitiveRegex : public AtomicRegex {
+	NFA accept(const NFABuilder& nfaBuilder) const override;
+};
 
 struct RegexRange {
 	char start;
