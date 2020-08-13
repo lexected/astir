@@ -58,15 +58,14 @@ public:
 	const std::string name;
 	std::shared_ptr<Machine> follows; // ownership is shared.. in theory just a normal pointer to Machine would be good as specifications own the pointers, but OK - can be resolved later
 	std::list<std::shared_ptr<Machine>> uses; // ownership is shared
-	std::map<std::string, std::shared_ptr<Category>> categories;
-	std::map<std::string, std::shared_ptr<Rule>> rules;
+	std::map<std::string, std::shared_ptr<MachineComponent>> components;
 
 	Machine(const std::string& name)
 		: name(name) { }
 
 	void initialize() override;
 
-	MachineComponent* contextFindMachineComponent(const std::string& name) const; // anyone calling this function shall not take up even a partial ownership of the component, normal pointer suffices
+	MachineComponent* findMachineComponent(const std::string& name) const; // anyone calling this function shall not take up even a partial ownership of the component, normal pointer suffices
 	void checkForDeclarationCategoryRecursion(std::list<std::string>& namesEncountered, const std::string& nameConsidered, const IFileLocalizable& occurence, bool mustBeACategory = false) const;
 	const IFileLocalizable* findRecursiveReferenceThroughName(const std::string& referenceName, std::list<std::string>& namesEncountered, const std::string& targetName) const;
 	virtual void checkForComponentRecursion() const = 0;
@@ -101,6 +100,8 @@ public:
 		: name(name) { }
 
 	void initialize() override;
+	void checkFieldNameDeclaration(Machine& context, const Field* field) const;
+	void checkFields(Machine& context) const;
 };
 
 class Category : public MachineComponent {

@@ -64,3 +64,51 @@ std::shared_ptr<Machine> FiniteAutomatonDefinition::makeSemanticEntity() const {
 std::shared_ptr<Category> CategoryStatement::makeSemanticEntity() const {
 	return std::make_shared<Category>(std::shared_ptr<const CategoryStatement>(this), this->name);
 }
+
+bool FlagField::flaggable() const {
+	return true;
+}
+
+bool FlagField::settable() const {
+	return false;
+}
+
+bool FlagField::listable() const {
+	return false;
+}
+
+bool RawField::flaggable() const {
+	return false;
+}
+
+bool RawField::settable() const {
+	return true;
+}
+
+bool RawField::listable() const {
+	return true;
+}
+
+bool ItemField::flaggable() const {
+	return false;
+}
+
+bool ItemField::settable() const {
+	return true;
+}
+
+bool ItemField::listable() const {
+	return false;
+}
+
+bool ListField::flaggable() const {
+	return false;
+}
+
+bool ListField::settable() const {
+	return false;
+}
+
+bool ListField::listable() const {
+	return true;
+}

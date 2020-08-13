@@ -111,16 +111,36 @@ struct RuleStatement : public MachineStatement, public ISemanticallyProcessable<
 
 struct Field : public ISyntacticEntity {
 	std::string name;
+
+	virtual bool flaggable() const = 0;
+	virtual bool settable() const = 0;
+	virtual bool listable() const = 0;
 };
 
-struct FlagField : public Field {};
+struct FlagField : public Field {
+	bool flaggable() const override;
+	bool settable() const override;
+	bool listable() const override;
+};
 
-struct RawField : public Field {};
+struct RawField : public Field {
+	bool flaggable() const override;
+	bool settable() const override;
+	bool listable() const override;
+};
 
 struct VariablyTypedField : public Field {
 	std::string type;
 };
 
-struct ItemField : public VariablyTypedField {};
+struct ItemField : public VariablyTypedField {
+	bool flaggable() const override;
+	bool settable() const override;
+	bool listable() const override;
+};
 
-struct ListField : public VariablyTypedField {};
+struct ListField : public VariablyTypedField {
+	bool flaggable() const override;
+	bool settable() const override;
+	bool listable() const override;
+};

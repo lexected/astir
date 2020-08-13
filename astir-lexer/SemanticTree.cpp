@@ -52,81 +52,68 @@ void Machine::initialize() {
 	const MachineDefinition* machineDefinition = dynamic_cast<const MachineDefinition*>(underlyingSyntacticEntity().get());
 	// build up the name database
 	for (const auto& statementPtr : machineDefinition->categoryStatements) {
-		if (contextFindMachineComponent(statementPtr->name)) {
+		if (findMachineComponent(statementPtr->name)) {
 			throw SemanticAnalysisException("Category name '" + statementPtr->name + "' encountered in machine '" + name + "' already defined", *this); // TODO: could use an improvement; already defined where?
 		}
 
-		categories[statementPtr->name] = statementPtr->makeSemanticEntity();
+		components[statementPtr->name] = statementPtr->makeSemanticEntity();
 	}
 
 	for (const auto& statementPtr : machineDefinition->ruleStatements) {
-		if (contextFindMachineComponent(statementPtr->name)) {
+		if (findMachineComponent(statementPtr->name)) {
 			throw SemanticAnalysisException("Rule name '" + statementPtr->name + "' encountered in machine '" + name + "' already defined", *this); // TODO: could use an improvement; already defined where?
 		}
 
-		rules[statementPtr->name] = statementPtr->makeSemanticEntity();
+		components[statementPtr->name] = statementPtr->makeSemanticEntity();
 	}
 
 	// check for possible category reference recursion (and obviously whether the referenced category is indeed a category)
 	std::list<std::string> namesEncountered;
-	for (const auto& rulePair : this->rules) {
+	for (const auto& rulePair : this->components) {
 		checkForDeclarationCategoryRecursion(namesEncountered, rulePair.first, *rulePair.second, false);
 	}
 
 	// since there are no recursions at this point, we can create category links and references here (the same as with machines, and it all becomes messy if you try to move this chore down the hierarchy
-	for (const auto& categoryPair : categories) {
-		const CategoryStatement* categoryStatement = dynamic_cast<const CategoryStatement*>(categoryPair.second->underlyingSyntacticEntity().get());
+	for (const auto& componentPair : components) {
+		const CategoryStatement* categoryStatement = dynamic_cast<const CategoryStatement*>(componentPair.second->underlyingSyntacticEntity().get());
 		for (const auto& categoryUsedName : categoryStatement->categories) {
-			auto mc = contextFindMachineComponent(categoryUsedName);
+			auto mc = findMachineComponent(categoryUsedName);
 			Category* cat = dynamic_cast<Category*>(mc);
-			categoryPair.second->categories.push_back(cat);
-			cat->references[categoryPair.first] = categoryPair.second.get();
-		}
-	}
-
-	for (const auto& rulePair : rules) {
-		const RuleStatement* ruleStatement = dynamic_cast<const RuleStatement*>(rulePair.second->underlyingSyntacticEntity().get());
-		for (const auto& categoryUsedName : ruleStatement->categories) {
-			auto mc = contextFindMachineComponent(categoryUsedName);
-			Category* cat = dynamic_cast<Category*>(mc);
-			rulePair.second->categories.push_back(cat);
-			cat->references[rulePair.first] = rulePair.second.get();
+			componentPair.second->categories.push_back(cat);
+			cat->references[componentPair.first] = componentPair.second.get();
 		}
 	}
 
 	// at this point we can proceed to initializing the MachineComponents internally (e.g. initializing their fields)
-	for (const auto& componentPair : categories) {
+	for (const auto& componentPair : components) {
 		componentPair.second->initialize();
 	}
 
-	for (const auto& componentPair : rules) {
-		componentPair.second->initialize();
+
+	// now that the fields are initialized, we can proceed to checking that there are no name collisions and that all types used are valid
+	for (const auto& componentPair : components) {
+		componentPair.second->checkFields(*this);
 	}
 
 	// the last bit is to check that there is no disallowed recursion within the productions themselves
 	checkForComponentRecursion();
 }
 
-MachineComponent* Machine::contextFindMachineComponent(const std::string& name) const {
+MachineComponent* Machine::findMachineComponent(const std::string& name) const {
 	MachineComponent* ret;
 	for (const auto& used : uses) {
-		if (ret = used->contextFindMachineComponent(name)) {
+		if (ret = used->findMachineComponent(name)) {
 			return ret;
 		}
 	}
 	
-	if (follows && (ret = follows->contextFindMachineComponent(name))) {
+	if (follows && (ret = follows->findMachineComponent(name))) {
 		return ret;
 	}
 
-	auto it = categories.find(name);
-	if (it != categories.cend()) {
+	auto it = components.find(name);
+	if (it != components.cend()) {
 		return it->second.get();
-	}
-
-	auto iit = rules.find(name);
-	if (iit != rules.cend()) {
-		return iit->second.get();
 	}
 
 	return nullptr;
@@ -144,7 +131,7 @@ void Machine::checkForDeclarationCategoryRecursion(std::list<std::string>& names
 		throw SemanticAnalysisException("Declaration recursion found in the category-use declaration hierarchy path " + hierarchyPath + "; start at " + occurence.locationString() + ", end at " + this->locationString());
 	}
 
-	MachineComponent* component = contextFindMachineComponent(nameConsidered);
+	MachineComponent* component = findMachineComponent(nameConsidered);
 	if (component == nullptr) {
 		throw SemanticAnalysisException(nameConsidered + "' is not recognized as category name in the present context but was referenced as such in the declaration of " + namesEncountered.back(), occurence);
 	}
@@ -163,7 +150,7 @@ void Machine::checkForDeclarationCategoryRecursion(std::list<std::string>& names
 }
 
 const IFileLocalizable* Machine::findRecursiveReferenceThroughName(const std::string& referenceName, std::list<std::string>& namesEncountered, const std::string& targetName) const {
-	auto component = contextFindMachineComponent(referenceName);
+	auto component = findMachineComponent(referenceName);
 	if (component == nullptr) {
 		throw SemanticAnalysisException("The category/rule '" + referenceName + "' is not defined in the context of machine '" + this->name + "' defined at " + this->locationString() + "' even though it has been referenced there");
 	}
@@ -177,27 +164,15 @@ SemanticAnalysisException::SemanticAnalysisException(const std::string& message,
 
 void FiniteAutomaton::checkForComponentRecursion() const {
 	std::list<std::string> relevantNamesEncountered;
-	for (const auto& categoryPair : categories) {
-		auto recursiveReferenceLocalizableInstance = categoryPair.second->findRecursiveReference(*this, relevantNamesEncountered, categoryPair.first);
+	for (const auto& componentPair : components) {
+		auto recursiveReferenceLocalizableInstance = componentPair.second->findRecursiveReference(*this, relevantNamesEncountered, componentPair.first);
 		if (recursiveReferenceLocalizableInstance != nullptr) {
 			std::string hierarchyPath = relevantNamesEncountered.front();
 			relevantNamesEncountered.pop_front();
 			for (const auto& nameEncountered : relevantNamesEncountered) {
 				hierarchyPath += "-" + nameEncountered;
 			}
-			throw SemanticAnalysisException("Category reference recursion found in the path " + hierarchyPath + "; start at " + categoryPair.second->locationString() + ", end at " + recursiveReferenceLocalizableInstance->locationString() + " - no recursion is allowed in finite automata");
-		}
-	}
-
-	for (const auto& rulePair : rules) {
-		auto recursiveReferenceLocalizableInstance = rulePair.second->findRecursiveReference(*this, relevantNamesEncountered, rulePair.first);
-		if (recursiveReferenceLocalizableInstance != nullptr) {
-			std::string hierarchyPath = relevantNamesEncountered.front();
-			relevantNamesEncountered.pop_front();
-			for (const auto& nameEncountered : relevantNamesEncountered) {
-				hierarchyPath += "-" + nameEncountered;
-			}
-			throw SemanticAnalysisException("Rule reference recursion found in the path " + hierarchyPath + "; start at " + rulePair.second->locationString() + ", end at " + recursiveReferenceLocalizableInstance->locationString() + " - no recursion is allowed in finite automata");
+			throw SemanticAnalysisException("Rule/category reference recursion found in the path " + hierarchyPath + "; start at " + componentPair.second->locationString() + ", end at " + recursiveReferenceLocalizableInstance->locationString() + " - no recursion is allowed in finite automata");
 		}
 	}
 }
@@ -216,6 +191,32 @@ void MachineComponent::initialize() {
 	const MachineStatement* statement = dynamic_cast<const MachineStatement*>(underlyingSyntacticEntity().get());
 	for (const auto& fieldPtr : statement->fields) {
 		fields.push_back(fieldPtr);
+	}
+}
+
+void MachineComponent::checkFieldNameDeclaration(Machine& context, const Field* field) const {
+	for (const auto& f : fields) {
+		if (f->name == field->name && f.get() != field) {
+			throw SemanticAnalysisException("The field '" + field->name + "' declared at " + field->locationString() + " uses the name already taken by the field declared at " + f->locationString());
+		}
+	}
+
+	for (const Category* category : this->categories) {
+		category->checkFieldNameDeclaration(context, field);
+	}
+}
+
+void MachineComponent::checkFields(Machine& context) const {
+	for (const auto& field : fields) {
+		const VariablyTypedField* vtf = dynamic_cast<const VariablyTypedField*>(field.get());
+		if (vtf) {
+			MachineComponent* mc = context.findMachineComponent(vtf->type);
+			if (!mc) {
+				throw SemanticAnalysisException("The variably typed field '" + vtf->name + "' references type '" + vtf->type + "' at " + field->locationString() + ", but no such type (i.e. a category or production rule) could be found in the present context of the machine '" + context.name + "'");
+			}
+		}
+
+		checkFieldNameDeclaration(context, field.get());
 	}
 }
 
