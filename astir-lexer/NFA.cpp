@@ -4,15 +4,15 @@
 #include "Exception.h"
 
 NFA::NFA()
-    : finalStates(), transitionsByState() {
-    transitionsByState.emplace_back();
+    : finalStates(), states() {
+    states.emplace_back();
 }
 
 void NFA::operator|=(const NFA& rhs) {
-    State stateIndexShift = this->transitionsByState.size();
-    std::vector<TransitionList> stateCopy = rhs.transitionsByState;
-    for (auto& transitionList : stateCopy) {
-        for (auto& transition : transitionList) {
+    State stateIndexShift = this->states.size();
+    auto stateCopy = rhs.states;
+    for (auto& state : stateCopy) {
+        for (auto& transition : state.transitions) {
             transition.target += stateIndexShift;
         }
     }
@@ -22,17 +22,17 @@ void NFA::operator|=(const NFA& rhs) {
         finalStatesCopy.insert(stateIndexShift+finalState);
     }
 
-    transitionsByState.insert(transitionsByState.end(), stateCopy.begin(), stateCopy.end());
+    states.insert(states.end(), stateCopy.begin(), stateCopy.end());
     finalStates.insert(finalStatesCopy.begin(), finalStatesCopy.end());
 
     addEmptyTransition(0, stateIndexShift);
 }
 
 void NFA::operator&=(const NFA& rhs) {
-    State rhsStartState = this->transitionsByState.size();
-    std::vector<TransitionList> stateCopy = rhs.transitionsByState;
-    for (auto& transitionList : stateCopy) {
-        for (auto& transition : transitionList) {
+    State rhsStartState = this->states.size();
+    auto stateCopy = rhs.states;
+    for (auto& state : stateCopy) {
+        for (auto& transition : state.transitions) {
             transition.target += rhsStartState;
         }
     }
@@ -42,7 +42,7 @@ void NFA::operator&=(const NFA& rhs) {
         finalStatesCopy.insert(rhsStartState + finalState);
     }
 
-    transitionsByState.insert(transitionsByState.end(), stateCopy.begin(), stateCopy.end());
+    states.insert(states.end(), stateCopy.begin(), stateCopy.end());
     for (const auto& finalState : this->finalStates) {
         addEmptyTransition(finalState, rhsStartState);
     }
@@ -50,18 +50,18 @@ void NFA::operator&=(const NFA& rhs) {
 }
 
 State NFA::addState() {
-    auto ret = (State)transitionsByState.size();
-    transitionsByState.emplace_back();
+    auto ret = (State)states.size();
+    states.emplace_back();
     return ret;
 }
 
 void NFA::addTransition(State state, const Transition& transition) {
-    transitionsByState[state].push_back(transition);
+    states[state].transitions.push_back(transition);
 }
 
 Transition& NFA::addEmptyTransition(State state, State target) {
     addTransition(state, Transition(target, nullptr));
-    return transitionsByState[state].back();
+    return states[state].transitions.back();
 }
 
 State NFA::concentrateFinalStates() {

@@ -19,7 +19,9 @@ int main(int argc, char* argv[]) {
 	}
 
 	Parser parser;
-	auto specification = parser.parse(tokenList);
+	auto syntacticTree = parser.parse(tokenList);
+	auto semanticTree = syntacticTree->makeSemanticEntity();
+	semanticTree->initialize();
 
 	return 0;
 }

@@ -77,8 +77,17 @@ NFA NFABuilder::visit(const LookaheadRegex* regex) const {
 }
 
 NFA NFABuilder::visit(const ActionAtomicRegex* regex) const {
-    // TODO: implement action handling
-    return regex->accept(*this);
+    ActionRegister reg;
+    for (const auto& atp : regex->actionTargetPairs) {
+        reg.emplace_back(ActionRegisterEntryType::Add, atp);
+    }
+
+    auto atomicNfa = regex->accept(*this);
+    for (auto finalState : atomicNfa.finalStates) {
+        atomicNfa.states[finalState].actions = reg;
+    }
+
+    return atomicNfa;
 }
 
 

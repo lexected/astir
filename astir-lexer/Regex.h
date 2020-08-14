@@ -57,6 +57,10 @@ enum class RegexAction {
 struct ActionTargetPair : public ISyntacticEntity {
 	RegexAction action = RegexAction::None;
 	std::string target;
+
+	ActionTargetPair() = default;
+	ActionTargetPair(RegexAction action, const std::string target)
+		: action(action), target(target) { }
 };
 struct ActionAtomicRegex : public RootRegex {
 	std::list<ActionTargetPair> actionTargetPairs;

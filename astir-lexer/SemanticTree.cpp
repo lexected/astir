@@ -23,7 +23,7 @@ void SemanticTree::checkForMachineHierarchyRecursion(std::list<std::string>& nam
 }
 
 const std::shared_ptr<const ISyntacticEntity>& SemanticTree::underlyingSyntacticEntity() const {
-	return m_syntacticTree;
+	return this->m_syntacticTree;
 }
 
 void SemanticTree::initialize() {

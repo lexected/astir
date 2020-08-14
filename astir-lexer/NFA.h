@@ -20,8 +20,23 @@ struct Transition {
 
 using TransitionList = std::list<Transition>;
 
-struct NFAComponent {
-	
+enum class ActionRegisterEntryType {
+	Add,
+	Remove
+};
+
+struct ActionRegisterEntry : public ActionTargetPair {
+	ActionRegisterEntryType type;
+
+	ActionRegisterEntry(ActionRegisterEntryType type, const ActionTargetPair& pair)
+		: type(type), ActionTargetPair(pair.action, pair.target) { }
+};
+
+using ActionRegister = std::list<ActionRegisterEntry>;
+
+struct NFAState {
+	TransitionList transitions;
+	ActionRegister actions;
 };
 
 /*
@@ -31,7 +46,7 @@ struct NFAComponent {
 class NFA {
 public:
 	std::set<State> finalStates;
-	std::vector<TransitionList> transitionsByState;
+	std::vector<NFAState> states;
 	// 0th element of this vector is by default the initial state
 
 	NFA();
@@ -44,4 +59,3 @@ public:
 	Transition& addEmptyTransition(State state, State target);
 	State concentrateFinalStates();
 };
-
