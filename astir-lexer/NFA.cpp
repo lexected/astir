@@ -1,7 +1,10 @@
 #include "NFA.h"
 
 #include <stack>
+#include<algorithm> 
+
 #include "Exception.h"
+#include "SemanticTree.h"
 
 NFA::NFA()
     : finalStates(), states() {
@@ -73,4 +76,272 @@ State NFA::concentrateFinalStates() {
     finalStates.insert(newFinalState);
 
     return newFinalState;
+}
+
+NFA NFA::buildDFA() const {
+    // the idea of the conversion algorithm is quite simple,
+    // but what makes the whole conversion rather challenging
+    // is the bookkeeping necessary to know what actions are
+    // to be executed when an accepting state is reached
+
+    NFA base;
+    std::vector<DFAState> stateMap;
+
+    auto initialSet = calculateEpsilonClosure(std::set<State>({ (State)0 }));
+    stateMap.push_back(DFAState(initialSet));
+
+    State unmarkedStateDfaState;
+    while ((unmarkedStateDfaState = findUnmarkedState(stateMap)) != stateMap.size()) {
+        auto& stateObject = stateMap[unmarkedStateDfaState];
+        stateObject.marked = true;
+
+        auto transitionSymbolPtrs = calculateTransitionSymbols(stateObject.nfaStates);
+        for (const auto& transitionSymbolPtr : transitionSymbolPtrs) {
+            auto advancedStateSet = calculateSymbolClosure(stateObject.nfaStates, transitionSymbolPtr.get());
+            auto epsilonClosureAdvancedStateSet = calculateEpsilonClosure(advancedStateSet);
+            State theCorrespondingDFAState = findStateByNFAStateSet(stateMap, epsilonClosureAdvancedStateSet);
+            if (theCorrespondingDFAState == epsilonClosureAdvancedStateSet.size()) {
+                theCorrespondingDFAState = base.addState();
+                stateMap.emplace_back(epsilonClosureAdvancedStateSet);
+            }
+            base.addTransition(unmarkedStateDfaState, Transition(theCorrespondingDFAState, transitionSymbolPtr));
+        }
+    }
+
+    return base;
+}
+
+std::set<State> NFA::calculateEpsilonClosure(const std::set<State>& states) const {
+    std::stack<State> statesToCheck;
+    for (const auto& state : states) {
+        statesToCheck.push(state);
+    }
+
+    std::set<State> ret(states);
+    while (!statesToCheck.empty()) {
+        State currentState = statesToCheck.top();
+        statesToCheck.pop();
+
+        const auto& stateObject = this->states[currentState];
+        for (const auto& transition : stateObject.transitions) {
+            if (transition.condition) {
+                continue;
+            }
+
+            std::pair<std::set<State>::iterator, bool> insertionOutcome = ret.insert(transition.target);
+            if (insertionOutcome.second) {
+                statesToCheck.push(transition.target);
+            }
+        }
+    }
+
+    return ret;
+}
+
+std::set<State> NFA::calculateSymbolClosure(const std::set<State>& states, const SymbolGroup* symbolOnTransition) const {
+    std::set<State> reachableStates;
+    for(const auto& state : states) {
+        const auto& stateObject = this->states[state];
+        for (const auto& transition : stateObject.transitions) {
+            if (transition.condition->contains(symbolOnTransition)) {
+                reachableStates.insert(transition.target);
+            }
+        }
+    }
+
+    return reachableStates;
+}
+
+std::list<std::shared_ptr<SymbolGroup>> NFA::calculateTransitionSymbols(const std::set<State>& states) const {
+    std::list<const MachineComponent*> machineComponentsReferenced;
+    std::list<LiteralSymbolGroup> literalGroupsUsed;
+    for (State state : states) {
+        const auto& stateObject = this->states[state];
+        for (const auto& transition : stateObject.transitions) {
+            auto lsg = std::dynamic_pointer_cast<LiteralSymbolGroup>(transition.condition);
+            if (lsg != nullptr) {
+                literalGroupsUsed.push_back(*lsg);
+                continue;
+            }
+
+            auto psg = std::dynamic_pointer_cast<ProductionSymbolGroup>(transition.condition);
+            if (psg != nullptr) {
+                machineComponentsReferenced.push_back(psg->referencedComponent);
+            }
+        }
+    }
+
+    calculateDisjointLiteralSymbolGroups(literalGroupsUsed);
+    calculateDisjointProductionSymbolGroups(machineComponentsReferenced);
+
+    std::list<std::shared_ptr<SymbolGroup>> ret;
+    for (const LiteralSymbolGroup& lsg : literalGroupsUsed) {
+        ret.push_back(std::make_shared<LiteralSymbolGroup>(lsg));
+    }
+    for (const MachineComponent* component : machineComponentsReferenced) {
+        ret.push_back(std::make_shared<ProductionSymbolGroup>(component));
+    }
+
+    return ret;
+}
+
+void NFA::calculateDisjointLiteralSymbolGroups(std::list<LiteralSymbolGroup>& symbolGroups) {
+    auto it = symbolGroups.begin();
+    bool equalTransitionFound = false;
+    while(it != symbolGroups.end()) {
+        auto iit = it++;
+        for (; iit != symbolGroups.end(); ++iit) {
+            if (iit->equals(*it)) {
+                equalTransitionFound = true;
+                break;
+            } else if (!iit->disjoint(*it)) {
+                equalTransitionFound = false;
+                break;
+            }
+        }
+
+        if (iit != symbolGroups.end()) {
+            if (!equalTransitionFound) {
+                LiteralSymbolGroup::disjoin(symbolGroups, *it, *iit);
+                it = symbolGroups.erase(it);
+            }
+            symbolGroups.erase(iit);
+        }
+    }
+}
+
+std::list<LiteralSymbolGroup> NFA::negateLiteralSymbolGroups(const std::list<LiteralSymbolGroup>& symbolGroups) {
+    std::list<LiteralSymbolGroup> ret;
+    unsigned char lastEnd = 0;
+    for (const auto lsg : symbolGroups) { 
+        if (lsg.rangeStart > lastEnd+1) {
+            ret.emplace_back(lastEnd+1, lsg.rangeStart - 1);
+        }
+        lastEnd = lsg.rangeEnd;
+    }
+    if (lastEnd < (unsigned char)255) {
+        ret.emplace_back(lastEnd + 1, (unsigned char)255);
+    }
+
+    return ret;
+}
+
+void NFA::calculateDisjointProductionSymbolGroups(std::list<const MachineComponent*>& symbolGroups) {
+    auto it = symbolGroups.begin();
+    bool equalTransitionFound = false;
+    std::list<const Category*> categoryPath;
+    while (it != symbolGroups.end()) {
+        auto iit = symbolGroups.begin();
+        for (; iit != symbolGroups.end(); ++iit) {
+            if (*iit == *it) {
+                continue;
+            }
+
+            if ((*it)->name == (*iit)->name) {
+                equalTransitionFound = true;
+                break;
+            }
+
+            if ((*it)->entails((*iit)->name, categoryPath)) {
+                break;
+            }
+        }
+
+        if (iit != symbolGroups.end()) {
+            if (!equalTransitionFound) {
+                const Category* prevCat = nullptr;
+                for (const Category* cat : categoryPath) {
+                    for (auto pair : cat->references) {
+                        if (pair.second != prevCat) {
+                            symbolGroups.push_back(pair.second);
+                        }
+                    }
+                    prevCat = cat;
+                }
+
+                categoryPath.clear();
+                it = symbolGroups.erase(it);
+            }
+            symbolGroups.erase(iit);
+        }
+    }
+}
+
+State NFA::findUnmarkedState(const std::vector<DFAState>& stateMap) const {
+    size_t index;
+    for (index = 0; index < stateMap.size(); ++index) {
+        if (!stateMap[index].marked) {
+            break;
+        }
+    }
+
+    return index;
+}
+
+State NFA::findStateByNFAStateSet(const std::vector<DFAState>& stateMap, const std::set<State>& nfaSet) const {
+    size_t index;
+    for (index = 0; index < stateMap.size(); ++index) {
+        if (stateMap[index].nfaStates == nfaSet) {
+            break;
+        }
+    }
+
+    return index;
+}
+
+bool LiteralSymbolGroup::contains(const SymbolGroup* symbol) const {
+    const LiteralSymbolGroup* ls = dynamic_cast<const LiteralSymbolGroup*>(symbol);
+    if (ls == nullptr) {
+        return false;
+    }
+
+    return this->rangeStart <= ls->rangeStart && this->rangeEnd >= ls->rangeEnd;
+}
+
+bool LiteralSymbolGroup::equals(const LiteralSymbolGroup& rhs) const {
+    return this->rangeStart == rhs.rangeStart && this->rangeEnd == rhs.rangeEnd;
+}
+
+bool LiteralSymbolGroup::disjoint(const LiteralSymbolGroup& rhs) const {
+    return this->rangeStart > rhs.rangeEnd || rhs.rangeStart > this->rangeEnd;
+}
+
+void LiteralSymbolGroup::disjoin(std::list<LiteralSymbolGroup>& symbolGroups, const LiteralSymbolGroup& lhs, const LiteralSymbolGroup& rhs) {
+    if (rhs.disjoint(lhs)) {
+        symbolGroups.push_back(lhs);
+        symbolGroups.push_back(rhs);
+    } else if(lhs.rangeEnd >= rhs.rangeStart) {
+        auto mid_beg = std::max(lhs.rangeStart, rhs.rangeStart);
+        auto mid_end = std::min(lhs.rangeEnd, rhs.rangeEnd);
+        // thanks to the first condition we have mid_beg <= mid_end
+
+        auto bottom_beg = std::min(lhs.rangeStart, rhs.rangeStart);
+        auto bottom_end = mid_beg - 1;
+
+        auto top_beg = std::min(lhs.rangeEnd, rhs.rangeEnd) + 1;
+        auto top_end = std::max(lhs.rangeEnd, rhs.rangeEnd);
+
+        LiteralSymbolGroup bottom;
+        LiteralSymbolGroup mid;
+        LiteralSymbolGroup top;
+
+        if (bottom_beg <= bottom_end) {
+            symbolGroups.emplace_back(bottom_beg, bottom_end);
+        }
+
+        symbolGroups.emplace_back(mid_beg, mid_end);
+
+        if (top_beg <= top_end) {
+            symbolGroups.emplace_back(top_beg, top_end);
+        }
+    }
+}
+
+bool ProductionSymbolGroup::contains(const SymbolGroup* symbol) const {
+    const ProductionSymbolGroup* psg = dynamic_cast<const ProductionSymbolGroup*>(symbol);
+    if (psg == nullptr) {
+        return false;
+    }
+
+    return referencedComponent->entails(psg->referencedComponent->name);
 }

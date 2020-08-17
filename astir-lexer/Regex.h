@@ -97,9 +97,7 @@ struct ConjunctiveRegex : public Regex {
 	void checkActionUsage(const MachineComponent* context) const override;
 };
 
-struct PrimitiveRegex : public AtomicRegex {
-	NFA accept(const NFABuilder& nfaBuilder) const override;
-};
+struct PrimitiveRegex : public AtomicRegex { };
 
 struct RegexRange {
 	char start;
@@ -109,22 +107,36 @@ struct RegexRange {
 struct AnyRegex : PrimitiveRegex {
 	std::list<std::string> literals;
 	std::list<RegexRange> ranges;
+
+	NFA accept(const NFABuilder& nfaBuilder) const override;
 };
 
-struct ExceptAnyRegex : public AnyRegex { };
+struct ExceptAnyRegex : public AnyRegex {
+	NFA accept(const NFABuilder& nfaBuilder) const override;
+};
 
 struct LiteralRegex : public PrimitiveRegex {
 	std::string literal;
+
+	NFA accept(const NFABuilder& nfaBuilder) const override;
 };
 
 struct ReferenceRegex : public PrimitiveRegex {
 	std::string referenceName;
 
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+
+	NFA accept(const NFABuilder& nfaBuilder) const override;
 };
 
-struct ArbitraryLiteralRegex : public PrimitiveRegex { };
+struct ArbitraryLiteralRegex : public PrimitiveRegex {
+	NFA accept(const NFABuilder& nfaBuilder) const override;
+};
 
-struct LineBeginRegex : public PrimitiveRegex { };
+struct LineEndRegex : public PrimitiveRegex {
+	NFA accept(const NFABuilder& nfaBuilder) const override;
+};
 
-struct LineEndRegex : public PrimitiveRegex { };
+/* struct LineBeginRegex : public PrimitiveRegex {
+	
+}; */

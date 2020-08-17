@@ -133,6 +133,26 @@ const IFileLocalizable* ReferenceRegex::findRecursiveReference(const Machine& ma
     return machine.findRecursiveReferenceThroughName(referenceName, namesEncountered, targetName);
 }
 
-NFA PrimitiveRegex::accept(const NFABuilder& nfaBuilder) const {
+NFA ReferenceRegex::accept(const NFABuilder& nfaBuilder) const {
+    return nfaBuilder.visit(this);
+}
+
+NFA AnyRegex::accept(const NFABuilder& nfaBuilder) const {
+    return nfaBuilder.visit(this);
+}
+
+NFA ExceptAnyRegex::accept(const NFABuilder& nfaBuilder) const {
+    return nfaBuilder.visit(this);
+}
+
+NFA LiteralRegex::accept(const NFABuilder& nfaBuilder) const {
+    return nfaBuilder.visit(this);
+}
+
+NFA ArbitraryLiteralRegex::accept(const NFABuilder& nfaBuilder) const {
+    return nfaBuilder.visit(this);
+}
+
+NFA LineEndRegex::accept(const NFABuilder& nfaBuilder) const {
     return nfaBuilder.visit(this);
 }

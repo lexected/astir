@@ -260,6 +260,27 @@ const std::shared_ptr<const ISyntacticEntity>& Category::underlyingSyntacticEnti
 	return m_categoryStatement;
 }
 
+bool Category::entails(const std::string& name) const {
+	for (const auto& reference : references) {
+		if (reference.second->entails(name)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Category::entails(const std::string& name, std::list<const Category*>& path) const {
+	for (const auto& reference : references) {
+		if (reference.second->entails(name, path)) {
+			path.push_back(this);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void Rule::initialize() {
 	if (initialized()) {
 		return;
@@ -289,4 +310,12 @@ const IFileLocalizable* Rule::findRecursiveReference(const Machine& machine, std
 
 const std::shared_ptr<const ISyntacticEntity>& Rule::underlyingSyntacticEntity() const {
 	return m_ruleStatement;
+}
+
+bool Rule::entails(const std::string& name) const {
+	return name == this->name;
+}
+
+bool Rule::entails(const std::string& name, std::list<const Category*>& path) const {
+	return name == this->name;
 }

@@ -3,6 +3,8 @@
 
 #include <stack>
 
+#include "SemanticTree.h"
+
 NFA NFABuilder::visit(const DisjunctiveRegex* regex) const {
     NFA base;
     for (const auto& conjunctiveRegex : regex->disjunction) {
@@ -90,12 +92,97 @@ NFA NFABuilder::visit(const ActionAtomicRegex* regex) const {
     return atomicNfa;
 }
 
-
-NFA NFABuilder::visit(const PrimitiveRegex* regex) const {
+NFA NFABuilder::visit(const AnyRegex* regex) const {
     NFA base;
     auto newState = base.addState();
-    base.addTransition(0, Transition(newState, regex));
+
+    auto literalGroups = computeLiteralGroups(regex);
+    for (const auto& literalSymbolGroup : literalGroups) {
+        base.addTransition(0, Transition(newState, std::make_shared<LiteralSymbolGroup>(literalSymbolGroup)));
+    }
+
+    base.finalStates.insert(newState);
+    return base;
+}
+
+NFA NFABuilder::visit(const ExceptAnyRegex* regex) const {
+    NFA base;
+    auto newState = base.addState();
+
+    auto literalGroups = computeLiteralGroups(regex);
+    NFA::calculateDisjointLiteralSymbolGroups(literalGroups);
+    auto negatedGroups = NFA::negateLiteralSymbolGroups(literalGroups);
+
+    for (const auto& literalSymbolGroup : negatedGroups) {
+        base.addTransition(0, Transition(newState, std::make_shared<LiteralSymbolGroup>(literalSymbolGroup)));
+    }
+
     base.finalStates.insert(newState);
 
     return base;
+}
+
+NFA NFABuilder::visit(const LiteralRegex* regex) const {
+    NFA base;
+    
+    State prevState = 0;
+    for(unsigned char c : regex->literal) {   
+        State newState = base.addState();
+        base.addTransition(prevState, Transition(newState, std::make_shared<LiteralSymbolGroup>(c, c)));
+
+        prevState = newState;
+    }
+
+    base.finalStates.insert(prevState);
+
+    return base;
+}
+
+NFA NFABuilder::visit(const ArbitraryLiteralRegex* regex) const {
+    NFA base;
+    auto newState = base.addState();
+    base.addTransition(0, Transition(newState, std::make_shared<ArbitrarySymbolGroup>()));
+    base.finalStates.insert(newState);
+
+    return base;
+}
+
+
+NFA NFABuilder::visit(const ReferenceRegex* regex) const {
+    NFA base;
+    auto newState = base.addState();
+    auto component = this->m_context.findMachineComponent(regex->referenceName);
+    base.addTransition(0, Transition(newState, std::make_shared<ProductionSymbolGroup>(component)));
+    base.finalStates.insert(newState);
+
+    return base;
+}
+
+NFA NFABuilder::visit(const LineEndRegex* regex) const {
+    NFA base;
+    auto lineFeedState = base.addState();
+    base.addTransition(0, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n')));
+    base.finalStates.insert(lineFeedState);
+    auto carriageReturnState = base.addState();
+    base.addTransition(0, Transition(carriageReturnState, std::make_shared<LiteralSymbolGroup>('\r', '\r')));
+    base.addTransition(carriageReturnState, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n')));
+
+    return base;
+}
+
+std::list<LiteralSymbolGroup> NFABuilder::computeLiteralGroups(const AnyRegex* regex) const {
+    std::list<LiteralSymbolGroup> literalGroup;
+
+    for (const auto& literal : regex->literals) {
+        for (const auto& c : literal) {
+            literalGroup.emplace_back(c, c);
+        }
+    }
+    for (const auto& range : regex->ranges) {
+        unsigned char beginning = (unsigned char)range.start;
+        unsigned char end = (unsigned char)range.end;
+        literalGroup.emplace_back(beginning, end);
+    }
+
+    return literalGroup;
 }

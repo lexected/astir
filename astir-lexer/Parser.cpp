@@ -624,9 +624,9 @@ std::unique_ptr<AtomicRegex> Parser::parseAtomicRegex(std::list<Token>::const_it
 		ret = move(lr);
 	} else if (it->type == TokenType::OP_DOT) {
 		ret = make_unique<ArbitraryLiteralRegex>();
-	} else if (it->type == TokenType::OP_CARET) {
+	} /*else if (it->type == TokenType::OP_CARET) {
 		ret = make_unique<LineBeginRegex>();
-	} else if (it->type == TokenType::OP_DOLLAR) {
+	}*/ else if (it->type == TokenType::OP_DOLLAR) {
 		ret = make_unique<LineEndRegex>();
 	} else if (it->type == TokenType::IDENTIFIER) {
 		auto rr = make_unique<ReferenceRegex>();

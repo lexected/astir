@@ -108,6 +108,9 @@ public:
 	void checkFieldName(Machine& context, const Field* field) const;
 	void checkFieldDeclarations(Machine& context) const;
 	const Field* findField(const std::string& name) const;
+
+	virtual bool entails(const std::string& name) const = 0;
+	virtual bool entails(const std::string& name, std::list<const Category*>& path) const = 0;
 };
 
 class Category : public MachineComponent {
@@ -119,6 +122,8 @@ public:
 
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const override;
 	const std::shared_ptr<const ISyntacticEntity>& underlyingSyntacticEntity() const override;
+	bool entails(const std::string& name) const override;
+	bool entails(const std::string& name, std::list<const Category*>& path) const override;
 private:
 	std::shared_ptr<const CategoryStatement> m_categoryStatement;
 };
@@ -135,6 +140,8 @@ public:
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const override;
 	const std::shared_ptr<const ISyntacticEntity>& underlyingSyntacticEntity() const override;
 	
+	bool entails(const std::string& name) const override;
+	bool entails(const std::string& name, std::list<const Category*>& path) const override;
 private:
 	std::shared_ptr<const RuleStatement> m_ruleStatement;
 };
