@@ -139,12 +139,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="IProductionReferencable.cpp" />
+    <ClCompile Include="NFABuilder.cpp" />
+    <ClCompile Include="ISyntacticEntity.cpp" />
     <ClCompile Include="LexicalAnalyzer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="NFA.cpp" />
     <ClCompile Include="Parser.cpp" />
-    <ClCompile Include="Specification.cpp" />
-    <ClCompile Include="SpecificationFile.cpp" />
+    <ClCompile Include="Regex.cpp" />
+    <ClCompile Include="SemanticTree.cpp" />
+    <ClCompile Include="SyntacticTree.cpp" />
     <ClCompile Include="Token.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -155,11 +159,19 @@
   <ItemGroup>
     <ClInclude Include="Exception.h" />
     <ClInclude Include="FileLocation.h" />
+    <ClInclude Include="IActing.h" />
+    <ClInclude Include="IFileLocalizable.h" />
+    <ClInclude Include="INFABuildable.h" />
+    <ClInclude Include="NFABuilder.h" />
+    <ClInclude Include="ISemanticEntity.h" />
+    <ClInclude Include="ISyntacticEntity.h" />
+    <ClInclude Include="IProductionReferencable.h" />
     <ClInclude Include="LexicalAnalyzer.h" />
     <ClInclude Include="NFA.h" />
     <ClInclude Include="Parser.h" />
-    <ClInclude Include="Specification.h" />
-    <ClInclude Include="SpecificationFile.h" />
+    <ClInclude Include="Regex.h" />
+    <ClInclude Include="SemanticTree.h" />
+    <ClInclude Include="SyntacticTree.h" />
     <ClInclude Include="Token.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

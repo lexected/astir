@@ -1,17 +1,21 @@
 #include "NFA.h"
 
 #include <stack>
+#include<algorithm> 
+
+#include "Exception.h"
+#include "SemanticTree.h"
 
 NFA::NFA()
-    : finalStates(), transitionsByState() {
-    transitionsByState.emplace_back();
+    : finalStates(), states() {
+    states.emplace_back();
 }
 
 void NFA::operator|=(const NFA& rhs) {
-    State stateIndexShift = this->transitionsByState.size();
-    std::vector<TransitionList> stateCopy = rhs.transitionsByState;
-    for (auto& transitionList : stateCopy) {
-        for (auto& transition : transitionList) {
+    State stateIndexShift = this->states.size();
+    auto stateCopy = rhs.states;
+    for (auto& state : stateCopy) {
+        for (auto& transition : state.transitions) {
             transition.target += stateIndexShift;
         }
     }
@@ -21,17 +25,17 @@ void NFA::operator|=(const NFA& rhs) {
         finalStatesCopy.insert(stateIndexShift+finalState);
     }
 
-    transitionsByState.insert(transitionsByState.end(), stateCopy.begin(), stateCopy.end());
+    states.insert(states.end(), stateCopy.begin(), stateCopy.end());
     finalStates.insert(finalStatesCopy.begin(), finalStatesCopy.end());
 
     addEmptyTransition(0, stateIndexShift);
 }
 
 void NFA::operator&=(const NFA& rhs) {
-    State rhsStartState = this->transitionsByState.size();
-    std::vector<TransitionList> stateCopy = rhs.transitionsByState;
-    for (auto& transitionList : stateCopy) {
-        for (auto& transition : transitionList) {
+    State rhsStartState = this->states.size();
+    auto stateCopy = rhs.states;
+    for (auto& state : stateCopy) {
+        for (auto& transition : state.transitions) {
             transition.target += rhsStartState;
         }
     }
@@ -41,7 +45,7 @@ void NFA::operator&=(const NFA& rhs) {
         finalStatesCopy.insert(rhsStartState + finalState);
     }
 
-    transitionsByState.insert(transitionsByState.end(), stateCopy.begin(), stateCopy.end());
+    states.insert(states.end(), stateCopy.begin(), stateCopy.end());
     for (const auto& finalState : this->finalStates) {
         addEmptyTransition(finalState, rhsStartState);
     }
@@ -49,18 +53,18 @@ void NFA::operator&=(const NFA& rhs) {
 }
 
 State NFA::addState() {
-    auto ret = (State)transitionsByState.size();
-    transitionsByState.emplace_back();
+    auto ret = (State)states.size();
+    states.emplace_back();
     return ret;
 }
 
 void NFA::addTransition(State state, const Transition& transition) {
-    transitionsByState[state].push_back(transition);
+    states[state].transitions.push_back(transition);
 }
 
 Transition& NFA::addEmptyTransition(State state, State target) {
     addTransition(state, Transition(target, nullptr));
-    return transitionsByState[state].back();
+    return states[state].transitions.back();
 }
 
 State NFA::concentrateFinalStates() {
@@ -74,123 +78,270 @@ State NFA::concentrateFinalStates() {
     return newFinalState;
 }
 
-NFA NFA::buildFromRegex(const DisjunctiveRegex* regex) {
-    NFA base;
-    for (const auto& conjunctiveRegex : regex->disjunction) {
-        base |= NFA::buildFromRegex(conjunctiveRegex.get());
-    }
-    return base;
-}
-
-NFA NFA::buildFromRegex(const ConjunctiveRegex* regex) {
-    NFA base;
-    base.finalStates.insert(0);
-
-    for (const auto& rootRegex : regex->conjunction) {
-        base &= NFA::buildFromRegex(rootRegex.get());
-    }
-    return base;
-}
-
-NFA NFA::buildFromRegex(const RootRegex* regex) {
-    const RepetitiveRegex* rr = dynamic_cast<const RepetitiveRegex*>(regex);
-    if (rr) {
-        return buildFromRegex(rr);
-    }
-
-    const LookaheadRegex* lr = dynamic_cast<const LookaheadRegex*>(regex);
-    if (lr) {
-        return buildFromRegex(lr);
-    }
-
-    const ActionAtomicRegex* aar = dynamic_cast<const ActionAtomicRegex*>(regex);
-    if (aar) {
-        return buildFromRegex(aar);
-    }
-
-    throw Exception("Unknown type of RootRegex encountered");
-}
-
-NFA NFA::buildFromRegex(const RepetitiveRegex* regex) {
-    if (regex->minRepetitions == regex->INFINITE_REPETITIONS) {
-        throw Exception("Can not create a machine for a regex with minimum of infinitely many repetitions");
-    }
-
-    NFA theMachine = NFA::buildFromRegex(regex->actionAtomicRegex.get());
+NFA NFA::buildDFA() const {
+    // the idea of the conversion algorithm is quite simple,
+    // but what makes the whole conversion rather challenging
+    // is the bookkeeping necessary to know what actions are
+    // to be executed when an accepting state is reached
 
     NFA base;
-    base.finalStates.insert(0);
-    for (unsigned long i = 0; i < regex->minRepetitions; ++i) {
-        base &= theMachine;
-    }
+    std::vector<DFAState> stateMap;
 
-    if (regex->maxRepetitions == regex->INFINITE_REPETITIONS) {
-        auto theVeryFinalState = theMachine.addState();
-        for (const auto& finalState : theMachine.finalStates) {
-            theMachine.addEmptyTransition(finalState, 0);
-            theMachine.addEmptyTransition(finalState, theVeryFinalState);
-        }
-        
-        NFA theMachineSTAR;
-        theMachineSTAR.finalStates.insert(0);
-        theMachineSTAR &= theMachine;
-        ++theVeryFinalState;
-        theMachineSTAR.addEmptyTransition(0, theVeryFinalState);
-        
-        base &= theMachineSTAR;
-    } else {
-        theMachine.concentrateFinalStates();
-        auto lastBaseFinalState = base.concentrateFinalStates();
-        
-        std::stack<State> interimConcentratedFinalStates({ lastBaseFinalState  });
-        for (unsigned long i = regex->minRepetitions; i < regex->maxRepetitions; ++i) {
-            base &= theMachine;
-            auto interimFinalState = *base.finalStates.begin();
-            interimConcentratedFinalStates.push(interimFinalState);
-        }
-        auto theVeryFinalState = interimConcentratedFinalStates.top();
-        interimConcentratedFinalStates.pop();
-        while (!interimConcentratedFinalStates.empty()) {
-            auto stateToConnect = interimConcentratedFinalStates.top();
-            interimConcentratedFinalStates.pop();
+    auto initialSet = calculateEpsilonClosure(std::set<State>({ (State)0 }));
+    stateMap.push_back(DFAState(initialSet));
 
-            base.addEmptyTransition(stateToConnect, theVeryFinalState);
+    State unmarkedStateDfaState;
+    while ((unmarkedStateDfaState = findUnmarkedState(stateMap)) != stateMap.size()) {
+        auto& stateObject = stateMap[unmarkedStateDfaState];
+        stateObject.marked = true;
+
+        auto transitionSymbolPtrs = calculateTransitionSymbols(stateObject.nfaStates);
+        for (const auto& transitionSymbolPtr : transitionSymbolPtrs) {
+            auto advancedStateSet = calculateSymbolClosure(stateObject.nfaStates, transitionSymbolPtr.get());
+            auto epsilonClosureAdvancedStateSet = calculateEpsilonClosure(advancedStateSet);
+            State theCorrespondingDFAState = findStateByNFAStateSet(stateMap, epsilonClosureAdvancedStateSet);
+            if (theCorrespondingDFAState == epsilonClosureAdvancedStateSet.size()) {
+                theCorrespondingDFAState = base.addState();
+                stateMap.emplace_back(epsilonClosureAdvancedStateSet);
+            }
+            base.addTransition(unmarkedStateDfaState, Transition(theCorrespondingDFAState, transitionSymbolPtr));
         }
     }
 
     return base;
 }
 
-NFA NFA::buildFromRegex(const LookaheadRegex* regex) {
-    //TODO: implement LookaheadRegex handling
-    throw Exception("LookaheadRegexes not supported at the moment");
-}
-
-NFA NFA::buildFromRegex(const ActionAtomicRegex* regex) {
-    // TODO: implement action handling
-
-    return NFA::buildFromRegex(regex->regex.get());
-}
-
-NFA NFA::buildFromRegex(const AtomicRegex* regex) {
-    const DisjunctiveRegex* dr = dynamic_cast<const DisjunctiveRegex*>(regex);
-    if (dr) {
-        return NFA::buildFromRegex(dr);
+std::set<State> NFA::calculateEpsilonClosure(const std::set<State>& states) const {
+    std::stack<State> statesToCheck;
+    for (const auto& state : states) {
+        statesToCheck.push(state);
     }
 
-    const PrimitiveRegex* pr = dynamic_cast<const PrimitiveRegex*>(regex);
-    if (pr) {
-        return NFA::buildFromRegex(pr);
+    std::set<State> ret(states);
+    while (!statesToCheck.empty()) {
+        State currentState = statesToCheck.top();
+        statesToCheck.pop();
+
+        const auto& stateObject = this->states[currentState];
+        for (const auto& transition : stateObject.transitions) {
+            if (transition.condition) {
+                continue;
+            }
+
+            std::pair<std::set<State>::iterator, bool> insertionOutcome = ret.insert(transition.target);
+            if (insertionOutcome.second) {
+                statesToCheck.push(transition.target);
+            }
+        }
     }
 
-    throw Exception("Unknown type of atomic regex encountered");
+    return ret;
 }
 
-NFA NFA::buildFromRegex(const PrimitiveRegex* regex) {
-    NFA base;
-    auto newState = base.addState();
-    base.addTransition(0, Transition(newState, regex));
-    base.finalStates.insert(newState);
+std::set<State> NFA::calculateSymbolClosure(const std::set<State>& states, const SymbolGroup* symbolOnTransition) const {
+    std::set<State> reachableStates;
+    for(const auto& state : states) {
+        const auto& stateObject = this->states[state];
+        for (const auto& transition : stateObject.transitions) {
+            if (transition.condition->contains(symbolOnTransition)) {
+                reachableStates.insert(transition.target);
+            }
+        }
+    }
 
-    return base;
+    return reachableStates;
+}
+
+std::list<std::shared_ptr<SymbolGroup>> NFA::calculateTransitionSymbols(const std::set<State>& states) const {
+    std::list<const MachineComponent*> machineComponentsReferenced;
+    std::list<LiteralSymbolGroup> literalGroupsUsed;
+    for (State state : states) {
+        const auto& stateObject = this->states[state];
+        for (const auto& transition : stateObject.transitions) {
+            auto lsg = std::dynamic_pointer_cast<LiteralSymbolGroup>(transition.condition);
+            if (lsg != nullptr) {
+                literalGroupsUsed.push_back(*lsg);
+                continue;
+            }
+
+            auto psg = std::dynamic_pointer_cast<ProductionSymbolGroup>(transition.condition);
+            if (psg != nullptr) {
+                machineComponentsReferenced.push_back(psg->referencedComponent);
+            }
+        }
+    }
+
+    calculateDisjointLiteralSymbolGroups(literalGroupsUsed);
+    calculateDisjointProductionSymbolGroups(machineComponentsReferenced);
+
+    std::list<std::shared_ptr<SymbolGroup>> ret;
+    for (const LiteralSymbolGroup& lsg : literalGroupsUsed) {
+        ret.push_back(std::make_shared<LiteralSymbolGroup>(lsg));
+    }
+    for (const MachineComponent* component : machineComponentsReferenced) {
+        ret.push_back(std::make_shared<ProductionSymbolGroup>(component));
+    }
+
+    return ret;
+}
+
+void NFA::calculateDisjointLiteralSymbolGroups(std::list<LiteralSymbolGroup>& symbolGroups) {
+    auto it = symbolGroups.begin();
+    bool equalTransitionFound = false;
+    while(it != symbolGroups.end()) {
+        auto iit = it++;
+        for (; iit != symbolGroups.end(); ++iit) {
+            if (iit->equals(*it)) {
+                equalTransitionFound = true;
+                break;
+            } else if (!iit->disjoint(*it)) {
+                equalTransitionFound = false;
+                break;
+            }
+        }
+
+        if (iit != symbolGroups.end()) {
+            if (!equalTransitionFound) {
+                LiteralSymbolGroup::disjoin(symbolGroups, *it, *iit);
+                it = symbolGroups.erase(it);
+            }
+            symbolGroups.erase(iit);
+        }
+    }
+}
+
+std::list<LiteralSymbolGroup> NFA::negateLiteralSymbolGroups(const std::list<LiteralSymbolGroup>& symbolGroups) {
+    std::list<LiteralSymbolGroup> ret;
+    unsigned char lastEnd = 0;
+    for (const auto lsg : symbolGroups) { 
+        if (lsg.rangeStart > lastEnd+1) {
+            ret.emplace_back(lastEnd+1, lsg.rangeStart - 1);
+        }
+        lastEnd = lsg.rangeEnd;
+    }
+    if (lastEnd < (unsigned char)255) {
+        ret.emplace_back(lastEnd + 1, (unsigned char)255);
+    }
+
+    return ret;
+}
+
+void NFA::calculateDisjointProductionSymbolGroups(std::list<const MachineComponent*>& symbolGroups) {
+    auto it = symbolGroups.begin();
+    bool equalTransitionFound = false;
+    std::list<const Category*> categoryPath;
+    while (it != symbolGroups.end()) {
+        auto iit = symbolGroups.begin();
+        for (; iit != symbolGroups.end(); ++iit) {
+            if (*iit == *it) {
+                continue;
+            }
+
+            if ((*it)->name == (*iit)->name) {
+                equalTransitionFound = true;
+                break;
+            }
+
+            if ((*it)->entails((*iit)->name, categoryPath)) {
+                break;
+            }
+        }
+
+        if (iit != symbolGroups.end()) {
+            if (!equalTransitionFound) {
+                const Category* prevCat = nullptr;
+                for (const Category* cat : categoryPath) {
+                    for (auto pair : cat->references) {
+                        if (pair.second != prevCat) {
+                            symbolGroups.push_back(pair.second);
+                        }
+                    }
+                    prevCat = cat;
+                }
+
+                categoryPath.clear();
+                it = symbolGroups.erase(it);
+            }
+            symbolGroups.erase(iit);
+        }
+    }
+}
+
+State NFA::findUnmarkedState(const std::vector<DFAState>& stateMap) const {
+    size_t index;
+    for (index = 0; index < stateMap.size(); ++index) {
+        if (!stateMap[index].marked) {
+            break;
+        }
+    }
+
+    return index;
+}
+
+State NFA::findStateByNFAStateSet(const std::vector<DFAState>& stateMap, const std::set<State>& nfaSet) const {
+    size_t index;
+    for (index = 0; index < stateMap.size(); ++index) {
+        if (stateMap[index].nfaStates == nfaSet) {
+            break;
+        }
+    }
+
+    return index;
+}
+
+bool LiteralSymbolGroup::contains(const SymbolGroup* symbol) const {
+    const LiteralSymbolGroup* ls = dynamic_cast<const LiteralSymbolGroup*>(symbol);
+    if (ls == nullptr) {
+        return false;
+    }
+
+    return this->rangeStart <= ls->rangeStart && this->rangeEnd >= ls->rangeEnd;
+}
+
+bool LiteralSymbolGroup::equals(const LiteralSymbolGroup& rhs) const {
+    return this->rangeStart == rhs.rangeStart && this->rangeEnd == rhs.rangeEnd;
+}
+
+bool LiteralSymbolGroup::disjoint(const LiteralSymbolGroup& rhs) const {
+    return this->rangeStart > rhs.rangeEnd || rhs.rangeStart > this->rangeEnd;
+}
+
+void LiteralSymbolGroup::disjoin(std::list<LiteralSymbolGroup>& symbolGroups, const LiteralSymbolGroup& lhs, const LiteralSymbolGroup& rhs) {
+    if (rhs.disjoint(lhs)) {
+        symbolGroups.push_back(lhs);
+        symbolGroups.push_back(rhs);
+    } else if(lhs.rangeEnd >= rhs.rangeStart) {
+        auto mid_beg = std::max(lhs.rangeStart, rhs.rangeStart);
+        auto mid_end = std::min(lhs.rangeEnd, rhs.rangeEnd);
+        // thanks to the first condition we have mid_beg <= mid_end
+
+        auto bottom_beg = std::min(lhs.rangeStart, rhs.rangeStart);
+        auto bottom_end = mid_beg - 1;
+
+        auto top_beg = std::min(lhs.rangeEnd, rhs.rangeEnd) + 1;
+        auto top_end = std::max(lhs.rangeEnd, rhs.rangeEnd);
+
+        LiteralSymbolGroup bottom;
+        LiteralSymbolGroup mid;
+        LiteralSymbolGroup top;
+
+        if (bottom_beg <= bottom_end) {
+            symbolGroups.emplace_back(bottom_beg, bottom_end);
+        }
+
+        symbolGroups.emplace_back(mid_beg, mid_end);
+
+        if (top_beg <= top_end) {
+            symbolGroups.emplace_back(top_beg, top_end);
+        }
+    }
+}
+
+bool ProductionSymbolGroup::contains(const SymbolGroup* symbol) const {
+    const ProductionSymbolGroup* psg = dynamic_cast<const ProductionSymbolGroup*>(symbol);
+    if (psg == nullptr) {
+        return false;
+    }
+
+    return referencedComponent->entails(psg->referencedComponent->name);
 }
