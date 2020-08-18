@@ -1,7 +1,7 @@
 #include "NFA.h"
 
 #include <stack>
-#include<algorithm> 
+#include <algorithm> 
 
 #include "Exception.h"
 #include "SemanticTree.h"
@@ -104,6 +104,7 @@ NFA NFA::buildDFA() const {
                 theCorrespondingDFAState = base.addState();
                 stateMap.emplace_back(epsilonClosureAdvancedStateSet);
             }
+
             base.addTransition(unmarkedStateDfaState, Transition(theCorrespondingDFAState, transitionSymbolPtr));
         }
     }
@@ -153,7 +154,7 @@ std::set<State> NFA::calculateSymbolClosure(const std::set<State>& states, const
 }
 
 std::list<std::shared_ptr<SymbolGroup>> NFA::calculateTransitionSymbols(const std::set<State>& states) const {
-    std::list<const MachineComponent*> machineComponentsReferenced;
+    std::list<ProductionSymbolGroup> productionGroupsUsed;
     std::list<LiteralSymbolGroup> literalGroupsUsed;
     for (State state : states) {
         const auto& stateObject = this->states[state];
@@ -166,20 +167,20 @@ std::list<std::shared_ptr<SymbolGroup>> NFA::calculateTransitionSymbols(const st
 
             auto psg = std::dynamic_pointer_cast<ProductionSymbolGroup>(transition.condition);
             if (psg != nullptr) {
-                machineComponentsReferenced.push_back(psg->referencedComponent);
+                productionGroupsUsed.push_back(*psg);
             }
         }
     }
 
     calculateDisjointLiteralSymbolGroups(literalGroupsUsed);
-    calculateDisjointProductionSymbolGroups(machineComponentsReferenced);
+    calculateDisjointProductionSymbolGroups(productionGroupsUsed);
 
     std::list<std::shared_ptr<SymbolGroup>> ret;
     for (const LiteralSymbolGroup& lsg : literalGroupsUsed) {
         ret.push_back(std::make_shared<LiteralSymbolGroup>(lsg));
     }
-    for (const MachineComponent* component : machineComponentsReferenced) {
-        ret.push_back(std::make_shared<ProductionSymbolGroup>(component));
+    for (const ProductionSymbolGroup& psg : productionGroupsUsed) {
+        ret.push_back(std::make_shared<ProductionSymbolGroup>(psg));
     }
 
     return ret;
@@ -201,7 +202,9 @@ void NFA::calculateDisjointLiteralSymbolGroups(std::list<LiteralSymbolGroup>& sy
         }
 
         if (iit != symbolGroups.end()) {
-            if (!equalTransitionFound) {
+            if (equalTransitionFound) {
+                it->actions += iit->actions;
+            } else {
                 LiteralSymbolGroup::disjoin(symbolGroups, *it, *iit);
                 it = symbolGroups.erase(it);
             }
@@ -226,43 +229,43 @@ std::list<LiteralSymbolGroup> NFA::negateLiteralSymbolGroups(const std::list<Lit
     return ret;
 }
 
-void NFA::calculateDisjointProductionSymbolGroups(std::list<const MachineComponent*>& symbolGroups) {
+void NFA::calculateDisjointProductionSymbolGroups(std::list<ProductionSymbolGroup>& symbolGroups) {
     auto it = symbolGroups.begin();
     bool equalTransitionFound = false;
     std::list<const Category*> categoryPath;
     while (it != symbolGroups.end()) {
         auto iit = symbolGroups.begin();
         for (; iit != symbolGroups.end(); ++iit) {
-            if (*iit == *it) {
+            if (iit == it) {
                 continue;
             }
 
-            if ((*it)->name == (*iit)->name) {
+            if (it->referencedComponent == iit->referencedComponent) {
                 equalTransitionFound = true;
                 break;
             }
 
-            if ((*it)->entails((*iit)->name, categoryPath)) {
+            if (it->referencedComponent->entails(iit->referencedComponent->name, categoryPath)) {
                 break;
             }
         }
 
         if (iit != symbolGroups.end()) {
             if (!equalTransitionFound) {
-                const Category* prevCat = nullptr;
+                const MachineComponent* prevComponent = nullptr;
                 for (const Category* cat : categoryPath) {
                     for (auto pair : cat->references) {
-                        if (pair.second != prevCat) {
-                            symbolGroups.push_back(pair.second);
+                        if (pair.second != prevComponent) {
+                            symbolGroups.emplace_back(pair.second, it->actions);
                         }
                     }
-                    prevCat = cat;
+                    prevComponent = cat;
                 }
 
                 categoryPath.clear();
-                it = symbolGroups.erase(it);
             }
-            symbolGroups.erase(iit);
+            iit->actions += it->actions;
+            it = symbolGroups.erase(it);
         }
     }
 }
@@ -321,18 +324,15 @@ void LiteralSymbolGroup::disjoin(std::list<LiteralSymbolGroup>& symbolGroups, co
         auto top_beg = std::min(lhs.rangeEnd, rhs.rangeEnd) + 1;
         auto top_end = std::max(lhs.rangeEnd, rhs.rangeEnd);
 
-        LiteralSymbolGroup bottom;
-        LiteralSymbolGroup mid;
-        LiteralSymbolGroup top;
-
         if (bottom_beg <= bottom_end) {
-            symbolGroups.emplace_back(bottom_beg, bottom_end);
+            symbolGroups.emplace_back(bottom_beg, bottom_end, bottom_beg == lhs.rangeStart ? lhs.actions : rhs.actions);
         }
 
-        symbolGroups.emplace_back(mid_beg, mid_end);
+        ActionRegister actionsUnionized = lhs.actions + rhs.actions;
+        symbolGroups.emplace_back(mid_beg, mid_end, actionsUnionized);
 
         if (top_beg <= top_end) {
-            symbolGroups.emplace_back(top_beg, top_end);
+            symbolGroups.emplace_back(top_beg, top_end, top_beg == lhs.rangeEnd ? rhs.actions : lhs .actions);
         }
     }
 }
@@ -344,4 +344,32 @@ bool ProductionSymbolGroup::contains(const SymbolGroup* symbol) const {
     }
 
     return referencedComponent->entails(psg->referencedComponent->name);
+}
+
+ActionRegister ActionRegister::operator+(const ActionRegister& rhs) const {
+    ActionRegister ret(*this);
+
+    for (const auto& are : rhs) {
+        auto it = std::find_if(begin(), end(), [are](const ActionRegisterEntry& entry) {
+            return entry.action == are.action && are.targetComponent == entry.targetComponent;
+            });
+        if (it == end()) {
+            ret.push_back(are);
+        }
+    }
+
+    return ret;
+}
+
+const ActionRegister& ActionRegister::operator+=(const ActionRegister& rhs) {
+    for (const auto& are : rhs) {
+        auto it = std::find_if(begin(), end(), [&are](const ActionRegisterEntry& entry) {
+            return entry.action == are.action && are.targetComponent == entry.targetComponent;
+            });
+        if (it == end()) {
+            this->push_back(are);
+        }
+    }
+
+    return *this;
 }

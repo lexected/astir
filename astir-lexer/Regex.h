@@ -13,9 +13,8 @@ struct RootRegex : public Regex {
 	virtual ~RootRegex() = default;
 };
 
-struct ActionAtomicRegex;
 struct RepetitiveRegex : public RootRegex {
-	std::unique_ptr<ActionAtomicRegex> actionAtomicRegex;
+	std::unique_ptr<RootRegex> regex;
 	unsigned long minRepetitions;
 	unsigned long maxRepetitions;
 	static const unsigned long INFINITE_REPETITIONS = (unsigned long)((signed int)-1);
@@ -29,10 +28,10 @@ struct RepetitiveRegex : public RootRegex {
 	void checkActionUsage(const MachineComponent* context) const override;
 };
 
-struct AtomicRegex;
+struct PrimitiveRegex;
 struct LookaheadRegex : public RootRegex {
-	std::unique_ptr<ActionAtomicRegex> match;
-	std::unique_ptr<AtomicRegex> lookahead;
+	std::unique_ptr<RootRegex> match;
+	std::unique_ptr<PrimitiveRegex> lookahead;
 
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
 
@@ -62,18 +61,7 @@ struct ActionTargetPair : public ISyntacticEntity {
 	ActionTargetPair(RegexAction action, const std::string target)
 		: action(action), target(target) { }
 };
-struct ActionAtomicRegex : public RootRegex {
-	std::list<ActionTargetPair> actionTargetPairs;
-	std::unique_ptr<AtomicRegex> regex;
-
-	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
-
-	NFA accept(const NFABuilder& nfaBuilder) const override;
-
-	void checkActionUsage(const MachineComponent* context) const override;
-};
-
-struct AtomicRegex : public Regex { };
+struct AtomicRegex : public RootRegex { };
 
 struct ConjunctiveRegex;
 struct DisjunctiveRegex : public AtomicRegex {
@@ -97,14 +85,18 @@ struct ConjunctiveRegex : public Regex {
 	void checkActionUsage(const MachineComponent* context) const override;
 };
 
-struct PrimitiveRegex : public AtomicRegex { };
+struct PrimitiveRegex : public AtomicRegex {
+	std::list<ActionTargetPair> actionTargetPairs;
+
+	void checkActionUsage(const MachineComponent* context) const override;
+};
 
 struct RegexRange {
 	char start;
 	char end;
 };
 
-struct AnyRegex : PrimitiveRegex {
+struct AnyRegex : public PrimitiveRegex {
 	std::list<std::string> literals;
 	std::list<RegexRange> ranges;
 

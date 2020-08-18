@@ -8,16 +8,39 @@
 
 class Machine;
 class MachineComponent;
+struct Field;
 
 using State = size_t;
+
+struct ActionRegisterEntry {
+	RegexAction action;
+	const Field* targetComponent;
+
+	ActionRegisterEntry(RegexAction action)
+		: action(action), targetComponent(nullptr) { }
+	ActionRegisterEntry(RegexAction action, const Field* targetComponent)
+		: action(action), targetComponent(targetComponent) { }
+};
+
+class ActionRegister : public std::list<ActionRegisterEntry> {
+public:
+	ActionRegister() = default;
+
+	ActionRegister operator+(const ActionRegister& rhs) const;
+	const ActionRegister& operator+=(const ActionRegister& rhs);
+};
 
 struct SymbolGroup {
 public:
 	virtual ~SymbolGroup() = default;
 
+	ActionRegister actions;
+
 	virtual bool contains(const SymbolGroup* symbol) const = 0;
 protected:
 	SymbolGroup() = default;
+	SymbolGroup(const ActionRegister& actions)
+		: actions(actions) { }
 };
 
 struct LiteralSymbolGroup : public SymbolGroup {
@@ -25,6 +48,10 @@ struct LiteralSymbolGroup : public SymbolGroup {
 		: rangeStart(0), rangeEnd(0) { }
 	LiteralSymbolGroup(unsigned char rangeStart, unsigned  char rangeEnd)
 		: rangeStart(rangeStart), rangeEnd(rangeEnd) { }
+	LiteralSymbolGroup(unsigned char rangeStart, unsigned  char rangeEnd, const ActionRegister& actions)
+		: rangeStart(rangeStart), rangeEnd(rangeEnd), SymbolGroup(actions) { }
+	LiteralSymbolGroup(const LiteralSymbolGroup& lsg, const ActionRegister& actions)
+		: rangeStart(lsg.rangeStart), rangeEnd(lsg.rangeEnd), SymbolGroup(actions) { }
 
 	bool contains(const SymbolGroup* symbol) const override;
 	bool equals(const LiteralSymbolGroup& rhs) const;
@@ -38,12 +65,16 @@ struct LiteralSymbolGroup : public SymbolGroup {
 struct ArbitrarySymbolGroup : public LiteralSymbolGroup {
 	ArbitrarySymbolGroup()
 		: LiteralSymbolGroup(0, (char)255) { }
+	ArbitrarySymbolGroup(const ActionRegister& actions)
+		: LiteralSymbolGroup(0, (char)255, actions) { }
 };
 
 struct ProductionSymbolGroup : public SymbolGroup {
 	const MachineComponent* referencedComponent;
 	ProductionSymbolGroup(const MachineComponent* referencedComponent)
 		: referencedComponent(referencedComponent) { }
+	ProductionSymbolGroup(const MachineComponent* referencedComponent, const ActionRegister& actions)
+		: referencedComponent(referencedComponent), SymbolGroup(actions) { }
 
 	bool contains(const SymbolGroup* symbol) const override;
 };
@@ -60,23 +91,8 @@ struct Transition {
 
 using TransitionList = std::list<Transition>;
 
-enum class ActionRegisterEntryType {
-	Add,
-	Remove
-};
-
-struct ActionRegisterEntry : public ActionTargetPair {
-	ActionRegisterEntryType type;
-
-	ActionRegisterEntry(ActionRegisterEntryType type, const ActionTargetPair& pair)
-		: type(type), ActionTargetPair(pair.action, pair.target) { }
-};
-
-using ActionRegister = std::list<ActionRegisterEntry>;
-
 struct NFAState {
 	TransitionList transitions;
-	ActionRegister actions;
 };
 
 class NFA {
@@ -103,7 +119,7 @@ private:
 	std::set<State> calculateEpsilonClosure(const std::set<State>& states) const;
 	std::set<State> calculateSymbolClosure(const std::set<State>& states, const SymbolGroup* symbolOnTransition) const;
 	std::list<std::shared_ptr<SymbolGroup>> calculateTransitionSymbols(const std::set<State>& states) const;
-	static void calculateDisjointProductionSymbolGroups(std::list<const MachineComponent*>& symbolGroups);
+	static void calculateDisjointProductionSymbolGroups(std::list<ProductionSymbolGroup>& symbolGroups);
 
 	struct DFAState {
 		std::set<State> nfaStates;

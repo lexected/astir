@@ -5,7 +5,7 @@
 #include "NFABuilder.h"
 
 const IFileLocalizable* RepetitiveRegex::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
-    return actionAtomicRegex->findRecursiveReference(machine, namesEncountered, targetName);
+    return regex->findRecursiveReference(machine, namesEncountered, targetName);
 }
 
 NFA RepetitiveRegex::accept(const NFABuilder& nfaBuilder) const {
@@ -13,7 +13,7 @@ NFA RepetitiveRegex::accept(const NFABuilder& nfaBuilder) const {
 }
 
 void RepetitiveRegex::checkActionUsage(const MachineComponent* context) const {
-    actionAtomicRegex->checkActionUsage(context);
+    regex->checkActionUsage(context);
 }
 
 const IFileLocalizable* LookaheadRegex::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
@@ -34,15 +34,7 @@ void LookaheadRegex::checkActionUsage(const MachineComponent* context) const {
     // lookahead->checkActionUsage(context); NO NEED!!!
 }
 
-const IFileLocalizable* ActionAtomicRegex::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
-    return regex->findRecursiveReference(machine, namesEncountered, targetName);
-}
-
-NFA ActionAtomicRegex::accept(const NFABuilder& nfaBuilder) const {
-    return nfaBuilder.visit(this);
-}
-
-void ActionAtomicRegex::checkActionUsage(const MachineComponent* context) const {
+void PrimitiveRegex::checkActionUsage(const MachineComponent* context) const {
     for (const auto& actionTargetPair : actionTargetPairs) {
         const Field* fieldPtr = context->findField(actionTargetPair.target);
         if (fieldPtr == nullptr) {
@@ -68,7 +60,7 @@ void ActionAtomicRegex::checkActionUsage(const MachineComponent* context) const 
             case RegexAction::LeftTrim:
             case RegexAction::RightTrim:
                 if (!fieldPtr->settable()) {
-                    throw SemanticAnalysisException("The action at '" + actionTargetPair.locationString() + "' refers to target '" + actionTargetPair.target + "' that is not 'settable' '" + context->name + "' (see its definition at '" + context->locationString() + ")");
+                    throw SemanticAnalysisException("The action at '" + actionTargetPair.locationString() + "' refers to target '" + actionTargetPair.target + "' that is not 'list-operation-able' '" + context->name + "' (see its definition at '" + context->locationString() + ")");
                 }
                 break;
             case RegexAction::None:
@@ -79,8 +71,6 @@ void ActionAtomicRegex::checkActionUsage(const MachineComponent* context) const 
                 break;
         }
     }
-
-    this->regex->checkActionUsage(context);
 }
 
 const IFileLocalizable* DisjunctiveRegex::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {

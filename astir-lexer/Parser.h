@@ -26,11 +26,11 @@ private:
 	std::unique_ptr<RootRegex> parseRootRegex(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<RepetitiveRegex> parseRepetitiveRegex(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<LookaheadRegex> parseLookaheadRegex(std::list<Token>::const_iterator& it) const;
-	std::unique_ptr<ActionAtomicRegex> parseActionAtomicRegex(std::list<Token>::const_iterator& it) const;
 	RegexAction parseRegexAction(std::list<Token>::const_iterator& it) const;
 
 	std::unique_ptr<AtomicRegex> parseAtomicRegex(std::list<Token>::const_iterator& it) const;
-	std::unique_ptr<AnyRegex> parseAnyRegex(std::list<Token>::const_iterator& it) const;
+	std::unique_ptr<PrimitiveRegex> parsePrimitiveRegex(std::list<Token>::const_iterator& it) const;
+	bool tryParseAnyRegex(std::list<Token>::const_iterator& it, std::unique_ptr<AnyRegex>& anyRegexPtr) const;
 	std::unique_ptr<ConjunctiveRegex> parseConjunctiveRegex(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<DisjunctiveRegex> parseDisjunctiveRegex(std::list<Token>::const_iterator& it) const;
 };

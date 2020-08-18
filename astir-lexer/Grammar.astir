@@ -62,6 +62,10 @@
 		OP_AT
 */
 
+/*
+	THIS GRAMMAR IS BADLY OUT OF DATE
+*/
+
 production specification = 
 	specificationStatement*
 	;

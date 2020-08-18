@@ -417,7 +417,7 @@ std::unique_ptr<RootRegex> Parser::parseRootRegex(std::list<Token>::const_iterat
 		return rr;
 	} else if ((rr = parseLookaheadRegex(it))) {
 		return rr;
-	} else if ((rr = parseActionAtomicRegex(it))) {
+	} else if ((rr = parseAtomicRegex(it))) {
 		return rr;
 	} else {
 		return nullptr;
@@ -426,8 +426,8 @@ std::unique_ptr<RootRegex> Parser::parseRootRegex(std::list<Token>::const_iterat
 
 std::unique_ptr<RepetitiveRegex> Parser::parseRepetitiveRegex(std::list<Token>::const_iterator& it) const {
 	auto savedIt = it;
-	unique_ptr<ActionAtomicRegex> aar = parseActionAtomicRegex(it);
-	if (!aar) {
+	unique_ptr<RootRegex> rootRegex = parseRootRegex(it);
+	if (!rootRegex) {
 		// throw UnexpectedTokenException(*it, "token for action-atomic regex", "for repetitive regex as an alternative of root regex", *savedIt);
 		return nullptr;
 	}
@@ -437,7 +437,7 @@ std::unique_ptr<RepetitiveRegex> Parser::parseRepetitiveRegex(std::list<Token>::
 		unique_ptr<RepetitiveRegex> rr = make_unique<RepetitiveRegex>();
 		rr->minRepetitions = 0;
 		rr->maxRepetitions = 1;
-		rr->actionAtomicRegex = move(aar);
+		rr->regex = move(rootRegex);
 		rr->copyLocation(*savedIt);
 		return rr;
 	} else if (it->type == TokenType::OP_STAR) {
@@ -445,7 +445,7 @@ std::unique_ptr<RepetitiveRegex> Parser::parseRepetitiveRegex(std::list<Token>::
 		unique_ptr<RepetitiveRegex> rr = make_unique<RepetitiveRegex>();
 		rr->minRepetitions = 0;
 		rr->maxRepetitions = rr->INFINITE_REPETITIONS;
-		rr->actionAtomicRegex = move(aar);
+		rr->regex = move(rootRegex);
 		rr->copyLocation(*savedIt);
 		return rr;
 	} else if (it->type == TokenType::OP_PLUS) {
@@ -453,7 +453,7 @@ std::unique_ptr<RepetitiveRegex> Parser::parseRepetitiveRegex(std::list<Token>::
 		unique_ptr<RepetitiveRegex> rr = make_unique<RepetitiveRegex>();
 		rr->minRepetitions = 1;
 		rr->maxRepetitions = rr->INFINITE_REPETITIONS;
-		rr->actionAtomicRegex = move(aar);
+		rr->regex = move(rootRegex);
 		rr->copyLocation(*savedIt);
 		return rr;
 	} else if (it->type == TokenType::CURLY_LEFT) {
@@ -486,7 +486,7 @@ std::unique_ptr<RepetitiveRegex> Parser::parseRepetitiveRegex(std::list<Token>::
 		}
 		++it;
 		
-		rr->actionAtomicRegex = move(aar);
+		rr->regex = move(rootRegex);
 		return rr;
 	} else {
 		it = savedIt;
@@ -496,8 +496,8 @@ std::unique_ptr<RepetitiveRegex> Parser::parseRepetitiveRegex(std::list<Token>::
 
 std::unique_ptr<LookaheadRegex> Parser::parseLookaheadRegex(std::list<Token>::const_iterator& it) const {
 	auto savedIt = it;
-	unique_ptr<ActionAtomicRegex> aar = parseActionAtomicRegex(it);
-	if (!aar) {
+	unique_ptr<RootRegex> rootRegex = parseRootRegex(it);
+	if (!rootRegex) {
 		// throw UnexpectedTokenException(*it, "token for action-atomic regex", "for lookahead regex as an alternative of root regex", *savedIt);
 		return nullptr;
 	}
@@ -507,11 +507,11 @@ std::unique_ptr<LookaheadRegex> Parser::parseLookaheadRegex(std::list<Token>::co
 
 		unique_ptr<LookaheadRegex> lr = make_unique<LookaheadRegex>();
 		lr->copyLocation(*savedIt);
-		unique_ptr<AtomicRegex> ar = parseAtomicRegex(it);
+		unique_ptr<PrimitiveRegex> ar = parsePrimitiveRegex(it);
 		if (!ar) {
 			throw UnexpectedTokenException(*it, "a token for atomic regex to follow '\\'", "for lookahead match regex", *savedIt);
 		}
-		lr->match = move(aar);
+		lr->match = move(rootRegex);
 		lr->lookahead = move(ar);
 		return lr;
 	} else {
@@ -520,16 +520,39 @@ std::unique_ptr<LookaheadRegex> Parser::parseLookaheadRegex(std::list<Token>::co
 	}
 }
 
-std::unique_ptr<ActionAtomicRegex> Parser::parseActionAtomicRegex(std::list<Token>::const_iterator& it) const {
-	auto savedIt = it;
+std::unique_ptr<PrimitiveRegex> Parser::parsePrimitiveRegex(std::list<Token>::const_iterator& it) const {
+	/* perhaps rather surprisingly, this will be a lookahead bit of this parser */
+	auto savedIt = it; // for throwing purposes, heh
 
-	auto ar = parseAtomicRegex(it);
-	if (!ar) {
-		return nullptr;
+	if (it->type == TokenType::SQUARE_LEFT) {
+		unique_ptr<AnyRegex> ret;
+		if (tryParseAnyRegex(it, ret)) {
+			return ret;
+		}
 	}
-	unique_ptr<ActionAtomicRegex> aar = make_unique<ActionAtomicRegex>();
-	aar->copyLocation(*savedIt);
-	aar->regex = move(ar);
+
+	unique_ptr<PrimitiveRegex> ret;
+	if (it->type == TokenType::STRING) {
+		auto lr = make_unique<LiteralRegex>();
+		lr->literal = it->string;
+		ret = move(lr);
+	} else if (it->type == TokenType::OP_DOT) {
+		ret = make_unique<ArbitraryLiteralRegex>();
+	} /*else if (it->type == TokenType::OP_CARET) {
+		ret = make_unique<LineBeginRegex>();
+	}*/ else if (it->type == TokenType::OP_DOLLAR) {
+		ret = make_unique<LineEndRegex>();
+	} else if (it->type == TokenType::IDENTIFIER) {
+		auto rr = make_unique<ReferenceRegex>();
+		rr->referenceName = it->string;
+		ret = move(rr);
+	} else {
+		return nullptr; // needs to be like this
+	}
+	++it;
+
+	ret->copyLocation(*savedIt);
+	
 	while (it->type == TokenType::OP_AT) {
 		auto interimIt = it;
 		++it;
@@ -549,10 +572,10 @@ std::unique_ptr<ActionAtomicRegex> Parser::parseActionAtomicRegex(std::list<Toke
 		atp.copyLocation(*interimIt);
 		++it;
 
-		aar->actionTargetPairs.push_back(move(atp));
+		ret->actionTargetPairs.push_back(move(atp));
 	}
 
-	return aar;
+	return ret;
 }
 
 RegexAction Parser::parseRegexAction(std::list<Token>::const_iterator& it) const {
@@ -594,9 +617,7 @@ RegexAction Parser::parseRegexAction(std::list<Token>::const_iterator& it) const
 }
 
 std::unique_ptr<AtomicRegex> Parser::parseAtomicRegex(std::list<Token>::const_iterator& it) const {
-	/* perhaps rather surprisingly, this will be a lookahead bit of this parser */
-	auto savedIt = it; // for throwing purposes, heh
-	
+	auto savedIt = it;
 	if (it->type == TokenType::PAR_LEFT) {
 		++it;
 
@@ -612,38 +633,18 @@ std::unique_ptr<AtomicRegex> Parser::parseAtomicRegex(std::list<Token>::const_it
 
 		return dr;
 	}
-	
-	if (it->type == TokenType::SQUARE_LEFT) {
-		return parseAnyRegex(it);
+
+	auto primitiveRegexPtr = Parser::parsePrimitiveRegex(it);
+	if (!primitiveRegexPtr) {
+		return nullptr;
 	}
 
-	unique_ptr<AtomicRegex> ret;
-	if (it->type == TokenType::STRING) {
-		auto lr = make_unique<LiteralRegex>();
-		lr->literal = it->string;
-		ret = move(lr);
-	} else if (it->type == TokenType::OP_DOT) {
-		ret = make_unique<ArbitraryLiteralRegex>();
-	} /*else if (it->type == TokenType::OP_CARET) {
-		ret = make_unique<LineBeginRegex>();
-	}*/ else if (it->type == TokenType::OP_DOLLAR) {
-		ret = make_unique<LineEndRegex>();
-	} else if (it->type == TokenType::IDENTIFIER) {
-		auto rr = make_unique<ReferenceRegex>();
-		rr->referenceName = it->string;
-		ret = move(rr);
-	} else {
-		return nullptr; // needs to be like this
-	}
-	++it;
-
-	ret->copyLocation(*savedIt);
-	return ret;
+	return primitiveRegexPtr;
 }
 
-std::unique_ptr<AnyRegex> Parser::parseAnyRegex(std::list<Token>::const_iterator& it) const {
+bool Parser::tryParseAnyRegex(std::list<Token>::const_iterator& it, std::unique_ptr<AnyRegex>& anyRegexPtr) const {
 	if (it->type != TokenType::SQUARE_LEFT) {
-		return nullptr;
+		return false;
 	}
 	auto savedIt = it;
 	++it;
@@ -684,7 +685,9 @@ std::unique_ptr<AnyRegex> Parser::parseAnyRegex(std::list<Token>::const_iterator
 	}
 	++it;
 
-	return std::unique_ptr<AnyRegex>(ar);
+	anyRegexPtr = std::unique_ptr<AnyRegex>(ar);
+
+	return true;
 }
 
 std::unique_ptr<ConjunctiveRegex> Parser::parseConjunctiveRegex(std::list<Token>::const_iterator& it) const {
