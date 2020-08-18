@@ -1,3 +1,5 @@
+// TODO: implement comments in the lexer
+
 nondeterministic finite automaton ExampleTokenizer with individual_string_literals, table_lookup {
 	regex digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 
