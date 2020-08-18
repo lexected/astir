@@ -78,27 +78,15 @@ NFA NFABuilder::visit(const LookaheadRegex* regex) const {
     throw Exception("LookaheadRegexes not supported at the moment");
 }
 
-NFA NFABuilder::visit(const ActionAtomicRegex* regex) const {
-    ActionRegister reg;
-    for (const auto& atp : regex->actionTargetPairs) {
-        reg.emplace_back(ActionRegisterEntryType::Add, atp);
-    }
-
-    auto atomicNfa = regex->accept(*this);
-    for (auto finalState : atomicNfa.finalStates) {
-        atomicNfa.states[finalState].actions = reg;
-    }
-
-    return atomicNfa;
-}
-
 NFA NFABuilder::visit(const AnyRegex* regex) const {
     NFA base;
     auto newState = base.addState();
 
+    auto actionRegister = computeActionRegisterEntries(regex->actionTargetPairs);
+
     auto literalGroups = computeLiteralGroups(regex);
-    for (const auto& literalSymbolGroup : literalGroups) {
-        base.addTransition(0, Transition(newState, std::make_shared<LiteralSymbolGroup>(literalSymbolGroup)));
+    for (auto& literalSymbolGroup : literalGroups) {
+        base.addTransition(0, Transition(newState, std::make_shared<LiteralSymbolGroup>(literalSymbolGroup, actionRegister)));
     }
 
     base.finalStates.insert(newState);
@@ -113,8 +101,10 @@ NFA NFABuilder::visit(const ExceptAnyRegex* regex) const {
     NFA::calculateDisjointLiteralSymbolGroups(literalGroups);
     auto negatedGroups = NFA::negateLiteralSymbolGroups(literalGroups);
 
-    for (const auto& literalSymbolGroup : negatedGroups) {
-        base.addTransition(0, Transition(newState, std::make_shared<LiteralSymbolGroup>(literalSymbolGroup)));
+    auto actionRegister = computeActionRegisterEntries(regex->actionTargetPairs);
+
+    for (auto& literalSymbolGroup : negatedGroups) {
+        base.addTransition(0, Transition(newState, std::make_shared<LiteralSymbolGroup>(literalSymbolGroup, actionRegister)));
     }
 
     base.finalStates.insert(newState);
@@ -125,10 +115,12 @@ NFA NFABuilder::visit(const ExceptAnyRegex* regex) const {
 NFA NFABuilder::visit(const LiteralRegex* regex) const {
     NFA base;
     
+    auto actionRegister = computeActionRegisterEntries(regex->actionTargetPairs);
+
     State prevState = 0;
     for(unsigned char c : regex->literal) {   
         State newState = base.addState();
-        base.addTransition(prevState, Transition(newState, std::make_shared<LiteralSymbolGroup>(c, c)));
+        base.addTransition(prevState, Transition(newState, std::make_shared<LiteralSymbolGroup>(c, c, actionRegister)));
 
         prevState = newState;
     }
@@ -140,8 +132,11 @@ NFA NFABuilder::visit(const LiteralRegex* regex) const {
 
 NFA NFABuilder::visit(const ArbitraryLiteralRegex* regex) const {
     NFA base;
+
+    auto actionRegister = computeActionRegisterEntries(regex->actionTargetPairs);
+
     auto newState = base.addState();
-    base.addTransition(0, Transition(newState, std::make_shared<ArbitrarySymbolGroup>()));
+    base.addTransition(0, Transition(newState, std::make_shared<ArbitrarySymbolGroup>(actionRegister)));
     base.finalStates.insert(newState);
 
     return base;
@@ -150,9 +145,12 @@ NFA NFABuilder::visit(const ArbitraryLiteralRegex* regex) const {
 
 NFA NFABuilder::visit(const ReferenceRegex* regex) const {
     NFA base;
+
+    auto actionRegister = computeActionRegisterEntries(regex->actionTargetPairs);
+
     auto newState = base.addState();
     auto component = this->m_context.findMachineComponent(regex->referenceName);
-    base.addTransition(0, Transition(newState, std::make_shared<ProductionSymbolGroup>(component)));
+    base.addTransition(0, Transition(newState, std::make_shared<ProductionSymbolGroup>(component, actionRegister)));
     base.finalStates.insert(newState);
 
     return base;
@@ -160,12 +158,15 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 
 NFA NFABuilder::visit(const LineEndRegex* regex) const {
     NFA base;
+
+    auto actionRegister = computeActionRegisterEntries(regex->actionTargetPairs);
+
     auto lineFeedState = base.addState();
-    base.addTransition(0, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n')));
+    base.addTransition(0, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n', actionRegister)));
     base.finalStates.insert(lineFeedState);
     auto carriageReturnState = base.addState();
     base.addTransition(0, Transition(carriageReturnState, std::make_shared<LiteralSymbolGroup>('\r', '\r')));
-    base.addTransition(carriageReturnState, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n')));
+    base.addTransition(carriageReturnState, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n', actionRegister)));
 
     return base;
 }
@@ -185,4 +186,15 @@ std::list<LiteralSymbolGroup> NFABuilder::computeLiteralGroups(const AnyRegex* r
     }
 
     return literalGroup;
+}
+
+ActionRegister NFABuilder::computeActionRegisterEntries(const std::list<ActionTargetPair>& actionTargetPairs) const {
+    ActionRegister ret;
+
+    for (const ActionTargetPair& atp : actionTargetPairs) {
+        const Field* targetField = this->m_component->findField(atp.target);
+        ret.emplace_back(atp.action, targetField);
+    }
+
+    return ret;
 }
