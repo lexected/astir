@@ -8,7 +8,7 @@
 
 class Machine;
 class MachineComponent;
-class Field;
+struct Field;
 
 using State = size_t;
 
@@ -27,6 +27,7 @@ public:
 	ActionRegister() = default;
 
 	ActionRegister operator+(const ActionRegister& rhs) const;
+	const ActionRegister& operator+=(const ActionRegister& rhs);
 };
 
 struct SymbolGroup {
@@ -118,7 +119,7 @@ private:
 	std::set<State> calculateEpsilonClosure(const std::set<State>& states) const;
 	std::set<State> calculateSymbolClosure(const std::set<State>& states, const SymbolGroup* symbolOnTransition) const;
 	std::list<std::shared_ptr<SymbolGroup>> calculateTransitionSymbols(const std::set<State>& states) const;
-	static void calculateDisjointProductionSymbolGroups(std::list<LiteralSymbolGroup>& symbolGroups);
+	static void calculateDisjointProductionSymbolGroups(std::list<ProductionSymbolGroup>& symbolGroups);
 
 	struct DFAState {
 		std::set<State> nfaStates;

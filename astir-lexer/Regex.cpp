@@ -5,7 +5,7 @@
 #include "NFABuilder.h"
 
 const IFileLocalizable* RepetitiveRegex::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
-    return actionAtomicRegex->findRecursiveReference(machine, namesEncountered, targetName);
+    return regex->findRecursiveReference(machine, namesEncountered, targetName);
 }
 
 NFA RepetitiveRegex::accept(const NFABuilder& nfaBuilder) const {
@@ -13,7 +13,7 @@ NFA RepetitiveRegex::accept(const NFABuilder& nfaBuilder) const {
 }
 
 void RepetitiveRegex::checkActionUsage(const MachineComponent* context) const {
-    actionAtomicRegex->checkActionUsage(context);
+    regex->checkActionUsage(context);
 }
 
 const IFileLocalizable* LookaheadRegex::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {

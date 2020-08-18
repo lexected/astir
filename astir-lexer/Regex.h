@@ -14,7 +14,7 @@ struct RootRegex : public Regex {
 };
 
 struct RepetitiveRegex : public RootRegex {
-	std::unique_ptr<RootRegex> atomicRegex;
+	std::unique_ptr<RootRegex> regex;
 	unsigned long minRepetitions;
 	unsigned long maxRepetitions;
 	static const unsigned long INFINITE_REPETITIONS = (unsigned long)((signed int)-1);
@@ -61,11 +61,7 @@ struct ActionTargetPair : public ISyntacticEntity {
 	ActionTargetPair(RegexAction action, const std::string target)
 		: action(action), target(target) { }
 };
-struct AtomicRegex : public RootRegex {
-	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
-
-	NFA accept(const NFABuilder& nfaBuilder) const override;
-};
+struct AtomicRegex : public RootRegex { };
 
 struct ConjunctiveRegex;
 struct DisjunctiveRegex : public AtomicRegex {
