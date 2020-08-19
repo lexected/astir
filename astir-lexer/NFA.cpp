@@ -103,6 +103,12 @@ NFA NFA::buildDFA() const {
             if (theCorrespondingDFAState == epsilonClosureAdvancedStateSet.size()) {
                 theCorrespondingDFAState = base.addState();
                 stateMap.emplace_back(epsilonClosureAdvancedStateSet);
+                
+                std::set<State> intersectionOfNFAStates;
+                std::set_intersection(epsilonClosureAdvancedStateSet.begin(), epsilonClosureAdvancedStateSet.end(), finalStates.begin(), finalStates.end(), intersectionOfNFAStates);
+                if (intersectionOfNFAStates.size() > 0) {
+                    base.finalStates.insert(theCorrespondingDFAState);
+                }
             }
 
             base.addTransition(unmarkedStateDfaState, Transition(theCorrespondingDFAState, transitionSymbolPtr));
