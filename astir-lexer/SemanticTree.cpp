@@ -1,5 +1,6 @@
 #include "SyntacticTree.h"
 #include "SemanticTree.h"
+#include "NFABuilder.h"
 
 void SemanticTree::checkForMachineHierarchyRecursion(std::list<std::string>& namesEncountered, const std::string& nameConsidered) const {
 	bool collision = std::find(namesEncountered.cbegin(), namesEncountered.cend(), nameConsidered) == namesEncountered.cend();
@@ -99,7 +100,7 @@ void Machine::initialize() {
 	checkForComponentRecursion();
 }
 
-MachineComponent* Machine::findMachineComponent(const std::string& name) const {
+MachineComponent* Machine::findMachineComponent(const std::string& name, bool* follows) const {
 	MachineComponent* ret;
 	for (const auto& used : uses) {
 		if (ret = used->findMachineComponent(name)) {
@@ -107,12 +108,18 @@ MachineComponent* Machine::findMachineComponent(const std::string& name) const {
 		}
 	}
 	
-	if (follows && (ret = follows->findMachineComponent(name))) {
+	if (follows && (ret = this->follows->findMachineComponent(name))) {
+		if (follows) {
+			*follows = true;
+		}
 		return ret;
 	}
 
 	auto it = components.find(name);
 	if (it != components.cend()) {
+		if (follows) {
+			*follows = false;
+		}
 		return it->second.get();
 	}
 
@@ -179,6 +186,24 @@ void FiniteAutomaton::checkForComponentRecursion() const {
 
 const std::shared_ptr<const ISyntacticEntity>& FiniteAutomaton::underlyingSyntacticEntity() const {
 	return m_finiteAutomatonDefinition;
+}
+
+void FiniteAutomaton::initialize() {
+	this->Machine::initialize();
+
+	NFA base;
+	base.finalStates.insert(0);
+	for (const auto& componentPair : this->components) {
+		const MachineComponent* componentPtr = componentPair.second.get();
+		NFABuilder builder(*this, componentPtr);
+		base |= componentPtr->accept(builder);
+	}
+
+	if (this->type == FiniteAutomatonType::Deterministic) {
+		m_nfa = base.buildDFA();
+	} else {
+		m_nfa = base;
+	}
 }
 
 void MachineComponent::initialize() {
@@ -281,6 +306,10 @@ bool Category::entails(const std::string& name, std::list<const Category*>& path
 	return false;
 }
 
+NFA Category::accept(const NFABuilder& nfaBuilder) const {
+	return nfaBuilder.visit(this);
+}
+
 void Rule::initialize() {
 	if (initialized()) {
 		return;
@@ -318,4 +347,8 @@ bool Rule::entails(const std::string& name) const {
 
 bool Rule::entails(const std::string& name, std::list<const Category*>& path) const {
 	return name == this->name;
+}
+
+NFA Rule::accept(const NFABuilder& nfaBuilder) const {
+	return nfaBuilder.visit(this);
 }

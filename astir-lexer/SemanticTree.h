@@ -10,6 +10,9 @@
 #include "ISemanticEntity.h"
 #include "IActing.h"
 
+#include "NFA.h"
+#include "INFABuildable.h"
+
 /*
 	A few forward declarations
 */
@@ -70,7 +73,7 @@ public:
 
 	void initialize() override;
 
-	MachineComponent* findMachineComponent(const std::string& name) const; // anyone calling this function shall not take up even a partial ownership of the component, normal pointer suffices
+	MachineComponent* findMachineComponent(const std::string& name, bool* follows = nullptr) const; // anyone calling this function shall not take up even a partial ownership of the component, normal pointer suffices
 	void checkForDeclarationCategoryRecursion(std::list<std::string>& namesEncountered, const std::string& nameConsidered, const IFileLocalizable& occurence, bool mustBeACategory = false) const;
 	const IFileLocalizable* findRecursiveReferenceThroughName(const std::string& referenceName, std::list<std::string>& namesEncountered, const std::string& targetName) const;
 	virtual void checkForComponentRecursion() const = 0;
@@ -89,13 +92,16 @@ public:
 		: Machine(name), m_finiteAutomatonDefinition(machineDefinition), type(type) { }
 
 	void checkForComponentRecursion() const override;
-
 	const std::shared_ptr<const ISyntacticEntity>& underlyingSyntacticEntity() const override;
+	void initialize() override;
+
+	const NFA& getNFA() const { return m_nfa; }
 private:
 	std::shared_ptr<const FiniteAutomatonDefinition> m_finiteAutomatonDefinition;
+	NFA m_nfa;
 };
 
-class MachineComponent : public ISemanticEntity, public IProductionReferencable {
+class MachineComponent : public ISemanticEntity, public IProductionReferencable, public INFABuildable {
 public:
 	const std::string name;
 	std::list<const Category*> categories; // non-owning pointers for the categories
@@ -124,6 +130,8 @@ public:
 	const std::shared_ptr<const ISyntacticEntity>& underlyingSyntacticEntity() const override;
 	bool entails(const std::string& name) const override;
 	bool entails(const std::string& name, std::list<const Category*>& path) const override;
+
+	NFA accept(const NFABuilder& nfaBuilder) const override;
 private:
 	std::shared_ptr<const CategoryStatement> m_categoryStatement;
 };
@@ -142,6 +150,8 @@ public:
 	
 	bool entails(const std::string& name) const override;
 	bool entails(const std::string& name, std::list<const Category*>& path) const override;
+
+	NFA accept(const NFABuilder& nfaBuilder) const override;
 private:
 	std::shared_ptr<const RuleStatement> m_ruleStatement;
 };

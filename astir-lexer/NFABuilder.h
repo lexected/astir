@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SemanticTree.h"
 #include "Regex.h"
 #include "NFA.h"
 
@@ -9,6 +10,9 @@ class NFABuilder {
 public:
 	NFABuilder(const Machine& context, const MachineComponent* component)
 		: m_context(context), m_component(component) { }
+
+	NFA visit(const Category* category) const;
+	NFA visit(const Rule* rule) const;
 
 	NFA visit(const DisjunctiveRegex* regex) const;
 	NFA visit(const ConjunctiveRegex* regex) const;

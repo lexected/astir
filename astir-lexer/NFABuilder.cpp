@@ -5,6 +5,23 @@
 
 #include "SemanticTree.h"
 
+NFA NFABuilder::visit(const Category* category) const {
+    NFA base;
+    base.finalStates.insert(0);
+
+    for (const auto referencePair : category->references) {
+        NFABuilder contextualizedBuilder(this->m_context, referencePair.second);
+        base |= referencePair.second->accept(contextualizedBuilder);
+    }
+
+    return base;
+}
+
+NFA NFABuilder::visit(const Rule* rule) const {
+    NFABuilder contextualizedBuilder(this->m_context, rule);
+    return rule->accept(contextualizedBuilder);
+}
+
 NFA NFABuilder::visit(const DisjunctiveRegex* regex) const {
     NFA base;
     for (const auto& conjunctiveRegex : regex->disjunction) {
@@ -149,8 +166,17 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
     auto actionRegister = computeActionRegisterEntries(regex->actionTargetPairs);
 
     auto newState = base.addState();
-    auto component = this->m_context.findMachineComponent(regex->referenceName);
-    base.addTransition(0, Transition(newState, std::make_shared<ProductionSymbolGroup>(component, actionRegister)));
+    bool follows;
+    auto component = this->m_context.findMachineComponent(regex->referenceName, &follows);
+    if (follows) {
+        base.addTransition(0, Transition(newState, std::make_shared<ProductionSymbolGroup>(component, actionRegister)));
+    } else {
+        NFABuilder contextualizedBuilder(m_context, component);
+        NFA ret = component->accept(contextualizedBuilder);
+        ret.actionize(actionRegister);
+        return ret;
+    }
+   
     base.finalStates.insert(newState);
 
     return base;

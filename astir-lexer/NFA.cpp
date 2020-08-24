@@ -63,7 +63,12 @@ void NFA::addTransition(State state, const Transition& transition) {
 }
 
 Transition& NFA::addEmptyTransition(State state, State target) {
-    addTransition(state, Transition(target, nullptr));
+    addTransition(state, Transition(target, std::make_shared<EmptySymbolGroup>()));
+    return states[state].transitions.back();
+}
+
+Transition& NFA::addEmptyTransition(State state, State target, const ActionRegister& ar) {
+    addTransition(state, Transition(target, std::make_shared<EmptySymbolGroup>(ar)));
     return states[state].transitions.back();
 }
 
@@ -76,6 +81,13 @@ State NFA::concentrateFinalStates() {
     finalStates.insert(newFinalState);
 
     return newFinalState;
+}
+
+void NFA::actionize(const ActionRegister& actions) {
+    for (State fs : finalStates) {
+        State newState = addState();
+        addEmptyTransition(fs, newState, actions);
+    }
 }
 
 NFA NFA::buildDFA() const {
@@ -104,8 +116,8 @@ NFA NFA::buildDFA() const {
                 theCorrespondingDFAState = base.addState();
                 stateMap.emplace_back(epsilonClosureAdvancedStateSet);
                 
-                std::set<State> intersectionOfNFAStates;
-                std::set_intersection(epsilonClosureAdvancedStateSet.begin(), epsilonClosureAdvancedStateSet.end(), finalStates.begin(), finalStates.end(), intersectionOfNFAStates);
+                std::list<State> intersectionOfNFAStates;
+                std::set_intersection(epsilonClosureAdvancedStateSet.cbegin(), epsilonClosureAdvancedStateSet.cend(), finalStates.cbegin(), finalStates.cend(), intersectionOfNFAStates.begin());
                 if (intersectionOfNFAStates.size() > 0) {
                     base.finalStates.insert(theCorrespondingDFAState);
                 }
@@ -131,7 +143,8 @@ std::set<State> NFA::calculateEpsilonClosure(const std::set<State>& states) cons
 
         const auto& stateObject = this->states[currentState];
         for (const auto& transition : stateObject.transitions) {
-            if (transition.condition) {
+            const EmptySymbolGroup* esg = dynamic_cast<const EmptySymbolGroup*>(transition.condition.get());
+            if (esg == nullptr) {
                 continue;
             }
 
@@ -378,4 +391,8 @@ const ActionRegister& ActionRegister::operator+=(const ActionRegister& rhs) {
     }
 
     return *this;
+}
+
+bool EmptySymbolGroup::contains(const SymbolGroup* symbol) const {
+    return false;
 }

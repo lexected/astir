@@ -34,13 +34,26 @@ struct SymbolGroup {
 public:
 	virtual ~SymbolGroup() = default;
 
+	// a necessary part of SymbolGroup I am afraid, the SymbolGroup is the literal payload for the action
 	ActionRegister actions;
 
 	virtual bool contains(const SymbolGroup* symbol) const = 0;
+
 protected:
 	SymbolGroup() = default;
 	SymbolGroup(const ActionRegister& actions)
 		: actions(actions) { }
+};
+
+struct EmptySymbolGroup : public SymbolGroup {
+public:
+	EmptySymbolGroup()
+		: SymbolGroup() { }
+	EmptySymbolGroup(const ActionRegister & actions)
+		: SymbolGroup(actions) { }
+
+	bool contains(const SymbolGroup* symbol) const override;
+protected:
 };
 
 struct LiteralSymbolGroup : public SymbolGroup {
@@ -109,12 +122,15 @@ public:
 	State addState();
 	void addTransition(State state, const Transition& transition);
 	Transition& addEmptyTransition(State state, State target);
+	Transition& addEmptyTransition(State state, State target, const ActionRegister& ar);
 	State concentrateFinalStates();
+	void actionize(const ActionRegister& actions);
 
 	NFA buildDFA() const;
 
 	static void calculateDisjointLiteralSymbolGroups(std::list<LiteralSymbolGroup>& symbolGroups);
 	static std::list<LiteralSymbolGroup> negateLiteralSymbolGroups(const std::list<LiteralSymbolGroup>& symbolGroups);
+
 private:
 	std::set<State> calculateEpsilonClosure(const std::set<State>& states) const;
 	std::set<State> calculateSymbolClosure(const std::set<State>& states, const SymbolGroup* symbolOnTransition) const;
