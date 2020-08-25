@@ -25,7 +25,7 @@ struct RepetitiveRegex : public RootRegex {
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
-	void checkActionUsage(const MachineComponent* context) const override;
+	void checkActionUsage(const Machine& machine, const MachineComponent* context) const override;
 };
 
 struct PrimitiveRegex;
@@ -37,7 +37,7 @@ struct LookaheadRegex : public RootRegex {
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
-	void checkActionUsage(const MachineComponent* context) const override;
+	void checkActionUsage(const Machine& machine, const MachineComponent* context) const override;
 };
 
 enum class RegexAction {
@@ -71,7 +71,7 @@ struct DisjunctiveRegex : public AtomicRegex {
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
-	void checkActionUsage(const MachineComponent* context) const override;
+	void checkActionUsage(const Machine& machine, const MachineComponent* context) const override;
 };
 
 struct RootRegex;
@@ -82,13 +82,14 @@ struct ConjunctiveRegex : public Regex {
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
-	void checkActionUsage(const MachineComponent* context) const override;
+	void checkActionUsage(const Machine& machine, const MachineComponent* context) const override;
 };
 
 struct PrimitiveRegex : public AtomicRegex {
 	std::list<ActionTargetPair> actionTargetPairs;
 
-	void checkActionUsage(const MachineComponent* context) const override;
+	void checkActionUsage(const Machine& machine, const MachineComponent* context) const override;
+	virtual void checkActionUsageFieldType(const Machine& machine, const MachineComponent* context, RegexAction action, const Field* targetField) const;
 };
 
 struct RegexRange {
@@ -115,6 +116,8 @@ struct LiteralRegex : public PrimitiveRegex {
 
 struct ReferenceRegex : public PrimitiveRegex {
 	std::string referenceName;
+
+	void checkActionUsageFieldType(const Machine& machine, const MachineComponent* context, RegexAction action, const Field* targetField) const override;
 
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
 

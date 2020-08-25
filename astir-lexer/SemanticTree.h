@@ -119,6 +119,8 @@ public:
 	virtual bool entails(const std::string& name, std::list<const Category*>& path) const = 0;
 
 	virtual const bool isTypeForming() const = 0;
+
+	virtual void verifyContextualValidity(const Machine& machine) const;
 };
 
 struct CategoryReference {
@@ -165,6 +167,8 @@ public:
 	bool entails(const std::string& name) const override;
 	bool entails(const std::string& name, std::list<const Category*>& path) const override;
 	const bool isTypeForming() const override;
+
+	void verifyContextualValidity(const Machine& machine) const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 private:

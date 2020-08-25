@@ -97,8 +97,13 @@ void Machine::initialize() {
 		componentPair.second->checkFieldDeclarations(*this);
 	}
 
-	// the last bit is to check that there is no disallowed recursion within the productions themselves
+	// on the rule and category level we need to check that there is no disallowed recursion within the productions themselves
 	checkForComponentRecursion();
+
+	// once the basic field and rule/category reference verifications have been conducted, we need to check whether the actions of individual rules are contextually valid
+	for (const auto& componentPair : components) {
+		componentPair.second->verifyContextualValidity(*this);
+	}
 }
 
 MachineComponent* Machine::findMachineComponent(const std::string& name, bool* follows) const {
@@ -263,6 +268,8 @@ const Field* MachineComponent::findField(const std::string& name) const {
 	return nullptr;
 }
 
+void MachineComponent::verifyContextualValidity(const Machine& machine) const { }
+
 const IFileLocalizable* Category::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
 	auto nEit = std::find(namesEncountered.cbegin(), namesEncountered.cend(), targetName);
 	if (nEit != namesEncountered.cend()) {
@@ -321,8 +328,6 @@ void Rule::initialize() {
 	}
 
 	MachineComponent::initialize();
-
-	regex->checkActionUsage(this);
 }
 
 const IFileLocalizable* Rule::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
@@ -356,6 +361,10 @@ bool Rule::entails(const std::string& name, std::list<const Category*>& path) co
 
 const bool Rule::isTypeForming() const {
 	return typeForming;
+}
+
+void Rule::verifyContextualValidity(const Machine& machine) const {
+	regex->checkActionUsage(machine, this);
 }
 
 NFA Rule::accept(const NFABuilder& nfaBuilder) const {

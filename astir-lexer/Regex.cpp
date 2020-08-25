@@ -12,8 +12,8 @@ NFA RepetitiveRegex::accept(const NFABuilder& nfaBuilder) const {
     return nfaBuilder.visit(this);
 }
 
-void RepetitiveRegex::checkActionUsage(const MachineComponent* context) const {
-    regex->checkActionUsage(context);
+void RepetitiveRegex::checkActionUsage(const Machine& machine, const MachineComponent* context) const {
+    regex->checkActionUsage(machine, context);
 }
 
 const IFileLocalizable* LookaheadRegex::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
@@ -29,12 +29,12 @@ NFA LookaheadRegex::accept(const NFABuilder& nfaBuilder) const {
     return nfaBuilder.visit(this);
 }
 
-void LookaheadRegex::checkActionUsage(const MachineComponent* context) const {
-    match->checkActionUsage(context);
+void LookaheadRegex::checkActionUsage(const Machine& machine, const MachineComponent* context) const {
+    match->checkActionUsage(machine, context);
     // lookahead->checkActionUsage(context); NO NEED!!!
 }
 
-void PrimitiveRegex::checkActionUsage(const MachineComponent* context) const {
+void PrimitiveRegex::checkActionUsage(const Machine& machine, const MachineComponent* context) const {
     for (const auto& actionTargetPair : actionTargetPairs) {
         const Field* fieldPtr = context->findField(actionTargetPair.target);
         if (fieldPtr == nullptr) {
@@ -53,13 +53,14 @@ void PrimitiveRegex::checkActionUsage(const MachineComponent* context) const {
                 if (!fieldPtr->settable()) {
                     throw SemanticAnalysisException("The action at '" + actionTargetPair.locationString() + "' refers to target '" + actionTargetPair.target + "' that is not 'settable' '" + context->name + "' (see its definition at '" + context->locationString() + ")");
                 }
+
                 break;
             case RegexAction::Append:
             case RegexAction::Prepend:
             case RegexAction::Clear:
             case RegexAction::LeftTrim:
             case RegexAction::RightTrim:
-                if (!fieldPtr->settable()) {
+                if (!fieldPtr->listable()) {
                     throw SemanticAnalysisException("The action at '" + actionTargetPair.locationString() + "' refers to target '" + actionTargetPair.target + "' that is not 'list-operation-able' '" + context->name + "' (see its definition at '" + context->locationString() + ")");
                 }
                 break;
@@ -70,6 +71,15 @@ void PrimitiveRegex::checkActionUsage(const MachineComponent* context) const {
                 }
                 break;
         }
+
+        checkActionUsageFieldType(machine, context, actionTargetPair.action, fieldPtr);
+    }
+}
+
+void PrimitiveRegex::checkActionUsageFieldType(const Machine& machine, const MachineComponent* context, RegexAction action, const Field* targetField) const {
+    const VariablyTypedField* vtf = dynamic_cast<const VariablyTypedField*>(targetField);
+    if (vtf) {
+        throw SemanticAnalysisException("Action type mismatch detected at " + context->locationString() + ", cannot associate a raw regex capture result to a field of particular type '" + vtf->type + "'");
     }
 }
 
@@ -88,9 +98,9 @@ NFA DisjunctiveRegex::accept(const NFABuilder& nfaBuilder) const {
     return nfaBuilder.visit(this);
 }
 
-void DisjunctiveRegex::checkActionUsage(const MachineComponent* context) const {
+void DisjunctiveRegex::checkActionUsage(const Machine& machine, const MachineComponent* context) const {
     for (const auto& conjunction : disjunction) {
-        conjunction->checkActionUsage(context);
+        conjunction->checkActionUsage(machine, context);
     }
 }
 
@@ -109,9 +119,23 @@ NFA ConjunctiveRegex::accept(const NFABuilder& nfaBuilder) const {
     return nfaBuilder.visit(this);
 }
 
-void ConjunctiveRegex::checkActionUsage(const MachineComponent* context) const {
+void ConjunctiveRegex::checkActionUsage(const Machine& machine, const MachineComponent* context) const {
     for (const auto& rootRegex : conjunction) {
-        rootRegex->checkActionUsage(context);
+        rootRegex->checkActionUsage(machine, context);
+    }
+}
+
+void ReferenceRegex::checkActionUsageFieldType(const Machine& machine, const MachineComponent* context, RegexAction action, const Field* targetField) const {
+    const MachineComponent* capturedComponent = machine.findMachineComponent(referenceName);
+    const std::string& typeName = capturedComponent->name;
+
+    const VariablyTypedField* vtf = dynamic_cast<const VariablyTypedField*>(targetField);
+    if (vtf) {
+        if (action == RegexAction::Append || action == RegexAction::Prepend || action == RegexAction::Set) {
+            if (vtf->type != typeName) {
+                throw SemanticAnalysisException("Action type mismatch detected at " + context->locationString() + ", cannot associate a production reference of type '" + typeName + "' to a field of type '" + vtf->type + "'");
+            }
+        }
     }
 }
 
