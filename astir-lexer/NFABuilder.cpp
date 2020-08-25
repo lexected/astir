@@ -10,7 +10,7 @@ NFA NFABuilder::visit(const Category* category) const {
     base.finalStates.insert(0);
 
     for (const auto referencePair : category->references) {
-        if (referencePair.second.isAFollowsReference) {
+        if (referencePair.second.isAFollowsReference || referencePair.second.component->isTypeForming()) {
             NFA modification;
             State newState = modification.addState();
             modification.finalStates.insert(newState);
@@ -177,7 +177,7 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
     auto newState = base.addState();
     bool follows;
     auto component = this->m_context.findMachineComponent(regex->referenceName, &follows);
-    if (follows) {
+    if (follows || component->isTypeForming()) {
         base.addTransition(0, Transition(newState, std::make_shared<ProductionSymbolGroup>(component, actionRegister)));
     } else {
         NFABuilder contextualizedBuilder(m_context, component);

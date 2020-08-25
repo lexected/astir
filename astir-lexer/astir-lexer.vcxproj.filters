@@ -48,6 +48,9 @@
     <ClCompile Include="NFABuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ExampleTokenizerOutput.cpp">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="ExampleTokenizer.alex">

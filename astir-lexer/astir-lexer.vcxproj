@@ -139,6 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ExampleTokenizerOutput.cpp" />
     <ClCompile Include="IProductionReferencable.cpp" />
     <ClCompile Include="NFABuilder.cpp" />
     <ClCompile Include="ISyntacticEntity.cpp" />

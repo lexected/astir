@@ -117,6 +117,8 @@ public:
 
 	virtual bool entails(const std::string& name) const = 0;
 	virtual bool entails(const std::string& name, std::list<const Category*>& path) const = 0;
+
+	virtual const bool isTypeForming() const = 0;
 };
 
 struct CategoryReference {
@@ -142,6 +144,8 @@ public:
 	bool entails(const std::string& name, std::list<const Category*>& path) const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+
+	const bool isTypeForming() const override;
 private:
 	std::shared_ptr<const CategoryStatement> m_categoryStatement;
 };
@@ -160,6 +164,7 @@ public:
 	
 	bool entails(const std::string& name) const override;
 	bool entails(const std::string& name, std::list<const Category*>& path) const override;
+	const bool isTypeForming() const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 private:

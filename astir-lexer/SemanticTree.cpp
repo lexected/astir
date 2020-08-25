@@ -311,6 +311,10 @@ NFA Category::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
+const bool Category::isTypeForming() const {
+	return true;
+}
+
 void Rule::initialize() {
 	if (initialized()) {
 		return;
@@ -348,6 +352,10 @@ bool Rule::entails(const std::string& name) const {
 
 bool Rule::entails(const std::string& name, std::list<const Category*>& path) const {
 	return name == this->name;
+}
+
+const bool Rule::isTypeForming() const {
+	return typeForming;
 }
 
 NFA Rule::accept(const NFABuilder& nfaBuilder) const {
