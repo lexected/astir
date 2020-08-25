@@ -1,0 +1,111 @@
+nondeterministic finite automaton C99Tokenizer with individual_string_literals {
+	pattern OCTDIGIT = ["0"-"7"];
+	pattern DECDIGIT = ["0"-"9"];
+	patter HEXDIGIT = ["a"-"f" "A"-"F" "0"-"9"];
+	pattern LETTER = ["a"-"z" "A"-"Z" "_"];
+	pattern EXPONENT_PART = ["E" "e"]["+" "-"]?D+;		
+	pattern FLOAT_SPECIFIER = ("f" | "F" | "l" | "L");
+	pattern INTEGER_SPECFIER = ("u" | "U" | "l" | "L")*;		
+
+	terminal production KW_AUTO = "auto";
+	terminal production KW_BREAK = "break";
+	terminal production KW_CASE = "case";
+	terminal production KW_CHAR = "char";
+	terminal production KW_CONST = "const";
+	terminal production KW_CONTINUE = "continue";
+	terminal production KW_DEFAULT = "default";
+	terminal production KW_DO = "do";
+	terminal production KW_DOUBLE = "double";
+	terminal production KW_ELSE = "else";
+	terminal production KW_ENUM = "enum";
+	terminal production KW_EXTERN = "extern";
+	terminal production KW_FLOAT = "float";
+	terminal production KW_FOR = "for";
+	terminal production KW_GOTO = "goto";
+	terminal production KW_IF = "if";
+	terminal production KW_INT = "int";
+	terminal production KW_LONG = "long";
+	terminal production KW_REGISTER = "register";
+	terminal production KW_RETURN = "return";
+	terminal production KW_SHORT = "short";
+	terminal production KW_SIGNED = "signed";
+	terminal production KW_SIZEOF = "sizeof";
+	terminal production KW_STATIC = "static";
+	terminal production KW_STRUCT = "struct";
+	terminal production KW_SWITCH = "switch";
+	terminal production KW_TYPEDEF = "typedef";
+	terminal production KW_UNION = "union";
+	terminal production KW_UNSIGNED = "unsigned";
+	terminal production KW_VOID = "void";
+	terminal production KW_VOLATILE = "volatile";
+	terminal production KW_WHILE = "while";
+
+	terminal production IDENTIFIER = LETTER(LETTER|DECDIGIT)*;
+	terminal production NUMERIC_CONSTANT =
+		0[xX]{HEXDIGIT+ INTEGER_SPECFIER?
+		| "0" OCTDIGIT+ INTEGER_SPECFIER?
+		| DECDIGIT+ INTEGER_SPECFIER?
+		| "L"? "'" ("\" . | [^"\" "'"])+ "'"
+		| DECDIGIT+ EXPONENT_PART FLOAT_SPECIFIER?
+		| DECDIGIT* "." DECDIGIT+ (EXPONENT_PART)? FLOAT_SPECIFIER?
+		| DECDIGIT+ "." DECDIGIT* (EXPONENT_PART)? FLOAT_SPECIFIER?
+		;
+
+	terminal production NUMERIC_CONSTANT =
+		"L"? "\"" ("\" . | [^"\" "\""])* "\""
+		;
+
+	terminal production ELLIPSIS = "...";
+	terminal production RIGHT_ASSIGN = ">>=";
+	terminal production LEFT_ASSIGN = "<<=";
+	terminal production ADD_ASSIGN = "+=";
+	terminal production SUB_ASSIGN = "-=";
+	terminal production MUL_ASSIGN = "*=";
+	terminal production DIV_ASSIGN = "/=";
+	terminal production MOD_ASSIGN = "%=";
+	terminal production AND_ASSIGN = "&=";
+	terminal production XOR_ASSIGN = "^=";
+	terminal production OR_ASSIGN = "|=";
+	terminal production SHIFT_RIGHT = ">>";
+	terminal production SHIFT_LEFT = "<<";
+	terminal production UNOP_INC = "++";
+	terminal production UNOP_DEC = "--";
+	terminal production OP_PTR = "->";
+	terminal production OP_STAR = "*";
+
+	terminal production LOGICAL_AND = "&&";
+	terminal production LOGICAL_OR = "||";
+	terminal production LOGICAL_NOT = "!";
+	terminal production COMP_LESS = "<"
+	terminal production COMP_GREATER = ">"
+	terminal production COMP_LEQ = "<="
+	terminal production COMP_GEQ = ">=";
+	terminal production COMP_EQ = "==";
+	terminal production COMP_NEQ = "!=";
+	terminal production SEMICOLON = ";";
+
+	terminal production CURLY_OPEN = ("{" | "<%");
+	terminal production CURLY_CLOSE = (")" | "%>");
+	terminal production COMMA = ",";
+	terminal production COLON = ":";
+	terminal production EQUALS = "=";
+	terminal production PAR_OPEN = "(";
+	terminal production PAR_CLOSE = ")";
+	terminal production SQUARE_OPEN = ("["|"<:");
+	terminal production SQUARE_CLOSE = ("]"|":>");
+	terminal production DOT = ".";
+
+	terminal production BITWISE_AND = "&";
+	terminal production BITWISE_OR = "|";
+	terminal production BITWISE_NOT = "~";
+	terminal production BITWISE_XOR = "^";
+	terminal production OP_MINUS = "-";
+	terminal production OP_PLUS = "+";
+	terminal production OP_DIV = "/";
+	terminal production OP_MOD = "%";
+	terminal production OP_OR = "|";
+	terminal production OP_QUESTIONMARK = "?";
+	
+	terminal pattern _SPACE = [" " "\t" "\v" "\n" "\f"];
+	terminal pattern _IGNORE = .;
+}

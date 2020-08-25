@@ -59,6 +59,9 @@
     <None Include="Grammar.astir">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="C99Tokenizer.alex">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LexicalAnalyzer.h">

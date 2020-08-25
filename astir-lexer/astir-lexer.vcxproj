@@ -152,6 +152,7 @@
     <ClCompile Include="Token.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="C99Tokenizer.alex" />
     <None Include="ExampleParser.apar" />
     <None Include="ExampleTokenizer.alex" />
     <None Include="Grammar.astir" />
