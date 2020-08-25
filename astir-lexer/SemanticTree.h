@@ -50,7 +50,7 @@ public:
 	SemanticTree(const std::shared_ptr<const SyntacticTree>& syntacticTree)
 		: m_syntacticTree(syntacticTree) { }
 
-	const std::shared_ptr<const ISyntacticEntity>& underlyingSyntacticEntity() const override;
+	std::shared_ptr<const ISyntacticEntity> underlyingSyntacticEntity() const override;
 
 	void initialize() override;
 private:
@@ -92,7 +92,7 @@ public:
 		: Machine(name), m_finiteAutomatonDefinition(machineDefinition), type(type) { }
 
 	void checkForComponentRecursion() const override;
-	const std::shared_ptr<const ISyntacticEntity>& underlyingSyntacticEntity() const override;
+	std::shared_ptr<const ISyntacticEntity> underlyingSyntacticEntity() const override;
 	void initialize() override;
 
 	const NFA& getNFA() const { return m_nfa; }
@@ -119,15 +119,25 @@ public:
 	virtual bool entails(const std::string& name, std::list<const Category*>& path) const = 0;
 };
 
+struct CategoryReference {
+	const MachineComponent* component;
+	bool isAFollowsReference;
+
+	CategoryReference()
+		: component(nullptr), isAFollowsReference(false) { }
+	CategoryReference(const MachineComponent* component, bool isAFollowsReference)
+		: component(component), isAFollowsReference(isAFollowsReference) { }
+};
+
 class Category : public MachineComponent {
 public:
-	std::map<std::string, const MachineComponent*> references; // references to 'me',  i.e. by other machine components. Non-owning pointers so ok.
+	std::map<std::string, CategoryReference> references; // references to 'me',  i.e. by other machine components. Non-owning pointers so ok.
 
 	Category(const std::shared_ptr<const CategoryStatement>& categoryStatement, const std::string& name)
 		: MachineComponent(name), m_categoryStatement(categoryStatement) { }
 
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const override;
-	const std::shared_ptr<const ISyntacticEntity>& underlyingSyntacticEntity() const override;
+	std::shared_ptr<const ISyntacticEntity> underlyingSyntacticEntity() const override;
 	bool entails(const std::string& name) const override;
 	bool entails(const std::string& name, std::list<const Category*>& path) const override;
 
@@ -146,7 +156,7 @@ public:
 		: m_ruleStatement(ruleStatement), MachineComponent(name), terminal(terminal), typeForming(typeForming), regex(regex) { }
 	void initialize() override;
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const override;
-	const std::shared_ptr<const ISyntacticEntity>& underlyingSyntacticEntity() const override;
+	std::shared_ptr<const ISyntacticEntity> underlyingSyntacticEntity() const override;
 	
 	bool entails(const std::string& name) const override;
 	bool entails(const std::string& name, std::list<const Category*>& path) const override;

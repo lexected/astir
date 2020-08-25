@@ -23,7 +23,7 @@ void SemanticTree::checkForMachineHierarchyRecursion(std::list<std::string>& nam
 	namesEncountered.pop_back();
 }
 
-const std::shared_ptr<const ISyntacticEntity>& SemanticTree::underlyingSyntacticEntity() const {
+std::shared_ptr<const ISyntacticEntity> SemanticTree::underlyingSyntacticEntity() const {
 	return this->m_syntacticTree;
 }
 
@@ -78,10 +78,11 @@ void Machine::initialize() {
 	for (const auto& componentPair : components) {
 		const CategoryStatement* categoryStatement = dynamic_cast<const CategoryStatement*>(componentPair.second->underlyingSyntacticEntity().get());
 		for (const auto& categoryUsedName : categoryStatement->categories) {
-			auto mc = findMachineComponent(categoryUsedName);
+			bool isFromFollows;
+			auto mc = findMachineComponent(categoryUsedName, &isFromFollows);
 			Category* cat = dynamic_cast<Category*>(mc);
 			componentPair.second->categories.push_back(cat);
-			cat->references[componentPair.first] = componentPair.second.get();
+			cat->references[componentPair.first] = CategoryReference(componentPair.second.get(), isFromFollows);
 		}
 	}
 
@@ -184,7 +185,7 @@ void FiniteAutomaton::checkForComponentRecursion() const {
 	}
 }
 
-const std::shared_ptr<const ISyntacticEntity>& FiniteAutomaton::underlyingSyntacticEntity() const {
+std::shared_ptr<const ISyntacticEntity> FiniteAutomaton::underlyingSyntacticEntity() const {
 	return m_finiteAutomatonDefinition;
 }
 
@@ -272,7 +273,7 @@ const IFileLocalizable* Category::findRecursiveReference(const Machine& machine,
 
 	for (const auto& referencePair : this->references) {
 		const IFileLocalizable* ret;
-		if ((ret = referencePair.second->findRecursiveReference(machine, namesEncountered, targetName)) != nullptr) {
+		if ((ret = referencePair.second.component->findRecursiveReference(machine, namesEncountered, targetName)) != nullptr) {
 			return ret;
 		}
 	}
@@ -281,13 +282,13 @@ const IFileLocalizable* Category::findRecursiveReference(const Machine& machine,
 	return nullptr;
 }
 
-const std::shared_ptr<const ISyntacticEntity>& Category::underlyingSyntacticEntity() const {
+std::shared_ptr<const ISyntacticEntity> Category::underlyingSyntacticEntity() const {
 	return m_categoryStatement;
 }
 
 bool Category::entails(const std::string& name) const {
 	for (const auto& reference : references) {
-		if (reference.second->entails(name)) {
+		if (reference.second.component->entails(name)) {
 			return true;
 		}
 	}
@@ -297,7 +298,7 @@ bool Category::entails(const std::string& name) const {
 
 bool Category::entails(const std::string& name, std::list<const Category*>& path) const {
 	for (const auto& reference : references) {
-		if (reference.second->entails(name, path)) {
+		if (reference.second.component->entails(name, path)) {
 			path.push_back(this);
 			return true;
 		}
@@ -337,7 +338,7 @@ const IFileLocalizable* Rule::findRecursiveReference(const Machine& machine, std
 	return nullptr;
 }
 
-const std::shared_ptr<const ISyntacticEntity>& Rule::underlyingSyntacticEntity() const {
+std::shared_ptr<const ISyntacticEntity> Rule::underlyingSyntacticEntity() const {
 	return m_ruleStatement;
 }
 

@@ -274,8 +274,8 @@ void NFA::calculateDisjointProductionSymbolGroups(std::list<ProductionSymbolGrou
                 const MachineComponent* prevComponent = nullptr;
                 for (const Category* cat : categoryPath) {
                     for (auto pair : cat->references) {
-                        if (pair.second != prevComponent) {
-                            symbolGroups.emplace_back(pair.second, it->actions);
+                        if (pair.second.component != prevComponent) {
+                            symbolGroups.emplace_back(pair.second.component, it->actions); // no need to worry about isFromFollows heres
                         }
                     }
                     prevComponent = cat;

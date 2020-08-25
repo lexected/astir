@@ -10,8 +10,17 @@ NFA NFABuilder::visit(const Category* category) const {
     base.finalStates.insert(0);
 
     for (const auto referencePair : category->references) {
-        NFABuilder contextualizedBuilder(this->m_context, referencePair.second);
-        base |= referencePair.second->accept(contextualizedBuilder);
+        if (referencePair.second.isAFollowsReference) {
+            NFA modification;
+            State newState = modification.addState();
+            modification.finalStates.insert(newState);
+            modification.addTransition(0, Transition(newState, std::make_shared<ProductionSymbolGroup>(referencePair.second.component)));
+
+            base |= modification;
+        } else {
+            NFABuilder contextualizedBuilder(m_context, referencePair.second.component);
+            base |= referencePair.second.component->accept(contextualizedBuilder);
+        }
     }
 
     return base;

@@ -7,7 +7,7 @@
 
 class ISemanticEntity : public IFileLocalizable {
 public:
-	virtual const std::shared_ptr<const ISyntacticEntity>& underlyingSyntacticEntity() const = 0;
+	virtual std::shared_ptr<const ISyntacticEntity> underlyingSyntacticEntity() const = 0;
 
 	const FileLocation& location() const override {
 		return underlyingSyntacticEntity()->location();
