@@ -1,29 +1,33 @@
-// TODO: implement comments in the lexer
+nondeterministic finite automaton ExampleTokenizer {
+	terminal pattern digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 
-nondeterministic finite automaton ExampleTokenizer with individual_string_literals, table_lookup {
-	regex digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
-
-	category number {
+	category Number {
 		flag isNegative;
 	};
 
-	token integer : number =
-		digit+
-		| "-"@flag:isNegative digit+
-		;
+	category Integer : Number {
+		raw value;
+	};
+	
+	production PositiveInteger : Integer = (digit@append:value)+;
+	production NegativeInteger : Integer = "-"@flag:isNegative (digit@append:value)+
 
-	token decimal : number {
-		integer item exponent;
+	production Float : Number {
+		PositiveInteger item mantissaWholes;
+		PositiveInteger item mantissaDecimals;
+		PositiveInteger item exponent;
 	} =
-		"-"@flag:isNegative? digit+ "." digit+ ("e" integer@set:exponent)?
+		("-"@flag:isNegative)? PositiveInteger@set:mantissaWholes "." PositiveInteger@set:mantissaDecimals (("e"|"E") PositiveInteger@set:exponent)?
 		;
 
-	regex identifierStartingCharacter = ["a"-"z" "A"-"Z" "_"];
-	regex identifierCharacter = identifierStartingCharacter | digit;
+	pattern identifierStartingCharacter = ["a"-"z" "A"-"Z" "_"];
+	pattern identifierCharacter = identifierStartingCharacter | digit;
 
-	token identifier = identifierStartingCharacter identifierCharacter*;
+	production identifier {
+		raw name;
+	} = (identifierStartingCharacter@append:name) (identifierCharacter@append:name)*;
 
-	token operator =
+	production operator =
 		"+"
 		| "-"
 		| "*"
