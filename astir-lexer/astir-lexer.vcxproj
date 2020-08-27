@@ -139,7 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ExampleTokenizerOutput.cpp" />
+    <ClCompile Include="CppGenerationVisitor.cpp" />
     <ClCompile Include="IProductionReferencable.cpp" />
     <ClCompile Include="NFABuilder.cpp" />
     <ClCompile Include="ISyntacticEntity.cpp" />
@@ -147,25 +147,21 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="NFA.cpp" />
     <ClCompile Include="Parser.cpp" />
-    <ClCompile Include="RawStream.cpp" />
     <ClCompile Include="Regex.cpp" />
+    <ClCompile Include="Resources\RawStream.cpp" />
     <ClCompile Include="SemanticTree.cpp" />
     <ClCompile Include="SyntacticTree.cpp" />
-    <ClCompile Include="TestTokenizer01PivotOutput.cpp" />
+    <ClCompile Include="Tests\TestTokenizer01PivotOutput.cpp" />
     <ClCompile Include="Token.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="C99Tokenizer.alex" />
-    <None Include="ExampleParser.apar" />
-    <None Include="ExampleTokenizer.alex" />
-    <None Include="Grammar.astir" />
-    <None Include="TestTokenizer01.alex" />
-  </ItemGroup>
-  <ItemGroup>
+    <ClInclude Include="CppGenerationVisitor.h" />
     <ClInclude Include="Exception.h" />
     <ClInclude Include="FileLocation.h" />
+    <ClInclude Include="GenerationVisitor.h" />
     <ClInclude Include="IActing.h" />
     <ClInclude Include="IFileLocalizable.h" />
+    <ClInclude Include="IGenerationVisitable.h" />
     <ClInclude Include="INFABuildable.h" />
     <ClInclude Include="NFABuilder.h" />
     <ClInclude Include="ISemanticEntity.h" />
@@ -174,11 +170,18 @@
     <ClInclude Include="LexicalAnalyzer.h" />
     <ClInclude Include="NFA.h" />
     <ClInclude Include="Parser.h" />
-    <ClInclude Include="RawStream.h" />
     <ClInclude Include="Regex.h" />
+    <ClInclude Include="Resources\RawStream.h" />
     <ClInclude Include="SemanticTree.h" />
     <ClInclude Include="SyntacticTree.h" />
     <ClInclude Include="Token.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Grammar.astir" />
+    <None Include="Tests\C99Tokenizer.alex" />
+    <None Include="Tests\ExampleParser.apar" />
+    <None Include="Tests\ExampleTokenizer.alex" />
+    <None Include="Tests\TestTokenizer01.alex" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
