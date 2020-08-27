@@ -2,6 +2,8 @@
 #include "SemanticTree.h"
 #include "NFABuilder.h"
 
+#include "GenerationVisitor.h"
+
 void SemanticTree::checkForMachineHierarchyRecursion(std::list<std::string>& namesEncountered, const std::string& nameConsidered) const {
 	bool collision = std::find(namesEncountered.cbegin(), namesEncountered.cend(), nameConsidered) != namesEncountered.cend();
 	namesEncountered.push_back(nameConsidered);
@@ -33,6 +35,10 @@ void SemanticTree::initialize() {
 	for (const auto& machinePair : machines) {
 		machinePair.second->initialize();
 	}
+}
+
+void SemanticTree::accept(GenerationVisitor* visitor) const {
+	visitor->visit(this);
 }
 
 void Machine::initialize() {
@@ -177,7 +183,7 @@ SemanticAnalysisException::SemanticAnalysisException(const std::string& message,
 	: Exception(message + " -- on " + somethingLocalizableToPinpointLocationBy.locationString()) { }
 
 
-void FiniteAutomaton::checkForComponentRecursion() const {
+void FiniteAutomatonMachine::checkForComponentRecursion() const {
 	std::list<std::string> relevantNamesEncountered;
 	for (const auto& componentPair : components) {
 		auto recursiveReferenceLocalizableInstance = componentPair.second->findRecursiveReference(*this, relevantNamesEncountered, componentPair.first);
@@ -192,11 +198,11 @@ void FiniteAutomaton::checkForComponentRecursion() const {
 	}
 }
 
-std::shared_ptr<const ISyntacticEntity> FiniteAutomaton::underlyingSyntacticEntity() const {
+std::shared_ptr<const ISyntacticEntity> FiniteAutomatonMachine::underlyingSyntacticEntity() const {
 	return m_finiteAutomatonDefinition;
 }
 
-void FiniteAutomaton::initialize() {
+void FiniteAutomatonMachine::initialize() {
 	this->Machine::initialize();
 
 	NFA base;
@@ -211,6 +217,10 @@ void FiniteAutomaton::initialize() {
 	} else {
 		m_nfa = base;
 	}
+}
+
+void FiniteAutomatonMachine::accept(GenerationVisitor* visitor) const {
+	visitor->visit(this);
 }
 
 void MachineComponent::initialize() {

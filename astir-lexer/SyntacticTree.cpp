@@ -63,7 +63,7 @@ std::shared_ptr<SemanticTree> SyntacticTree::makeSemanticEntity(const std::share
 }
 
 std::shared_ptr<Machine> FiniteAutomatonDefinition::makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Machine>>& ownershipPtr) const {
-	return std::make_shared<FiniteAutomaton>(std::dynamic_pointer_cast<const FiniteAutomatonDefinition>(ownershipPtr), name, type);
+	return std::make_shared<FiniteAutomatonMachine>(std::dynamic_pointer_cast<const FiniteAutomatonDefinition>(ownershipPtr), name, type);
 }
 
 std::shared_ptr<Category> CategoryStatement::makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Category>>& ownershipPtr) const {

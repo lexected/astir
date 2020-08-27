@@ -13,6 +13,8 @@
 #include "NFA.h"
 #include "INFABuildable.h"
 
+#include "IGenerationVisitable.h"
+
 /*
 	A few forward declarations
 */
@@ -41,7 +43,7 @@ public:
 	The core of the file
 */
 
-class SemanticTree : public ISemanticEntity {
+class SemanticTree : public ISemanticEntity, public IGenerationVisitable {
 public:
 	std::map<std::string, std::shared_ptr<Machine>> machines; // maybe could be made into a unique_ptr <- for further review
 
@@ -53,6 +55,8 @@ public:
 	std::shared_ptr<const ISyntacticEntity> underlyingSyntacticEntity() const override;
 
 	void initialize() override;
+
+	void accept(GenerationVisitor* visitor) const override;
 private:
 	std::shared_ptr<const SyntacticTree> m_syntacticTree;
 };
@@ -61,7 +65,7 @@ class MachineComponent;
 class Category;
 class Rule;
 struct ReferenceRegex;
-class Machine : public ISemanticEntity {
+class Machine : public ISemanticEntity, public IGenerationVisitable {
 public:
 	const std::string name;
 	std::shared_ptr<Machine> follows; // ownership is shared.. in theory just a normal pointer to Machine would be lastApplicationSuccessful as specifications own the pointers, but OK - can be resolved later
@@ -84,11 +88,11 @@ enum class FiniteAutomatonType {
 	Nondeterministic
 };
 
-class FiniteAutomaton : public Machine {
+class FiniteAutomatonMachine : public Machine {
 public:
 	const FiniteAutomatonType type;
 
-	FiniteAutomaton(const std::shared_ptr<const FiniteAutomatonDefinition>& machineDefinition, const std::string& name, FiniteAutomatonType type)
+	FiniteAutomatonMachine(const std::shared_ptr<const FiniteAutomatonDefinition>& machineDefinition, const std::string& name, FiniteAutomatonType type)
 		: Machine(name), m_finiteAutomatonDefinition(machineDefinition), type(type) { }
 
 	void checkForComponentRecursion() const override;
@@ -96,6 +100,8 @@ public:
 	void initialize() override;
 
 	const NFA& getNFA() const { return m_nfa; }
+
+	void accept(GenerationVisitor* visitor) const override;
 private:
 	std::shared_ptr<const FiniteAutomatonDefinition> m_finiteAutomatonDefinition;
 	NFA m_nfa;

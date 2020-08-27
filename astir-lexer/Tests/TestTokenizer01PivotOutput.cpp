@@ -3,7 +3,7 @@
 #include <list>
 #include <memory>
 
-#include "RawStream.h"
+#include "../Resources/RawStream.h"
 	
 namespace TestTokenizer01 {
 	enum class TerminalType {
