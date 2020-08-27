@@ -138,27 +138,29 @@ NFA NFA::buildDFA() const {
         auto transitionSymbolPtrs = calculateTransitionSymbols(stateObject.nfaStates);
         for (const auto& transitionSymbolPtr : transitionSymbolPtrs) {
             auto advancedStateSet = calculateSymbolClosure(stateObject.nfaStates, transitionSymbolPtr.get());
-            auto epsilonClosureAdvancedStateSet = calculateEpsilonClosure(advancedStateSet);
-            State theCorrespondingDFAState = findStateByNFAStateSet(stateMap, epsilonClosureAdvancedStateSet);
-            if (theCorrespondingDFAState == epsilonClosureAdvancedStateSet.size()) {
-                theCorrespondingDFAState = base.addState();
-                stateMap.emplace_back(epsilonClosureAdvancedStateSet);
+            auto epsilonClosureDFAState = calculateEpsilonClosure(advancedStateSet);
+            State theCorrespondingDFAStateIndex = findStateByNFAStateSet(stateMap, epsilonClosureDFAState.nfaStates);
+            if (theCorrespondingDFAStateIndex == epsilonClosureDFAState.nfaStates.size()) {
+                theCorrespondingDFAStateIndex = base.addState();
+                base.states[theCorrespondingDFAStateIndex].actions = epsilonClosureDFAState.actions;
+                stateMap.emplace_back(epsilonClosureDFAState);
                 
                 std::list<State> intersectionOfNFAStates;
-                std::set_intersection(epsilonClosureAdvancedStateSet.cbegin(), epsilonClosureAdvancedStateSet.cend(), finalStates.cbegin(), finalStates.cend(), intersectionOfNFAStates.begin());
+                std::set_intersection(epsilonClosureDFAState.nfaStates.cbegin(), epsilonClosureDFAState.nfaStates.cend(), finalStates.cbegin(), finalStates.cend(), intersectionOfNFAStates.begin());
                 if (intersectionOfNFAStates.size() > 0) {
-                    base.finalStates.insert(theCorrespondingDFAState);
+                    base.finalStates.insert(theCorrespondingDFAStateIndex);
                 }
             }
 
-            base.addTransition(unmarkedStateDfaState, Transition(theCorrespondingDFAState, transitionSymbolPtr));
+            base.addTransition(unmarkedStateDfaState, Transition(theCorrespondingDFAStateIndex, transitionSymbolPtr));
         }
     }
 
     return base;
 }
 
-std::set<State> NFA::calculateEpsilonClosure(const std::set<State>& states) const {
+NFA::DFAState NFA::calculateEpsilonClosure(const std::set<State>& states) const {
+    NFAActionRegister accumulatedActions;
     std::stack<State> statesToCheck;
     for (const auto& state : states) {
         statesToCheck.push(state);
@@ -170,11 +172,14 @@ std::set<State> NFA::calculateEpsilonClosure(const std::set<State>& states) cons
         statesToCheck.pop();
 
         const auto& stateObject = this->states[currentState];
+        accumulatedActions += stateObject.actions;
         for (const auto& transition : stateObject.transitions) {
             const EmptySymbolGroup* esg = dynamic_cast<const EmptySymbolGroup*>(transition.condition.get());
             if (esg == nullptr) {
                 continue;
             }
+
+            accumulatedActions += esg->actions;
 
             std::pair<std::set<State>::iterator, bool> insertionOutcome = ret.insert(transition.target);
             if (insertionOutcome.second) {
@@ -183,7 +188,7 @@ std::set<State> NFA::calculateEpsilonClosure(const std::set<State>& states) cons
         }
     }
 
-    return ret;
+    return NFA::DFAState(ret, accumulatedActions);
 }
 
 std::set<State> NFA::calculateSymbolClosure(const std::set<State>& states, const SymbolGroup* symbolOnTransition) const {

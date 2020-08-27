@@ -130,6 +130,7 @@ using TransitionList = std::list<Transition>;
 
 struct NFAState {
 	TransitionList transitions;
+	NFAActionRegister actions;
 };
 
 class NFA {
@@ -158,20 +159,22 @@ public:
 	static std::list<LiteralSymbolGroup> negateLiteralSymbolGroups(const std::list<LiteralSymbolGroup>& symbolGroups);
 
 private:
-	std::set<State> calculateEpsilonClosure(const std::set<State>& states) const;
+	struct DFAState {
+		std::set<State> nfaStates;
+		bool marked;
+		NFAActionRegister actions;
+
+		DFAState()
+			: marked(false) { }
+		DFAState(const std::set<State>& nfaStates, const NFAActionRegister& actions)
+			: nfaStates(nfaStates), marked(false), actions(actions) { }
+	};
+
+	DFAState calculateEpsilonClosure(const std::set<State>& states) const;
 	std::set<State> calculateSymbolClosure(const std::set<State>& states, const SymbolGroup* symbolOnTransition) const;
 	std::list<std::shared_ptr<SymbolGroup>> calculateTransitionSymbols(const std::set<State>& states) const;
 	static void calculateDisjointProductionSymbolGroups(std::list<ProductionSymbolGroup>& symbolGroups);
 
-	struct DFAState {
-		std::set<State> nfaStates;
-		bool marked;
-
-		DFAState()
-			: marked(false) { }
-		DFAState(const std::set<State>& nfaStates)
-			: nfaStates(nfaStates), marked(false) { }
-	};
 	State findUnmarkedState(const std::vector<DFAState>& stateMap) const;
 	State findStateByNFAStateSet(const std::vector<DFAState>& stateMap, const std::set<State>& nfaSet) const;
 };
