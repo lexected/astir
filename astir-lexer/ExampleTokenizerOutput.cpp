@@ -2,6 +2,9 @@
 #include <string>
 #include <list>
 
+#include "FileLocation.h"
+#include "IFileLocalizable.h"
+
 namespace ExampleTokenizer {
 	using CategoryBitArray = unsigned long;
 
@@ -17,19 +20,24 @@ namespace ExampleTokenizer {
 		OP_SUB
 	};
 
-	class Terminal {
+	class Terminal : public IFileLocalizable {
 	public:
 		TerminalType type;
 		std::string string;
 	protected:
-		Terminal(TerminalType type)
-			: type(type), string("") { }
+		Terminal(TerminalType type, const FileLocation& occurenceLocation)
+			: type(type), string(""), m_location(occurenceLocation) { }
+		Terminal(TerminalType type, const IFileLocalizable& underlyingEntity)
+			: type(type), string(""), m_location(underlyingEntity.location()) { }
+
+	private:
+		FileLocation m_location;
 	};
 
 	class EOS : public Terminal {
 	public:
-		EOS()
-			: Terminal(TerminalType::EOS) { }
+		EOS(const FileLocation& location)
+			: Terminal(TerminalType::EOS, location) { }
 	};
 
 	class Number {
@@ -64,7 +72,7 @@ namespace ExampleTokenizer {
 	class ExampleTokenizer {
 	public:
 		std::shared_ptr<Terminal> apply(std::istream& is);
-		std::list<std::shared_ptr<Terminal>> processStream(std::istream& is);
+		std::list<std::shared_ptr<Terminal>> process(std::istream& is);
 	private:
 		
 	};

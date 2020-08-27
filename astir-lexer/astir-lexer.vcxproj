@@ -147,9 +147,11 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="NFA.cpp" />
     <ClCompile Include="Parser.cpp" />
+    <ClCompile Include="RawStream.cpp" />
     <ClCompile Include="Regex.cpp" />
     <ClCompile Include="SemanticTree.cpp" />
     <ClCompile Include="SyntacticTree.cpp" />
+    <ClCompile Include="TestTokenizer01PivotOutput.cpp" />
     <ClCompile Include="Token.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -157,6 +159,7 @@
     <None Include="ExampleParser.apar" />
     <None Include="ExampleTokenizer.alex" />
     <None Include="Grammar.astir" />
+    <None Include="TestTokenizer01.alex" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h" />
@@ -171,6 +174,7 @@
     <ClInclude Include="LexicalAnalyzer.h" />
     <ClInclude Include="NFA.h" />
     <ClInclude Include="Parser.h" />
+    <ClInclude Include="RawStream.h" />
     <ClInclude Include="Regex.h" />
     <ClInclude Include="SemanticTree.h" />
     <ClInclude Include="SyntacticTree.h" />

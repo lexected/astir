@@ -64,7 +64,7 @@ struct ReferenceRegex;
 class Machine : public ISemanticEntity {
 public:
 	const std::string name;
-	std::shared_ptr<Machine> follows; // ownership is shared.. in theory just a normal pointer to Machine would be good as specifications own the pointers, but OK - can be resolved later
+	std::shared_ptr<Machine> follows; // ownership is shared.. in theory just a normal pointer to Machine would be lastApplicationSuccessful as specifications own the pointers, but OK - can be resolved later
 	std::list<std::shared_ptr<Machine>> uses; // ownership is shared
 	std::map<std::string, std::shared_ptr<MachineComponent>> components;
 
