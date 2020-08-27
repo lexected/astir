@@ -12,17 +12,41 @@ struct Field;
 
 using State = size_t;
 
-struct ActionRegisterEntry {
-	RegexAction action;
-	const Field* targetComponent;
+enum class NFAActionType : unsigned char {
+	Set = 1,
+	Unset = 2,
+	Flag = 3,
+	Unflag = 4,
+	Append = 5,
+	Prepend = 6,
+	Clear = 7,
+	LeftTrim = 8,
+	RightTrim = 9,
 
-	ActionRegisterEntry(RegexAction action)
-		: action(action), targetComponent(nullptr) { }
-	ActionRegisterEntry(RegexAction action, const Field* targetComponent)
-		: action(action), targetComponent(targetComponent) { }
+	CreateContext = 101,
+	AssignContext = 102,
+	AppendContext = 103,
+	PrependContext = 104,
+
+	None = 255
 };
 
-class ActionRegister : public std::list<ActionRegisterEntry> {
+struct NFAAction {
+	NFAActionType type;
+	std::string contextPath;
+	std::string targetPath;
+
+	/*NFAAction(RegexActionType regexAction)
+		: action((NFAActionType)regexAction), targetComponent(nullptr), contextPath() { }
+	NFAAction(NFAActionType faAction)
+		: action(faAction), targetComponent(nullptr), contextPath() { }
+	NFAAction(NFAActionType faAction, const Field* targetComponent)
+		: action(faAction), targetComponent(targetComponent), contextPath() { }*/
+	NFAAction(NFAActionType faAction, const std::string& contextPath, const std::string& targetPath)
+		: type(faAction), contextPath(contextPath), targetPath(targetPath) { }
+};
+
+class ActionRegister : public std::list<NFAAction> {
 public:
 	ActionRegister() = default;
 
@@ -119,12 +143,14 @@ public:
 	void operator|=(const NFA& rhs);
 	void operator&=(const NFA& rhs);
 
+	void addContextedAlternative(const NFA& rhs, const std::string& targetGenerationPath, const std::string& sourceGenerationPath);
+
 	State addState();
 	void addTransition(State state, const Transition& transition);
 	Transition& addEmptyTransition(State state, State target);
 	Transition& addEmptyTransition(State state, State target, const ActionRegister& ar);
 	State concentrateFinalStates();
-	void actionize(const ActionRegister& actions);
+	void addFinalActions(const ActionRegister& actions);
 
 	NFA buildDFA() const;
 

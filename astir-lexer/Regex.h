@@ -40,26 +40,26 @@ struct LookaheadRegex : public RootRegex {
 	void checkActionUsage(const Machine& machine, const MachineComponent* context) const override;
 };
 
-enum class RegexAction {
-	Set,
-	Unset,
-	Flag,
-	Unflag,
-	Append,
-	Prepend,
-	Clear,
-	LeftTrim,
-	RightTrim,
+enum class RegexActionType : unsigned char {
+	Set = 1,
+	Unset = 2,
+	Flag = 3,
+	Unflag = 4,
+	Append = 5,
+	Prepend = 6,
+	Clear = 7,
+	LeftTrim = 8,
+	RightTrim = 9,
 
-	None
+	None = 255
 };
-struct ActionTargetPair : public ISyntacticEntity {
-	RegexAction action = RegexAction::None;
+struct RegexAction : public ISyntacticEntity {
+	RegexActionType type = RegexActionType::None;
 	std::string target;
 
-	ActionTargetPair() = default;
-	ActionTargetPair(RegexAction action, const std::string target)
-		: action(action), target(target) { }
+	RegexAction() = default;
+	RegexAction(RegexActionType type, const std::string target)
+		: type(type), target(target) { }
 };
 struct AtomicRegex : public RootRegex { };
 
@@ -86,10 +86,10 @@ struct ConjunctiveRegex : public Regex {
 };
 
 struct PrimitiveRegex : public AtomicRegex {
-	std::list<ActionTargetPair> actionTargetPairs;
+	std::list<RegexAction> actions;
 
 	void checkActionUsage(const Machine& machine, const MachineComponent* context) const override;
-	virtual void checkActionUsageFieldType(const Machine& machine, const MachineComponent* context, RegexAction action, const Field* targetField) const;
+	virtual void checkActionUsageFieldType(const Machine& machine, const MachineComponent* context, RegexActionType type, const Field* targetField) const;
 };
 
 struct RegexRange {
@@ -117,7 +117,7 @@ struct LiteralRegex : public PrimitiveRegex {
 struct ReferenceRegex : public PrimitiveRegex {
 	std::string referenceName;
 
-	void checkActionUsageFieldType(const Machine& machine, const MachineComponent* context, RegexAction action, const Field* targetField) const override;
+	void checkActionUsageFieldType(const Machine& machine, const MachineComponent* context, RegexActionType type, const Field* targetField) const override;
 
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
 

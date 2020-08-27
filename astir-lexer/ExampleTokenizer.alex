@@ -23,11 +23,11 @@ nondeterministic finite automaton ExampleTokenizer {
 	pattern identifierStartingCharacter = ["a"-"z" "A"-"Z" "_"];
 	pattern identifierCharacter = identifierStartingCharacter | digit;
 
-	production identifier {
+	production Identifier {
 		raw name;
 	} = (identifierStartingCharacter@append:name) (identifierCharacter@append:name)*;
 
-	production operator =
+	production Operator =
 		"+"
 		| "-"
 		| "*"

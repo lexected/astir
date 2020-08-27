@@ -201,7 +201,7 @@ void FiniteAutomaton::initialize() {
 	base.finalStates.insert(0);
 	for (const auto& componentPair : this->components) {
 		const MachineComponent* componentPtr = componentPair.second.get();
-		NFABuilder builder(*this, componentPtr);
+		NFABuilder builder(*this, componentPtr, "");
 		base |= componentPtr->accept(builder);
 	}
 

@@ -8,8 +8,8 @@ class Machine;
 
 class NFABuilder {
 public:
-	NFABuilder(const Machine& context, const MachineComponent* component)
-		: m_context(context), m_component(component) { }
+	NFABuilder(const Machine& context, const MachineComponent* component, const std::string& generationContextPath)
+		: m_contextMachine(context), m_contextComponent(component), m_generationContextPath(generationContextPath) { }
 
 	NFA visit(const Category* category) const;
 	NFA visit(const Rule* rule) const;
@@ -27,10 +27,12 @@ public:
 	NFA visit(const ReferenceRegex* regex) const; 
 	NFA visit(const LineEndRegex* regex) const;
 private:
-	const Machine& m_context;
-	const MachineComponent* m_component;
+	const Machine& m_contextMachine;
+	const MachineComponent* m_contextComponent;
+	const std::string m_generationContextPath;
 
 	std::list<LiteralSymbolGroup> computeLiteralGroups(const AnyRegex* regex) const;
-	ActionRegister computeActionRegisterEntries(const std::list<ActionTargetPair>& actionTargetPairs) const;
+	ActionRegister computeActionRegisterEntries(const std::list<RegexAction>& actions) const;
+	ActionRegister computeActionRegisterEntries(const std::list<RegexAction>& actions, const std::string& subcontextPath, bool setToAssignWhereNecessary) const;
 };
 

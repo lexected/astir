@@ -1,10 +1,13 @@
 #include <iostream>
 #include <string>
+#include <list>
 
 namespace ExampleTokenizer {
 	using CategoryBitArray = unsigned long;
 
-	enum class TokenType {
+	enum class TerminalType {
+		EOS,
+
 		IDENTIFIER,
 		EQUALS,
 		NUMBER,
@@ -14,37 +17,61 @@ namespace ExampleTokenizer {
 		OP_SUB
 	};
 
-	class Token {
+	class Terminal {
 	public:
-		TokenType type;
+		TerminalType type;
 		std::string string;
-		CategoryBitArray categories;
 	protected:
-		Token(TokenType type)
-			: type(type), string(""), categories(0) { }
+		Terminal(TerminalType type)
+			: type(type), string("") { }
 	};
 
-	class NumberToken : public Token {
+	class EOS : public Terminal {
 	public:
-		unsigned long long value;
-
-		NumberToken()
-			: Token(TokenType::NUMBER), value(0) { }
+		EOS()
+			: Terminal(TerminalType::EOS) { }
 	};
 
-	class IdentifierToken : public Token {
-		std::string identifiedName;
+	class Number {
+	public:
+		bool isNegative;
+	};
 
-		IdentifierToken()
-			: Token(TokenType::IDENTIFIER) { }
+	class Integer : public Number {
+	public:
+		std::string value;
+	};
+
+	class PositiveInteger : public Terminal, public Integer { };
+	class NegativeInteger : public Terminal, public Integer { };
+
+	class Float : public Terminal, public Number {
+	public:
+		std::shared_ptr<PositiveInteger> mantissaWholes;
+		std::shared_ptr<PositiveInteger> mantissaDecimals;
+		std::shared_ptr<PositiveInteger> exponent;
+	};
+
+	class Identifier {
+	public:
+		std::string name;
+	};
+
+	class Operator {
+	public:
+	};
+
+	class ExampleTokenizer {
+	public:
+		std::shared_ptr<Terminal> apply(std::istream& is);
+		std::list<std::shared_ptr<Terminal>> processStream(std::istream& is);
+	private:
+		
 	};
 };
 
 int fakemain() {
-	std::cout << "sizeof(Token)" << sizeof(ExampleTokenizer::Token) << std::endl;
-	std::cout << "sizeof(NumberToken)" << sizeof(ExampleTokenizer::NumberToken) << std::endl;
-	std::cout << "sizeof(IdentifierToken)" << sizeof(ExampleTokenizer::IdentifierToken) << std::endl;
-
+	
 	return 0;
 }
 

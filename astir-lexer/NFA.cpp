@@ -52,6 +52,34 @@ void NFA::operator&=(const NFA& rhs) {
     this->finalStates = finalStatesCopy;
 }
 
+void NFA::addContextedAlternative(const NFA& rhs, const std::string& targetGenerationPath, const std::string& sourceGenerationPath) {
+    State stateIndexShift = this->states.size();
+    auto stateCopy = rhs.states;
+    for (auto& state : stateCopy) {
+        for (auto& transition : state.transitions) {
+            transition.target += stateIndexShift;
+        }
+    }
+
+    states.insert(states.end(), stateCopy.begin(), stateCopy.end());
+    ActionRegister createContextActionRegister;
+    createContextActionRegister.emplace_back(NFAActionType::CreateContext, targetGenerationPath, sourceGenerationPath);
+    addEmptyTransition(0, stateIndexShift, createContextActionRegister);
+
+    ActionRegister assignContextActionRegister;
+    assignContextActionRegister.emplace_back(NFAActionType::AssignContext, sourceGenerationPath, targetGenerationPath);
+
+    const State newFinalState = addState();
+
+    std::set<State> finalStatesCopy;
+    for (const auto& finalStateIndex : rhs.finalStates) {
+        const State shiftedStateIndex = stateIndexShift + finalStateIndex;
+        addEmptyTransition(shiftedStateIndex, newFinalState);
+    }
+    
+    finalStates.insert(newFinalState);
+}
+
 State NFA::addState() {
     auto ret = (State)states.size();
     states.emplace_back();
@@ -83,7 +111,7 @@ State NFA::concentrateFinalStates() {
     return newFinalState;
 }
 
-void NFA::actionize(const ActionRegister& actions) {
+void NFA::addFinalActions(const ActionRegister& actions) {
     for (State fs : finalStates) {
         State newState = addState();
         addEmptyTransition(fs, newState, actions);
@@ -369,8 +397,8 @@ ActionRegister ActionRegister::operator+(const ActionRegister& rhs) const {
     ActionRegister ret(*this);
 
     for (const auto& are : rhs) {
-        auto it = std::find_if(begin(), end(), [are](const ActionRegisterEntry& entry) {
-            return entry.action == are.action && are.targetComponent == entry.targetComponent;
+        auto it = std::find_if(begin(), end(), [are](const NFAAction& entry) {
+            return entry.type == are.type && are.contextPath == entry.contextPath && are.targetPath == entry.targetPath;
             });
         if (it == end()) {
             ret.push_back(are);
@@ -382,8 +410,8 @@ ActionRegister ActionRegister::operator+(const ActionRegister& rhs) const {
 
 const ActionRegister& ActionRegister::operator+=(const ActionRegister& rhs) {
     for (const auto& are : rhs) {
-        auto it = std::find_if(begin(), end(), [&are](const ActionRegisterEntry& entry) {
-            return entry.action == are.action && are.targetComponent == entry.targetComponent;
+        auto it = std::find_if(begin(), end(), [&are](const NFAAction& entry) {
+            return entry.type == are.type && are.contextPath == entry.contextPath && are.targetPath == entry.targetPath;
             });
         if (it == end()) {
             this->push_back(are);

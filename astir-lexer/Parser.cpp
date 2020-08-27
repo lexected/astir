@@ -557,8 +557,8 @@ std::unique_ptr<PrimitiveRegex> Parser::parsePrimitiveRegex(std::list<Token>::co
 		auto interimIt = it;
 		++it;
 
-		ActionTargetPair atp;
-		atp.action = parseRegexAction(it);
+		RegexAction atp;
+		atp.type = parseRegexAction(it);
 
 		if (it->type != TokenType::OP_COLON) {
 			throw UnexpectedTokenException(*it, "a colon ':' to separate action from target", "for action-atomic regex", *savedIt);
@@ -572,41 +572,41 @@ std::unique_ptr<PrimitiveRegex> Parser::parsePrimitiveRegex(std::list<Token>::co
 		atp.copyLocation(*interimIt);
 		++it;
 
-		ret->actionTargetPairs.push_back(move(atp));
+		ret->actions.push_back(move(atp));
 	}
 
 	return ret;
 }
 
-RegexAction Parser::parseRegexAction(std::list<Token>::const_iterator& it) const {
-	RegexAction ret;
+RegexActionType Parser::parseRegexAction(std::list<Token>::const_iterator& it) const {
+	RegexActionType ret;
 	switch (it->type) {
 		case TokenType::KW_SET:
-			ret = RegexAction::Set;
+			ret = RegexActionType::Set;
 			break;
 		case TokenType::KW_UNSET:
-			ret = RegexAction::Unset;
+			ret = RegexActionType::Unset;
 			break;
 		case TokenType::KW_FLAG:
-			ret = RegexAction::Flag;
+			ret = RegexActionType::Flag;
 			break;
 		case TokenType::KW_UNFLAG:
-			ret = RegexAction::Unflag;
+			ret = RegexActionType::Unflag;
 			break;
 		case TokenType::KW_APPEND:
-			ret = RegexAction::Append;
+			ret = RegexActionType::Append;
 			break;
 		case TokenType::KW_PREPEND:
-			ret = RegexAction::Prepend;
+			ret = RegexActionType::Prepend;
 			break;
 		case TokenType::KW_CLEAR:
-			ret = RegexAction::Clear;
+			ret = RegexActionType::Clear;
 			break;
 		case TokenType::KW_LEFT_TRIM:
-			ret = RegexAction::LeftTrim;
+			ret = RegexActionType::LeftTrim;
 			break;
 		case TokenType::KW_RIGHT_TRIM:
-			ret = RegexAction::RightTrim;
+			ret = RegexActionType::RightTrim;
 			break;
 		default:
 			throw UnexpectedTokenException(*it, "a valid action type keyword to follow the action operator '@'", "for action-atomic regex");
