@@ -149,6 +149,7 @@
     <ClCompile Include="Parser.cpp" />
     <ClCompile Include="Regex.cpp" />
     <ClCompile Include="Resources\RawStream.cpp" />
+    <ClCompile Include="Resources\SpecimenFiniteAutomaton.scpp" />
     <ClCompile Include="SemanticTree.cpp" />
     <ClCompile Include="SyntacticTree.cpp" />
     <ClCompile Include="Tests\TestTokenizer01PivotOutput.cpp" />
@@ -172,6 +173,7 @@
     <ClInclude Include="Parser.h" />
     <ClInclude Include="Regex.h" />
     <ClInclude Include="Resources\RawStream.h" />
+    <ClInclude Include="Resources\SpecimenFiniteAutomaton.sh" />
     <ClInclude Include="SemanticTree.h" />
     <ClInclude Include="SyntacticTree.h" />
     <ClInclude Include="Token.h" />

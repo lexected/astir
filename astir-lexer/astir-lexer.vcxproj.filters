@@ -87,6 +87,9 @@
     <ClCompile Include="Token.cpp">
       <Filter>Source Files\Lexical Analysis</Filter>
     </ClCompile>
+    <ClCompile Include="Resources\SpecimenFiniteAutomaton.scpp">
+      <Filter>Resource Files\Resources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h">
@@ -148,6 +151,9 @@
     </ClInclude>
     <ClInclude Include="IActing.h">
       <Filter>Header Files\Semantic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\SpecimenFiniteAutomaton.sh">
+      <Filter>Resource Files\Resources</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

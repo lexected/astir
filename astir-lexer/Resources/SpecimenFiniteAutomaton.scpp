@@ -1,0 +1,94 @@
+#pragma once
+
+#include "${{MachineName}}.h"
+
+namespace ${{MachineName}} {
+	std::shared_ptr<Terminal> ${{MachineName}}::apply(RawStream& rs) {
+		char currentCharacter;
+		State lastAcceptingState = (State)(-1);
+
+		rs.pin();
+		while (true) {
+			State stateToGoTo;
+			if (!rs.get(currentCharacter)) {
+				stateToGoTo = (State)(-1);
+			} else {
+				stateToGoTo = m_stateMap[m_currentState][currentCharacter];
+			}
+
+			if (stateToGoTo == (State)(-1)) {
+				if (lastAcceptingState == (State)(-1)) {
+					if (m_currentState > 0) {
+						// failure, we are not in the first state and we have not reached any accepting state so far, so we will return nullptr. The users are then encouraged to make use of lastApplicationSuccessful() and RawStream location information to identify the issue
+						return nullptr;
+					} else {
+						// all done, lastApplicationSuccessful!
+						return nullptr;
+					}
+				} else {
+					// accept, reset m_currentState to 0, and backtrack input to where the lastAcceptingState was hit
+					m_currentState = 0;
+					rs.resetToPin();
+					return m_token;
+				}
+			} else {
+				// execute the transition actions
+				(this->*m_transitionActions[m_currentState][currentCharacter])(currentCharacter);
+
+				// execute the state actions
+				(this->*m_stateActions[stateToGoTo])();
+
+				// if this is a final state, take a note of that
+				if (m_stateFinality[stateToGoTo]) {
+					lastAcceptingState = stateToGoTo;
+					rs.pin();
+				}
+
+				// and finally, change the current state to the new state
+				m_currentState = stateToGoTo;
+			}
+		}
+
+		return std::shared_ptr<Terminal>();
+	}
+
+	std::list<std::shared_ptr<Terminal>> ${{MachineName}}::process(RawStream& rs) {
+		std::list<std::shared_ptr<Terminal>> ret;
+
+		while (lastApplicationSuccessful() /* && the end of */) {
+			auto terminalPtr = apply(rs);
+			if (terminalPtr) {
+				ret.push_back(terminalPtr);
+			}
+		}
+
+		if (lastApplicationSuccessful()) {
+			auto eosLocationPtr = rs.pinLocation()->clone();
+			eosLocationPtr->advance();
+			ret.push_back(std::make_shared<EOS>(eosLocationPtr));
+		}
+
+		return ret;
+	}
+
+	void ${{MachineName}}::reset() {
+		m_currentState = 0;
+	}
+
+	State ${{MachineName}}::m_stateMap[${{StateCount}}][${{TransitionCount}}] = {
+		${{StateMapEnumerated}} 
+	};
+	bool ${{MachineName}}::m_stateFinality[${{StateCount}}] = { 
+		${{StateFinalityEnumerated}} 
+	};
+	void (${{MachineName}}::* ${{MachineName}}::m_transitionActions[${{StateCount}}][${{TransitionCount}}])(char c) = {
+		${{TransitionActionAddressesEnumerated}}
+	};
+	void (${{MachineName}}::* ${{MachineName}}::m_stateActions[${{StateCount}}])() = {
+		${{StateActionAddressesEnumerated}}
+	};
+
+	${{StateActionsDefinitions}}
+
+	${{TransitionActionsDefinitions}}
+}
