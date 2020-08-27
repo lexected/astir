@@ -32,7 +32,7 @@ private:
 	const std::string m_generationContextPath;
 
 	std::list<LiteralSymbolGroup> computeLiteralGroups(const AnyRegex* regex) const;
-	ActionRegister computeActionRegisterEntries(const std::list<RegexAction>& actions) const;
-	ActionRegister computeActionRegisterEntries(const std::list<RegexAction>& actions, const std::string& subcontextPath, bool setToAssignWhereNecessary) const;
+	NFAActionRegister computeActionRegisterEntries(const std::list<RegexAction>& actions) const;
+	NFAActionRegister computeActionRegisterEntries(const std::list<RegexAction>& actions, const std::string& subcontextPath, bool setToAssignWhereNecessary) const;
 };
 

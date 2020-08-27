@@ -195,7 +195,7 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
         subNfa.addFinalActions(actionRegister);
 
         
-        ActionRegister createContextActionRegister;
+        NFAActionRegister createContextActionRegister;
         createContextActionRegister.emplace_back(NFAActionType::CreateContext, m_generationContextPath, targetPath);
         // within the current context context (m_generationContextPath) create a new context (targetPath)
         base.addEmptyTransition(0, newBaseState, createContextActionRegister);
@@ -237,12 +237,12 @@ std::list<LiteralSymbolGroup> NFABuilder::computeLiteralGroups(const AnyRegex* r
     return literalGroup;
 }
 
-ActionRegister NFABuilder::computeActionRegisterEntries(const std::list<RegexAction>& actions) const {
+NFAActionRegister NFABuilder::computeActionRegisterEntries(const std::list<RegexAction>& actions) const {
     return computeActionRegisterEntries(actions, "", false);
 }
 
-ActionRegister NFABuilder::computeActionRegisterEntries(const std::list<RegexAction>& actions, const std::string& subcontextPath, bool setToAssignWhereNecessary) const {
-    ActionRegister ret;
+NFAActionRegister NFABuilder::computeActionRegisterEntries(const std::list<RegexAction>& actions, const std::string& subcontextPath, bool setToAssignWhereNecessary) const {
+    NFAActionRegister ret;
 
     for (const RegexAction& atp : actions) {
         if (setToAssignWhereNecessary) {

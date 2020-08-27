@@ -62,11 +62,11 @@ void NFA::addContextedAlternative(const NFA& rhs, const std::string& targetGener
     }
 
     states.insert(states.end(), stateCopy.begin(), stateCopy.end());
-    ActionRegister createContextActionRegister;
+    NFAActionRegister createContextActionRegister;
     createContextActionRegister.emplace_back(NFAActionType::CreateContext, targetGenerationPath, sourceGenerationPath);
     addEmptyTransition(0, stateIndexShift, createContextActionRegister);
 
-    ActionRegister assignContextActionRegister;
+    NFAActionRegister assignContextActionRegister;
     assignContextActionRegister.emplace_back(NFAActionType::AssignContext, sourceGenerationPath, targetGenerationPath);
 
     const State newFinalState = addState();
@@ -95,7 +95,7 @@ Transition& NFA::addEmptyTransition(State state, State target) {
     return states[state].transitions.back();
 }
 
-Transition& NFA::addEmptyTransition(State state, State target, const ActionRegister& ar) {
+Transition& NFA::addEmptyTransition(State state, State target, const NFAActionRegister& ar) {
     addTransition(state, Transition(target, std::make_shared<EmptySymbolGroup>(ar)));
     return states[state].transitions.back();
 }
@@ -111,7 +111,7 @@ State NFA::concentrateFinalStates() {
     return newFinalState;
 }
 
-void NFA::addFinalActions(const ActionRegister& actions) {
+void NFA::addFinalActions(const NFAActionRegister& actions) {
     for (State fs : finalStates) {
         State newState = addState();
         addEmptyTransition(fs, newState, actions);
@@ -375,7 +375,7 @@ void LiteralSymbolGroup::disjoin(std::list<LiteralSymbolGroup>& symbolGroups, co
             symbolGroups.emplace_back(bottom_beg, bottom_end, bottom_beg == lhs.rangeStart ? lhs.actions : rhs.actions);
         }
 
-        ActionRegister actionsUnionized = lhs.actions + rhs.actions;
+        NFAActionRegister actionsUnionized = lhs.actions + rhs.actions;
         symbolGroups.emplace_back(mid_beg, mid_end, actionsUnionized);
 
         if (top_beg <= top_end) {
@@ -393,8 +393,8 @@ bool ProductionSymbolGroup::contains(const SymbolGroup* symbol) const {
     return referencedComponent->entails(psg->referencedComponent->name);
 }
 
-ActionRegister ActionRegister::operator+(const ActionRegister& rhs) const {
-    ActionRegister ret(*this);
+NFAActionRegister NFAActionRegister::operator+(const NFAActionRegister& rhs) const {
+    NFAActionRegister ret(*this);
 
     for (const auto& are : rhs) {
         auto it = std::find_if(begin(), end(), [are](const NFAAction& entry) {
@@ -408,7 +408,7 @@ ActionRegister ActionRegister::operator+(const ActionRegister& rhs) const {
     return ret;
 }
 
-const ActionRegister& ActionRegister::operator+=(const ActionRegister& rhs) {
+const NFAActionRegister& NFAActionRegister::operator+=(const NFAActionRegister& rhs) {
     for (const auto& are : rhs) {
         auto it = std::find_if(begin(), end(), [&are](const NFAAction& entry) {
             return entry.type == are.type && are.contextPath == entry.contextPath && are.targetPath == entry.targetPath;

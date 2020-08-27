@@ -46,12 +46,12 @@ struct NFAAction {
 		: type(faAction), contextPath(contextPath), targetPath(targetPath) { }
 };
 
-class ActionRegister : public std::list<NFAAction> {
+class NFAActionRegister : public std::list<NFAAction> {
 public:
-	ActionRegister() = default;
+	NFAActionRegister() = default;
 
-	ActionRegister operator+(const ActionRegister& rhs) const;
-	const ActionRegister& operator+=(const ActionRegister& rhs);
+	NFAActionRegister operator+(const NFAActionRegister& rhs) const;
+	const NFAActionRegister& operator+=(const NFAActionRegister& rhs);
 };
 
 struct SymbolGroup {
@@ -59,13 +59,13 @@ public:
 	virtual ~SymbolGroup() = default;
 
 	// a necessary part of SymbolGroup I am afraid, the SymbolGroup is the literal payload for the action
-	ActionRegister actions;
+	NFAActionRegister actions;
 
 	virtual bool contains(const SymbolGroup* symbol) const = 0;
 
 protected:
 	SymbolGroup() = default;
-	SymbolGroup(const ActionRegister& actions)
+	SymbolGroup(const NFAActionRegister& actions)
 		: actions(actions) { }
 };
 
@@ -73,7 +73,7 @@ struct EmptySymbolGroup : public SymbolGroup {
 public:
 	EmptySymbolGroup()
 		: SymbolGroup() { }
-	EmptySymbolGroup(const ActionRegister & actions)
+	EmptySymbolGroup(const NFAActionRegister & actions)
 		: SymbolGroup(actions) { }
 
 	bool contains(const SymbolGroup* symbol) const override;
@@ -85,9 +85,9 @@ struct LiteralSymbolGroup : public SymbolGroup {
 		: rangeStart(0), rangeEnd(0) { }
 	LiteralSymbolGroup(unsigned char rangeStart, unsigned  char rangeEnd)
 		: rangeStart(rangeStart), rangeEnd(rangeEnd) { }
-	LiteralSymbolGroup(unsigned char rangeStart, unsigned  char rangeEnd, const ActionRegister& actions)
+	LiteralSymbolGroup(unsigned char rangeStart, unsigned  char rangeEnd, const NFAActionRegister& actions)
 		: rangeStart(rangeStart), rangeEnd(rangeEnd), SymbolGroup(actions) { }
-	LiteralSymbolGroup(const LiteralSymbolGroup& lsg, const ActionRegister& actions)
+	LiteralSymbolGroup(const LiteralSymbolGroup& lsg, const NFAActionRegister& actions)
 		: rangeStart(lsg.rangeStart), rangeEnd(lsg.rangeEnd), SymbolGroup(actions) { }
 
 	bool contains(const SymbolGroup* symbol) const override;
@@ -102,7 +102,7 @@ struct LiteralSymbolGroup : public SymbolGroup {
 struct ArbitrarySymbolGroup : public LiteralSymbolGroup {
 	ArbitrarySymbolGroup()
 		: LiteralSymbolGroup(0, (char)255) { }
-	ArbitrarySymbolGroup(const ActionRegister& actions)
+	ArbitrarySymbolGroup(const NFAActionRegister& actions)
 		: LiteralSymbolGroup(0, (char)255, actions) { }
 };
 
@@ -110,7 +110,7 @@ struct ProductionSymbolGroup : public SymbolGroup {
 	const MachineComponent* referencedComponent;
 	ProductionSymbolGroup(const MachineComponent* referencedComponent)
 		: referencedComponent(referencedComponent) { }
-	ProductionSymbolGroup(const MachineComponent* referencedComponent, const ActionRegister& actions)
+	ProductionSymbolGroup(const MachineComponent* referencedComponent, const NFAActionRegister& actions)
 		: referencedComponent(referencedComponent), SymbolGroup(actions) { }
 
 	bool contains(const SymbolGroup* symbol) const override;
@@ -148,9 +148,9 @@ public:
 	State addState();
 	void addTransition(State state, const Transition& transition);
 	Transition& addEmptyTransition(State state, State target);
-	Transition& addEmptyTransition(State state, State target, const ActionRegister& ar);
+	Transition& addEmptyTransition(State state, State target, const NFAActionRegister& ar);
 	State concentrateFinalStates();
-	void addFinalActions(const ActionRegister& actions);
+	void addFinalActions(const NFAActionRegister& actions);
 
 	NFA buildDFA() const;
 
