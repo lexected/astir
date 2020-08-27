@@ -5,7 +5,7 @@
 #include "Parser.h"
 
 int main(int argc, char* argv[]) {
-	std::fstream inputFile("TestTokenizer01.alex");
+	std::fstream inputFile("ExampleTokenizer.alex");
 
 	LexicalAnalyzer analyzer;
 	auto tokenList = analyzer.process(inputFile);

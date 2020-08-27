@@ -116,7 +116,7 @@ MachineComponent* Machine::findMachineComponent(const std::string& name, bool* f
 		}
 	}
 	
-	if (follows && (ret = this->follows->findMachineComponent(name))) {
+	if (this->follows && (ret = this->follows->findMachineComponent(name))) {
 		if (follows) {
 			*follows = true;
 		}
