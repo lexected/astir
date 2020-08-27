@@ -3,8 +3,7 @@
 #include <istream>
 #include <deque>
 #include <memory>
-
-#include "FileLocation.h"
+#include <string>
 
 class RawStreamLocation {
 public:
