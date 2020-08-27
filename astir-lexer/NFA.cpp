@@ -52,7 +52,7 @@ void NFA::operator&=(const NFA& rhs) {
     this->finalStates = finalStatesCopy;
 }
 
-void NFA::addContextedAlternative(const NFA& rhs, const std::string& targetGenerationPath, const std::string& sourceGenerationPath) {
+void NFA::addContextedAlternative(const NFA& rhs, const std::string& targetGenerationPath, const std::string& sourceGenerationPath, bool createContext) {
     State stateIndexShift = this->states.size();
     auto stateCopy = rhs.states;
     for (auto& state : stateCopy) {
@@ -63,7 +63,9 @@ void NFA::addContextedAlternative(const NFA& rhs, const std::string& targetGener
 
     states.insert(states.end(), stateCopy.begin(), stateCopy.end());
     NFAActionRegister createContextActionRegister;
-    createContextActionRegister.emplace_back(NFAActionType::CreateContext, targetGenerationPath, sourceGenerationPath);
+    if (createContext) {
+        createContextActionRegister.emplace_back(NFAActionType::CreateContext, targetGenerationPath, sourceGenerationPath);
+    }
     addEmptyTransition(0, stateIndexShift, createContextActionRegister);
 
     NFAActionRegister assignContextActionRegister;

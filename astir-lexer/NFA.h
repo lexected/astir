@@ -144,7 +144,7 @@ public:
 	void operator|=(const NFA& rhs);
 	void operator&=(const NFA& rhs);
 
-	void addContextedAlternative(const NFA& rhs, const std::string& targetGenerationPath, const std::string& sourceGenerationPath);
+	void addContextedAlternative(const NFA& rhs, const std::string& targetGenerationPath, const std::string& sourceGenerationPath, bool createContext = true);
 
 	State addState();
 	void addTransition(State state, const Transition& transition);
