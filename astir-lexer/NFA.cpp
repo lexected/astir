@@ -144,7 +144,7 @@ NFA NFA::buildDFA() const {
             State theCorrespondingDFAStateIndex = findStateByNFAStateSet(stateMap, epsilonClosureDFAState.nfaStates);
             if (theCorrespondingDFAStateIndex == epsilonClosureDFAState.nfaStates.size()) {
                 theCorrespondingDFAStateIndex = base.addState();
-                base.states[theCorrespondingDFAStateIndex].actions = epsilonClosureDFAState.actions;
+                base.states[theCorrespondingDFAStateIndex].actions = epsilonClosureDFAState.actions; 
                 stateMap.emplace_back(epsilonClosureDFAState);
                 
                 std::list<State> intersectionOfNFAStates;

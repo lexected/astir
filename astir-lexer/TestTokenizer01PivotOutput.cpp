@@ -67,13 +67,17 @@ namespace TestTokenizer01 {
 		std::list<std::shared_ptr<Terminal>> process(RawStream& rs);
 
 		bool lastApplicationSuccessful() const { return m_currentState == 0; }
+		void reset();
+
 	private:
 		// state-switching internals
 		State m_currentState;
 		static State m_stateMap[6][256];
 		static bool m_stateFinality[6];
+		static void (TestTokenizer01::* m_transitionActions[6][256])(char c);
+		static void (TestTokenizer01::* m_stateActions[6])();
 
-		// contexts
+		// action contexts
 		std::shared_ptr<Terminal> m_token;
 	};
 
@@ -93,7 +97,7 @@ namespace TestTokenizer01 {
 			if (stateToGoTo == (State)(-1)) {
 				if (lastAcceptingState == (State)(-1)) {
 					if(m_currentState > 0) {
-						// failure, we are not in the first state and we have not reached any accepting state so far, so we will return nullptr. The users are then encouraged to make use of lastApplicationSuccessful() to identify the issue
+						// failure, we are not in the first state and we have not reached any accepting state so far, so we will return nullptr. The users are then encouraged to make use of lastApplicationSuccessful() and RawStream location information to identify the issue
 						return nullptr;
 					} else {
 						// all done, lastApplicationSuccessful!
@@ -101,14 +105,24 @@ namespace TestTokenizer01 {
 					}
 				} else {
 					// accept, reset m_currentState to 0, and backtrack input to where the lastAcceptingState was hit
+					m_currentState = 0;
 					rs.resetToPin();
-					// then return m_token;
+					return m_token;
 				}
 			} else {
+				// execute the transition actions
+				(this->*m_transitionActions[m_currentState][currentCharacter])(currentCharacter);
+
+				// execute the state actions
+				(this->*m_stateActions[stateToGoTo])();
+
+				// if this is a final state, take a note of that
 				if (m_stateFinality[stateToGoTo]) {
 					lastAcceptingState = stateToGoTo;
 					rs.pin();
 				}
+
+				// and finally, change the current state to the new state
 				m_currentState = stateToGoTo;
 			}
 		}
@@ -134,9 +148,15 @@ namespace TestTokenizer01 {
 
 		return ret;
 	}
+
+	void TestTokenizer01::reset() {
+		m_currentState = 0;
+	}
 	
 	State TestTokenizer01::m_stateMap[6][256];
 	bool TestTokenizer01::m_stateFinality[6] = { false, false, false, false, false, false };
+	void (TestTokenizer01::* m_transitionActions[6][256])(char c);
+	void (TestTokenizer01::* m_stateActions[6])();
 };
 
 int fakeemain() {
