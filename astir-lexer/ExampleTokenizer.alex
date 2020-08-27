@@ -10,7 +10,7 @@ nondeterministic finite automaton ExampleTokenizer {
 	};
 	
 	production PositiveInteger : Integer = (digit@append:value)+;
-	production NegativeInteger : Integer = "-"@flag:isNegative (digit@append:value)+
+	production NegativeInteger : Integer = "-"@flag:isNegative (digit@append:value)+;
 
 	production Float : Number {
 		PositiveInteger item mantissaWholes;

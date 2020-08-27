@@ -19,8 +19,8 @@ int main(int argc, char* argv[]) {
 	}
 
 	Parser parser;
-	auto syntacticTree = parser.parse(tokenList);
-	auto semanticTree = syntacticTree->makeSemanticEntity();
+	std::shared_ptr<ISemanticallyProcessable<SemanticTree>> syntacticTree = parser.parse(tokenList);
+	auto semanticTree = syntacticTree->makeSemanticEntity(syntacticTree);
 	semanticTree->initialize();
 
 	return 0;

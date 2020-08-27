@@ -61,7 +61,7 @@ NFA NFABuilder::visit(const RepetitiveRegex* regex) const {
         throw Exception("Can not create a machine for a regex with minimum of infinitely many repetitions");
     }
 
-    NFA theMachine = regex->accept(*this);
+    NFA theMachine = regex->regex->accept(*this);
 
     NFA base;
     base.finalStates.insert(0);

@@ -3,7 +3,7 @@
 #include "NFABuilder.h"
 
 void SemanticTree::checkForMachineHierarchyRecursion(std::list<std::string>& namesEncountered, const std::string& nameConsidered) const {
-	bool collision = std::find(namesEncountered.cbegin(), namesEncountered.cend(), nameConsidered) == namesEncountered.cend();
+	bool collision = std::find(namesEncountered.cbegin(), namesEncountered.cend(), nameConsidered) != namesEncountered.cend();
 	namesEncountered.push_back(nameConsidered);
 	if (collision) {
 		std::string hierarchyPath = namesEncountered.front();
@@ -15,7 +15,9 @@ void SemanticTree::checkForMachineHierarchyRecursion(std::list<std::string>& nam
 	}
 
 	const MachineDefinition* definitionConsidered = dynamic_cast<const MachineDefinition*>(this->machines.find(nameConsidered)->second->underlyingSyntacticEntity().get());
-	checkForMachineHierarchyRecursion(namesEncountered, definitionConsidered->follows);
+	if (!definitionConsidered->follows.empty()) {
+		checkForMachineHierarchyRecursion(namesEncountered, definitionConsidered->follows);
+	}
 	for (const auto& used : definitionConsidered->uses) {
 		checkForMachineHierarchyRecursion(namesEncountered, used);
 	}
@@ -57,7 +59,7 @@ void Machine::initialize() {
 			throw SemanticAnalysisException("Category name '" + statementPtr->name + "' encountered in machine '" + name + "' already defined", *this); // TODO: could use an improvement; already defined where?
 		}
 
-		components[statementPtr->name] = statementPtr->makeSemanticEntity();
+		components[statementPtr->name] = statementPtr->makeSemanticEntity(statementPtr);
 	}
 
 	for (const auto& statementPtr : machineDefinition->ruleStatements) {
@@ -65,7 +67,7 @@ void Machine::initialize() {
 			throw SemanticAnalysisException("Rule name '" + statementPtr->name + "' encountered in machine '" + name + "' already defined", *this); // TODO: could use an improvement; already defined where?
 		}
 
-		components[statementPtr->name] = statementPtr->makeSemanticEntity();
+		components[statementPtr->name] = statementPtr->makeSemanticEntity(statementPtr);
 	}
 
 	// check for possible category reference recursion (and obviously whether the referenced category is indeed a category)
@@ -76,8 +78,8 @@ void Machine::initialize() {
 
 	// since there are no recursions at this point, we can create category links and references here (the same as with machines, and it all becomes messy if you try to move this chore down the hierarchy
 	for (const auto& componentPair : components) {
-		const CategoryStatement* categoryStatement = dynamic_cast<const CategoryStatement*>(componentPair.second->underlyingSyntacticEntity().get());
-		for (const auto& categoryUsedName : categoryStatement->categories) {
+		const MachineStatement* machineStatement = dynamic_cast<const MachineStatement*>(componentPair.second->underlyingSyntacticEntity().get());
+		for (const auto& categoryUsedName : machineStatement->categories) {
 			bool isFromFollows;
 			auto mc = findMachineComponent(categoryUsedName, &isFromFollows);
 			Category* cat = dynamic_cast<Category*>(mc);
@@ -114,7 +116,7 @@ MachineComponent* Machine::findMachineComponent(const std::string& name, bool* f
 		}
 	}
 	
-	if (follows && (ret = this->follows->findMachineComponent(name))) {
+	if (this->follows && (ret = this->follows->findMachineComponent(name))) {
 		if (follows) {
 			*follows = true;
 		}
@@ -133,7 +135,7 @@ MachineComponent* Machine::findMachineComponent(const std::string& name, bool* f
 }
 
 void Machine::checkForDeclarationCategoryRecursion(std::list<std::string>& namesEncountered, const std::string& nameConsidered, const IFileLocalizable& occurence, bool mustBeACategory) const {
-	bool collision = std::find(namesEncountered.cbegin(), namesEncountered.cend(), nameConsidered) == namesEncountered.cend();
+	bool collision = std::find(namesEncountered.cbegin(), namesEncountered.cend(), nameConsidered) != namesEncountered.cend();
 	namesEncountered.push_back(nameConsidered);
 	if (collision) {
 		std::string hierarchyPath = namesEncountered.front();

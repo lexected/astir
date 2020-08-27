@@ -244,7 +244,8 @@ void NFA::calculateDisjointLiteralSymbolGroups(std::list<LiteralSymbolGroup>& sy
     auto it = symbolGroups.begin();
     bool equalTransitionFound = false;
     while(it != symbolGroups.end()) {
-        auto iit = it++;
+        auto iit = it;
+        ++iit;
         for (; iit != symbolGroups.end(); ++iit) {
             if (iit->equals(*it)) {
                 equalTransitionFound = true;
@@ -258,11 +259,13 @@ void NFA::calculateDisjointLiteralSymbolGroups(std::list<LiteralSymbolGroup>& sy
         if (iit != symbolGroups.end()) {
             if (equalTransitionFound) {
                 it->actions += iit->actions;
+                it = symbolGroups.erase(it);
             } else {
                 LiteralSymbolGroup::disjoin(symbolGroups, *it, *iit);
                 it = symbolGroups.erase(it);
             }
-            symbolGroups.erase(iit);
+        } else {
+            ++it;
         }
     }
 }

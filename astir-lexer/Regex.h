@@ -13,8 +13,9 @@ struct RootRegex : public Regex {
 	virtual ~RootRegex() = default;
 };
 
+struct AtomicRegex;
 struct RepetitiveRegex : public RootRegex {
-	std::unique_ptr<RootRegex> regex;
+	std::unique_ptr<AtomicRegex> regex;
 	unsigned long minRepetitions;
 	unsigned long maxRepetitions;
 	static const unsigned long INFINITE_REPETITIONS = (unsigned long)((signed int)-1);
@@ -30,7 +31,7 @@ struct RepetitiveRegex : public RootRegex {
 
 struct PrimitiveRegex;
 struct LookaheadRegex : public RootRegex {
-	std::unique_ptr<RootRegex> match;
+	std::unique_ptr<AtomicRegex> match;
 	std::unique_ptr<PrimitiveRegex> lookahead;
 
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
