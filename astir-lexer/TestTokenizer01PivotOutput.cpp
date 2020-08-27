@@ -155,8 +155,8 @@ namespace TestTokenizer01 {
 	
 	State TestTokenizer01::m_stateMap[6][256];
 	bool TestTokenizer01::m_stateFinality[6] = { false, false, false, false, false, false };
-	void (TestTokenizer01::* m_transitionActions[6][256])(char c);
-	void (TestTokenizer01::* m_stateActions[6])();
+	void (TestTokenizer01::* TestTokenizer01::m_transitionActions[6][256])(char c);
+	void (TestTokenizer01::* TestTokenizer01::m_stateActions[6])();
 };
 
 int fakeemain() {

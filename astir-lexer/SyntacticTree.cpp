@@ -3,7 +3,7 @@
 
 #include <set>
 
-std::shared_ptr<Rule> RuleStatement::makeSemanticEntity() const {
+std::shared_ptr<Rule> RuleStatement::makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Rule>>& ownershipPtr) const {
 	bool terminal;
 	bool typeForming;
 
@@ -17,11 +17,11 @@ std::shared_ptr<Rule> RuleStatement::makeSemanticEntity() const {
 		throw SemanticAnalysisException("Unrecognized RuleStatement type. This should never happen in practice.");
 	}
 
-	return std::make_shared<Rule>(std::shared_ptr<const RuleStatement>(this), this->name, terminal, typeForming, this->disjunction);
+	return std::make_shared<Rule>(std::dynamic_pointer_cast<const RuleStatement>(ownershipPtr), this->name, terminal, typeForming, this->disjunction);
 }
 
-std::shared_ptr<SemanticTree> SyntacticTree::makeSemanticEntity() const {
-	std::shared_ptr<SemanticTree> semanticTree = std::make_shared<SemanticTree>(std::shared_ptr<const SyntacticTree>(this));
+std::shared_ptr<SemanticTree> SyntacticTree::makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<SemanticTree>>& ownershipPtr) const {
+	std::shared_ptr<SemanticTree> semanticTree = std::make_shared<SemanticTree>(std::dynamic_pointer_cast<const SyntacticTree>(ownershipPtr));
 
 	// Future TODO: parse and load other files here
 
@@ -32,7 +32,7 @@ std::shared_ptr<SemanticTree> SyntacticTree::makeSemanticEntity() const {
 			throw SemanticAnalysisException("A machine with the name '" + machineDefinitionPtr->name + "' has already been defined in the current context", *machineDefinitionPtr);
 		}
 
-		semanticTree->machines.emplace(machineDefinitionPtr->name, machineDefinitionPtr->makeSemanticEntity());
+		semanticTree->machines.emplace(machineDefinitionPtr->name, machineDefinitionPtr->makeSemanticEntity(machineDefinitionPtr));
 		usedMachineNames.insert(machineDefinitionPtr->name);
 	}
 
@@ -45,7 +45,12 @@ std::shared_ptr<SemanticTree> SyntacticTree::makeSemanticEntity() const {
 	// now add links between machines
 	for (const auto& machineDefinitionPtr : this->machineDefinitions) {
 		auto machineConsidered = semanticTree->machines[machineDefinitionPtr->name];
-		machineConsidered->follows = semanticTree->machines[machineDefinitionPtr->follows];
+		if (!machineDefinitionPtr->follows.empty()) {
+			machineConsidered->follows = semanticTree->machines[machineDefinitionPtr->follows];
+		} else {
+			machineConsidered->follows = nullptr;
+		}
+		
 		for (const auto& used : machineDefinitionPtr->uses) {
 			machineConsidered->uses.push_back(semanticTree->machines[used]);
 		}
@@ -57,12 +62,12 @@ std::shared_ptr<SemanticTree> SyntacticTree::makeSemanticEntity() const {
 	return semanticTree;
 }
 
-std::shared_ptr<Machine> FiniteAutomatonDefinition::makeSemanticEntity() const {
-	return std::make_shared<FiniteAutomaton>(std::shared_ptr<const FiniteAutomatonDefinition>(this), name, type);
+std::shared_ptr<Machine> FiniteAutomatonDefinition::makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Machine>>& ownershipPtr) const {
+	return std::make_shared<FiniteAutomaton>(std::dynamic_pointer_cast<const FiniteAutomatonDefinition>(ownershipPtr), name, type);
 }
 
-std::shared_ptr<Category> CategoryStatement::makeSemanticEntity() const {
-	return std::make_shared<Category>(std::shared_ptr<const CategoryStatement>(this), this->name);
+std::shared_ptr<Category> CategoryStatement::makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Category>>& ownershipPtr) const {
+	return std::make_shared<Category>(std::dynamic_pointer_cast<const CategoryStatement>(ownershipPtr), this->name);
 }
 
 bool FlagField::flaggable() const {

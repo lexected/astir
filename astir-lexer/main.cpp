@@ -5,7 +5,7 @@
 #include "Parser.h"
 
 int main(int argc, char* argv[]) {
-	std::fstream inputFile("ExampleTokenizer.alex");
+	std::fstream inputFile("TestTokenizer01.alex");
 
 	LexicalAnalyzer analyzer;
 	auto tokenList = analyzer.process(inputFile);
@@ -19,8 +19,8 @@ int main(int argc, char* argv[]) {
 	}
 
 	Parser parser;
-	auto syntacticTree = parser.parse(tokenList);
-	auto semanticTree = syntacticTree->makeSemanticEntity();
+	std::shared_ptr<ISemanticallyProcessable<SemanticTree>> syntacticTree = parser.parse(tokenList);
+	auto semanticTree = syntacticTree->makeSemanticEntity(syntacticTree);
 	semanticTree->initialize();
 
 	return 0;

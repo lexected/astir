@@ -19,7 +19,7 @@ class ISemanticallyProcessable {
 public:
 	virtual ~ISemanticallyProcessable() = default;
 
-	virtual std::shared_ptr<CorrespondingSpecificationType> makeSemanticEntity() const = 0; // why shared_ptr you ask? well, it may be the case that the AST will retain some ownership of the entity 'made' here as well, in which case unique_ptr would be unfeasible. at the same time, survival of the AST is not guaranteed, so a normal pointer would not work
+	virtual std::shared_ptr<CorrespondingSpecificationType> makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<CorrespondingSpecificationType>>& ownershipPtr) const = 0; // why shared_ptr you ask? well, it may be the case that the AST will retain some ownership of the entity 'made' here as well, in which case unique_ptr would be unfeasible. at the same time, survival of the AST is not guaranteed, so a normal pointer would not work
 
 protected:
 	ISemanticallyProcessable() = default;
@@ -31,7 +31,7 @@ struct SyntacticTree : public ISyntacticEntity, public ISemanticallyProcessable<
 	std::list<std::unique_ptr<UsesStatement>> usesStatements;
 	std::list<std::shared_ptr<MachineDefinition>> machineDefinitions;
 
-	std::shared_ptr<SemanticTree> makeSemanticEntity() const override;
+	std::shared_ptr<SemanticTree> makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<SemanticTree>>& ownershipPtr) const override;
 };
 
 struct UsesStatement : public ISyntacticEntity {
@@ -75,7 +75,7 @@ struct FiniteAutomatonDefinition : public MachineDefinition {
 	FiniteAutomatonDefinition()
 		:  MachineDefinition(), type(FiniteAutomatonType::Nondeterministic) { }
 
-	std::shared_ptr<Machine> makeSemanticEntity() const override;
+	std::shared_ptr<Machine> makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Machine>>& ownershipPtr) const override;
 };
 
 enum class RuleStatementType {
@@ -93,7 +93,7 @@ struct MachineStatement : public ISyntacticEntity {
 };
 
 struct CategoryStatement : public MachineStatement, public ISemanticallyProcessable<Category> {
-	std::shared_ptr<Category> makeSemanticEntity() const override;
+	std::shared_ptr<Category> makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Category>>& ownershipPtr) const override;
 };
 
 struct RuleStatement : public MachineStatement, public ISemanticallyProcessable<Rule> {
@@ -106,7 +106,7 @@ struct RuleStatement : public MachineStatement, public ISemanticallyProcessable<
 	RuleStatement()
 		: terminalitySpecified(false), terminality(false), typeSpecified(false), type(RuleStatementType::Production) { }
 
-	std::shared_ptr<Rule> makeSemanticEntity() const override;
+	std::shared_ptr<Rule> makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Rule>>& ownershipPtr) const override;
 };
 
 struct Field : public ISyntacticEntity {
