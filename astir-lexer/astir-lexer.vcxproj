@@ -116,6 +116,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -149,7 +150,9 @@
     <ClCompile Include="Parser.cpp" />
     <ClCompile Include="Regex.cpp" />
     <ClCompile Include="Resources\RawStream.cpp" />
-    <ClCompile Include="Resources\SpecimenFiniteAutomaton.scpp" />
+    <ClCompile Include="Resources\SpecimenFiniteAutomaton.scpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="SemanticTree.cpp" />
     <ClCompile Include="SyntacticTree.cpp" />
     <ClCompile Include="Tests\TestTokenizer01PivotOutput.cpp" />
@@ -174,6 +177,9 @@
     <ClInclude Include="Regex.h" />
     <ClInclude Include="Resources\RawStream.h" />
     <ClInclude Include="Resources\SpecimenFiniteAutomaton.sh" />
+    <ClInclude Include="Resources\SpecimenFiniteAutomaton.sh">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="SemanticTree.h" />
     <ClInclude Include="SyntacticTree.h" />
     <ClInclude Include="Token.h" />

@@ -3,6 +3,10 @@
 #include "${{MachineName}}.h"
 
 namespace ${{MachineName}} {
+	const std::shared_ptr<RawStreamLocation>& Production::location() const {
+		return m_location;
+	}
+
 	std::shared_ptr<Terminal> ${{MachineName}}::apply(RawStream& rs) {
 		char currentCharacter;
 		State lastAcceptingState = (State)(-1);
@@ -55,7 +59,7 @@ namespace ${{MachineName}} {
 	std::list<std::shared_ptr<Terminal>> ${{MachineName}}::process(RawStream& rs) {
 		std::list<std::shared_ptr<Terminal>> ret;
 
-		while (lastApplicationSuccessful() /* && the end of */) {
+		while (lastApplicationSuccessful()) {
 			auto terminalPtr = apply(rs);
 			if (terminalPtr) {
 				ret.push_back(terminalPtr);

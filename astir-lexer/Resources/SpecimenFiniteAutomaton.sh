@@ -6,7 +6,21 @@
 #include "RawStream.h"
 
 namespace ${{MachineName}} {
+	class Production : IRawStreamLocalizable {
+	public:
+		Production(const std::shared_ptr<RawStreamLocation>& occurenceLocation)
+			: m_location(occurenceLocation) { }
+		Production(const IRawStreamLocalizable& underlyingEntity)
+			: m_location(underlyingEntity.location()) { }
+
+		const std::shared_ptr<RawStreamLocation>& location() const override;
+	private:
+		std::shared_ptr<RawStreamLocation> m_location;
+	};
+
 	enum class TerminalType {
+		EOS,
+
 		${{TerminalTypesEnumerated}}
 	};
 
@@ -15,19 +29,11 @@ namespace ${{MachineName}} {
 		TerminalType type;
 		std::string string;
 	protected:
-		Terminal(TerminalType type, const std::shared_ptr<RawStreamLocation>& occurenceLocation)
-			: type(type), string(""), m_location(occurenceLocation) { }
-		Terminal(TerminalType type, const IRawStreamLocalizable& underlyingEntity)
-			: type(type), string(""), m_location(underlyingEntity.location()) { }
-
-		const std::shared_ptr<RawStreamLocation>& location() const override;
-	private:
-		std::shared_ptr<RawStreamLocation> m_location;
+		Terminal(TerminalType type)
+			: type(type), string("") { }
+		Terminal(TerminalType type, const std::string& str)
+			: type(type), string(str) { }
 	};
-
-	const std::shared_ptr<RawStreamLocation>& Terminal::location() const {
-		return m_location;
-	}
 
 	class EOS : public Terminal {
 	public:
