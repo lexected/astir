@@ -1,4 +1,4 @@
-deterministic finite automaton TestTokenizer01 {
+deterministic finite automaton Test01 {
 	terminal production p1 = "a";
 	terminal production p2 = "a" "b" "b";
 	terminal production p3 = "a"* "b"+;

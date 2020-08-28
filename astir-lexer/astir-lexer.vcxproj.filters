@@ -43,13 +43,16 @@
     <Filter Include="Source Files\Lexical Analysis">
       <UniqueIdentifier>{847d288a-0b0f-4ca8-83ea-68bafc845e4b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\Tests\Uncategorized">
+      <UniqueIdentifier>{42098e62-6d69-43a2-b8e6-8923040f3218}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Tests\Test01">
+      <UniqueIdentifier>{96550b82-097c-49a9-8557-10e545b679ad}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Tests\TestTokenizer01PivotOutput.cpp">
-      <Filter>Resource Files\Tests</Filter>
     </ClCompile>
     <ClCompile Include="Resources\RawStream.cpp">
       <Filter>Resource Files\Resources</Filter>
@@ -172,17 +175,17 @@
     <None Include="Grammar.astir">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Tests\C99Tokenizer.alex">
-      <Filter>Resource Files\Tests</Filter>
+    <None Include="Tests\Uncategorized\C99Tokenizer.alex">
+      <Filter>Resource Files\Tests\Uncategorized</Filter>
     </None>
-    <None Include="Tests\ExampleParser.apar">
-      <Filter>Resource Files\Tests</Filter>
+    <None Include="Tests\Uncategorized\ExampleParser.apar">
+      <Filter>Resource Files\Tests\Uncategorized</Filter>
     </None>
-    <None Include="Tests\ExampleTokenizer.alex">
-      <Filter>Resource Files\Tests</Filter>
+    <None Include="Tests\Uncategorized\ExampleTokenizer.alex">
+      <Filter>Resource Files\Tests\Uncategorized</Filter>
     </None>
-    <None Include="Tests\TestTokenizer01.alex">
-      <Filter>Resource Files\Tests</Filter>
+    <None Include="Tests\Test01\Test01.alex">
+      <Filter>Resource Files\Tests\Test01</Filter>
     </None>
   </ItemGroup>
 </Project>

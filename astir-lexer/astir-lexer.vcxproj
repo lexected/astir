@@ -157,7 +157,6 @@
     </ClCompile>
     <ClCompile Include="SemanticTree.cpp" />
     <ClCompile Include="SyntacticTree.cpp" />
-    <ClCompile Include="Tests\TestTokenizer01PivotOutput.cpp" />
     <ClCompile Include="Token.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -189,10 +188,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Grammar.astir" />
-    <None Include="Tests\C99Tokenizer.alex" />
-    <None Include="Tests\ExampleParser.apar" />
-    <None Include="Tests\ExampleTokenizer.alex" />
-    <None Include="Tests\TestTokenizer01.alex" />
+    <None Include="Tests\Test01\Test01.alex" />
+    <None Include="Tests\Uncategorized\C99Tokenizer.alex" />
+    <None Include="Tests\Uncategorized\ExampleParser.apar" />
+    <None Include="Tests\Uncategorized\ExampleTokenizer.alex" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

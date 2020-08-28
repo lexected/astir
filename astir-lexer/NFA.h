@@ -1,6 +1,7 @@
 #pragma once
 
 #include <set>
+#include <deque>
 #include <vector>
 #include <list>
 
@@ -175,6 +176,6 @@ private:
 	std::list<std::shared_ptr<SymbolGroup>> calculateTransitionSymbols(const std::set<State>& states) const;
 	static void calculateDisjointProductionSymbolGroups(std::list<ProductionSymbolGroup>& symbolGroups);
 
-	State findUnmarkedState(const std::vector<DFAState>& stateMap) const;
-	State findStateByNFAStateSet(const std::vector<DFAState>& stateMap, const std::set<State>& nfaSet) const;
+	State findUnmarkedState(const std::deque<DFAState>& stateMap) const;
+	State findStateByNFAStateSet(const std::deque<DFAState>& stateMap, const std::set<State>& nfaSet) const;
 };

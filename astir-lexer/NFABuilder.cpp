@@ -75,6 +75,7 @@ NFA NFABuilder::visit(const RepetitiveRegex* regex) const {
             theMachine.addEmptyTransition(finalState, 0);
             theMachine.addEmptyTransition(finalState, theVeryFinalState);
         }
+        theMachine.finalStates = { theVeryFinalState };
 
         NFA theMachineSTAR;
         theMachineSTAR.finalStates.insert(0);

@@ -3,9 +3,10 @@
 
 #include "LexicalAnalyzer.h"
 #include "Parser.h"
+#include "CppGenerationVisitor.h"
 
 int main(int argc, char* argv[]) {
-	std::fstream inputFile("ExampleTokenizer.alex");
+	std::fstream inputFile("Tests/Test01/Test01.alex");
 
 	LexicalAnalyzer analyzer;
 	auto tokenList = analyzer.process(inputFile);
@@ -22,6 +23,10 @@ int main(int argc, char* argv[]) {
 	std::shared_ptr<ISemanticallyProcessable<SemanticTree>> syntacticTree = parser.parse(tokenList);
 	auto semanticTree = syntacticTree->makeSemanticEntity(syntacticTree);
 	semanticTree->initialize();
+
+	CppGenerationVisitor generationVisitor("Tests/Test01/Output");
+	generationVisitor.setup();
+	generationVisitor.visit(semanticTree.get());
 
 	return 0;
 }

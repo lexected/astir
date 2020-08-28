@@ -4,6 +4,8 @@
 #include "SemanticTree.h"
 #include "NFA.h"
 
+#include <filesystem>
+
 class GenerationVisitor {
 public:
 	virtual void setup() const = 0;
@@ -14,6 +16,6 @@ protected:
 	GenerationVisitor(const std::string& path)
 		: m_folderPath(path) { }
 
-	std::string m_folderPath;
+	const std::filesystem::path m_folderPath;
 };
 

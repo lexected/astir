@@ -1,7 +1,8 @@
 #include "NFA.h"
 
 #include <stack>
-#include <algorithm> 
+#include <algorithm>
+#include <iterator>
 
 #include "Exception.h"
 #include "SemanticTree.h"
@@ -127,7 +128,7 @@ NFA NFA::buildDFA() const {
     // to be executed when an accepting state is reached
 
     NFA base;
-    std::vector<DFAState> stateMap;
+    std::deque<DFAState> stateMap; // must be a deque, not a vector!
 
     auto initialSet = calculateEpsilonClosure(std::set<State>({ (State)0 }));
     stateMap.push_back(DFAState(initialSet));
@@ -142,13 +143,13 @@ NFA NFA::buildDFA() const {
             auto advancedStateSet = calculateSymbolClosure(stateObject.nfaStates, transitionSymbolPtr.get());
             auto epsilonClosureDFAState = calculateEpsilonClosure(advancedStateSet);
             State theCorrespondingDFAStateIndex = findStateByNFAStateSet(stateMap, epsilonClosureDFAState.nfaStates);
-            if (theCorrespondingDFAStateIndex == epsilonClosureDFAState.nfaStates.size()) {
+            if (theCorrespondingDFAStateIndex == base.states.size()) {
                 theCorrespondingDFAStateIndex = base.addState();
                 base.states[theCorrespondingDFAStateIndex].actions = epsilonClosureDFAState.actions; 
                 stateMap.emplace_back(epsilonClosureDFAState);
                 
-                std::list<State> intersectionOfNFAStates;
-                std::set_intersection(epsilonClosureDFAState.nfaStates.cbegin(), epsilonClosureDFAState.nfaStates.cend(), finalStates.cbegin(), finalStates.cend(), intersectionOfNFAStates.begin());
+                std::set<State> intersectionOfNFAStates;
+                std::set_intersection(epsilonClosureDFAState.nfaStates.cbegin(), epsilonClosureDFAState.nfaStates.cend(), finalStates.cbegin(), finalStates.cend(), std::inserter(intersectionOfNFAStates, intersectionOfNFAStates.begin()));
                 if (intersectionOfNFAStates.size() > 0) {
                     base.finalStates.insert(theCorrespondingDFAStateIndex);
                 }
@@ -327,7 +328,7 @@ void NFA::calculateDisjointProductionSymbolGroups(std::list<ProductionSymbolGrou
     }
 }
 
-State NFA::findUnmarkedState(const std::vector<DFAState>& stateMap) const {
+State NFA::findUnmarkedState(const std::deque<DFAState>& stateMap) const {
     size_t index;
     for (index = 0; index < stateMap.size(); ++index) {
         if (!stateMap[index].marked) {
@@ -338,7 +339,7 @@ State NFA::findUnmarkedState(const std::vector<DFAState>& stateMap) const {
     return index;
 }
 
-State NFA::findStateByNFAStateSet(const std::vector<DFAState>& stateMap, const std::set<State>& nfaSet) const {
+State NFA::findStateByNFAStateSet(const std::deque<DFAState>& stateMap, const std::set<State>& nfaSet) const {
     size_t index;
     for (index = 0; index < stateMap.size(); ++index) {
         if (stateMap[index].nfaStates == nfaSet) {

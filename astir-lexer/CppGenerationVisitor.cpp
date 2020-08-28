@@ -7,11 +7,12 @@
 #include "GenerationHelper.h"
 
 void CppGenerationVisitor::setup() const {
-	if(!std::filesystem::is_directory("Output")) {
-		std::filesystem::create_directory("Output");
+	// TODO: improve error handling here... what if m_folderPath is actually a file?? throw an exception
+	if(!std::filesystem::is_directory(m_folderPath)) {
+		std::filesystem::create_directory(m_folderPath);
 	}
-	std::filesystem::copy_file("Resources/RawStream.h", "Output/RawStream.h");
-	std::filesystem::copy_file("Resources/RawStream.cpp", "Output/RawStream.cpp");
+	std::filesystem::copy_file("Resources/RawStream.h", m_folderPath / "RawStream.h", std::filesystem::copy_options::overwrite_existing);
+	std::filesystem::copy_file("Resources/RawStream.cpp", m_folderPath / "RawStream.cpp", std::filesystem::copy_options::overwrite_existing);
 }
 
 void CppGenerationVisitor::visit(const SemanticTree* tree) {
@@ -24,14 +25,14 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 	std::ifstream specimenFaHeader("Resources/SpecimenFiniteAutomaton.sh");
 	std::string specimenFaHeaderContents((std::istreambuf_iterator<char>(specimenFaHeader)), (std::istreambuf_iterator<char>()));
 
-	std::ifstream specimenFaCode("Resources/SpecimenFiniteAutomaton.cpp");
+	std::ifstream specimenFaCode("Resources/SpecimenFiniteAutomaton.scpp");
 	std::string specimenFaCodeContents((std::istreambuf_iterator<char>(specimenFaCode)), (std::istreambuf_iterator<char>()));
 
 	// do constructive magic
 	std::map<std::string, std::string> macros;
 	// in particular, we need to
 	//  - register all the name macros
-	macros.emplace("${{MachineName}}", machine->name);
+	macros.emplace("MachineName", machine->name);
 	
 	//  - enumerate all the terminal types
 	auto terminalTypeComponents = machine->getTerminalTypeComponents();
@@ -39,38 +40,38 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 	for (auto componentPtr : terminalTypeComponents) {
 		ss << componentPtr->name << "," << std::endl;
 	}
-	macros.emplace("${{TerminalTypesEnumerated}}", ss.str());
+	macros.emplace("TerminalTypesEnumerated", ss.str());
 
 	//  - generate type declarations
 	auto typeComponents = machine->getTypeComponents();
 	const std::string& generatedClasses = generateTypeDeclarations(typeComponents);
-	macros.emplace("${{TypeDeclarations}}", generatedClasses);
+	macros.emplace("TypeDeclarations", generatedClasses);
 
 	//  - set the DFA table parameter macros
-	macros.emplace("${{StateCount}}", std::to_string(machine->getNFA().states.size()));
-	macros.emplace("${{TransitionCount}}", "256");
+	macros.emplace("StateCount", std::to_string(machine->getNFA().states.size()));
+	macros.emplace("TransitionCount", "256");
 
 	//  - generate action context declarations
-	macros.emplace("${{ActionContextsDeclarations}}", "");
+	macros.emplace("ActionContextsDeclarations", "");
 
 	//  - generate transition action decs&defs&adds
-	macros.emplace("${{TransitionActionsDeclarations}}", "");
-	macros.emplace("${{TransitionActionsDefinitions}}", "");
-	macros.emplace("${{TransitionActionAddressesEnumerated}}", "");
+	macros.emplace("TransitionActionsDeclarations", "");
+	macros.emplace("TransitionActionsDefinitions", "");
+	macros.emplace("TransitionActionAddressesEnumerated", "");
 
 	//  - generate state action decs&defs&adds
-	macros.emplace("${{StateActionsDeclarations}}", "");
-	macros.emplace("${{StateActionsDefinitions}}", "");
-	macros.emplace("${{StateActionAddressesEnumerated}}", "");
+	macros.emplace("StateActionsDeclarations", "");
+	macros.emplace("StateActionsDefinitions", "");
+	macros.emplace("StateActionAddressesEnumerated", "");
 
 	//  - generate state map
-	macros.emplace("${{StateMapEnumerated}}", generateStateMap(machine->getNFA()));
+	macros.emplace("StateMapEnumerated", generateStateMap(machine->getNFA()));
 
 	//  - generate state finality
-	macros.emplace("${{StateFinalityEnumerated}}", generateStateFinality(machine->getNFA()));
+	macros.emplace("StateFinalityEnumerated", generateStateFinality(machine->getNFA()));
 
-	std::ofstream faHeader("Output/" + machine->name + ".h");
-	std::ofstream faCode("Output/" + machine->name + ".cpp");
+	std::ofstream faHeader(m_folderPath / (machine->name + ".h"));
+	std::ofstream faCode(m_folderPath / (machine->name + ".cpp"));
 
 	GenerationHelper::macroWrite(specimenFaHeaderContents, macros, faHeader);
 	GenerationHelper::macroWrite(specimenFaCodeContents, macros, faCode);
@@ -114,12 +115,16 @@ std::string CppGenerationVisitor::generateStateMap(const NFA& fa) {
 
 		for (const auto& transition : stateObject.transitions) {
 			auto symbolPtr = std::dynamic_pointer_cast<LiteralSymbolGroup>(transition.condition);
-			std::fill(transitionTableLine+symbolPtr->rangeStart, transitionTableLine + symbolPtr->rangeEnd, transition.target);
+			std::fill(transitionTableLine+symbolPtr->rangeStart, transitionTableLine + symbolPtr->rangeEnd+1, transition.target);
 		}
 
 		ss << "{ ";
 		for (const State& transitionTableEntry : transitionTableLine) {
-			ss << transitionTableEntry << ", ";
+			if (transitionTableEntry == (State)(-1)) {
+				ss << "(State)-1, ";
+			} else {
+				ss << transitionTableEntry << ", ";
+			}
 		}
 		ss << "},\n";
 	}
