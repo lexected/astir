@@ -90,6 +90,12 @@
     <ClCompile Include="Resources\SpecimenFiniteAutomaton.scpp">
       <Filter>Resource Files\Resources</Filter>
     </ClCompile>
+    <ClCompile Include="GenerationHelper.cpp">
+      <Filter>Source Files\Generation</Filter>
+    </ClCompile>
+    <ClCompile Include="GenerationException.cpp">
+      <Filter>Source Files\Generation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h">
@@ -154,6 +160,12 @@
     </ClInclude>
     <ClInclude Include="Resources\SpecimenFiniteAutomaton.sh">
       <Filter>Resource Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="GenerationException.h">
+      <Filter>Header Files\Generation</Filter>
+    </ClInclude>
+    <ClInclude Include="GenerationHelper.h">
+      <Filter>Header Files\Generation</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -141,6 +141,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CppGenerationVisitor.cpp" />
+    <ClCompile Include="GenerationException.cpp" />
+    <ClCompile Include="GenerationHelper.cpp" />
     <ClCompile Include="IProductionReferencable.cpp" />
     <ClCompile Include="NFABuilder.cpp" />
     <ClCompile Include="ISyntacticEntity.cpp" />
@@ -162,6 +164,8 @@
     <ClInclude Include="CppGenerationVisitor.h" />
     <ClInclude Include="Exception.h" />
     <ClInclude Include="FileLocation.h" />
+    <ClInclude Include="GenerationException.h" />
+    <ClInclude Include="GenerationHelper.h" />
     <ClInclude Include="GenerationVisitor.h" />
     <ClInclude Include="IActing.h" />
     <ClInclude Include="IFileLocalizable.h" />
@@ -176,7 +180,6 @@
     <ClInclude Include="Parser.h" />
     <ClInclude Include="Regex.h" />
     <ClInclude Include="Resources\RawStream.h" />
-    <ClInclude Include="Resources\SpecimenFiniteAutomaton.sh" />
     <ClInclude Include="Resources\SpecimenFiniteAutomaton.sh">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClInclude>
