@@ -244,8 +244,8 @@ void FiniteAutomatonMachine::initialize() {
 	NFA base;
 	for (const auto& componentPair : this->components) {
 		const MachineComponent* componentPtr = componentPair.second.get();
-		NFABuilder builder(*this, componentPtr, "");
-		base.addContextedAlternative(componentPtr->accept(builder), "token", componentPtr->name, false);
+		NFABuilder builder(*this, componentPtr, "m_token");
+		base.addContextedAlternative(componentPtr->accept(builder), "m_token", componentPtr->name, true);
 	}
 
 	if (this->type == FiniteAutomatonType::Deterministic) {

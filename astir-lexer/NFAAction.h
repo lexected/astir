@@ -17,9 +17,11 @@ enum class NFAActionType : unsigned char {
 	RightTrim = 9,
 
 	CreateContext = 101,
-	AssignContext = 102,
-	AppendContext = 103,
-	PrependContext = 104,
+	DestroyContext = 102, // UNSAFE IN VAST MAJORITY OF SCENARIOS DUE TO NATURE OF NFA EMPTY TRANSITIONS (and because my context encapsulation is far from perfect), DO NOT USE!
+	ElevateContext = 103,
+	SetContext = 104,
+	AppendContext = 105,
+	PrependContext = 106,
 
 	None = 255
 };

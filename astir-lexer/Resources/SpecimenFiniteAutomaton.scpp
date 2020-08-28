@@ -10,6 +10,11 @@ namespace ${{MachineName}} {
 	std::shared_ptr<Terminal> ${{MachineName}}::apply(RawStream& rs) {
 		char currentCharacter;
 		State lastAcceptingState = (State)(-1);
+		std::shared_ptr<Terminal> tokenToReturn = nullptr;
+
+		if(this->m_stateActions[0] != nullptr) {
+			(this->*m_stateActions[0])(rs);
+		}
 
 		rs.pin();
 		while (true) {
@@ -24,23 +29,28 @@ namespace ${{MachineName}} {
 				if (lastAcceptingState == (State)(-1)) {
 					if (m_currentState > 0) {
 						// failure, we are not in the first state and we have not reached any accepting state so far, so we will return nullptr. The users are then encouraged to make use of lastApplicationSuccessful() and RawStream location information to identify the issue
-						return nullptr;
+						break;
 					} else {
 						// all done, lastApplicationSuccessful!
-						return nullptr;
+						break;
 					}
 				} else {
 					// accept, reset m_currentState to 0, and backtrack input to where the lastAcceptingState was hit
 					m_currentState = 0;
 					rs.resetToPin();
-					return m_token;
+					tokenToReturn = m_token;
+					break;
 				}
 			} else {
 				// execute the transition actions
-				(this->*m_transitionActions[m_currentState][currentCharacter])(currentCharacter);
+				if(this->m_transitionActions[m_currentState][currentCharacter] != nullptr) {
+					(this->*m_transitionActions[m_currentState][currentCharacter])(currentCharacter);
+				}
 
-				// execute the state actions
-				(this->*m_stateActions[stateToGoTo])();
+				// execute the state actions, but only if a transition occurs
+				if(stateToGoTo != m_currentState && this->m_stateActions[stateToGoTo] != nullptr) {
+					(this->*m_stateActions[stateToGoTo])(rs);
+				}
 
 				// if this is a final state, take a note of that
 				if (m_stateFinality[stateToGoTo]) {
@@ -53,13 +63,14 @@ namespace ${{MachineName}} {
 			}
 		}
 
-		return std::shared_ptr<Terminal>();
+		m_token = nullptr;
+		return tokenToReturn;
 	}
 
 	std::list<std::shared_ptr<Terminal>> ${{MachineName}}::process(RawStream& rs) {
 		std::list<std::shared_ptr<Terminal>> ret;
 
-		while (lastApplicationSuccessful()) {
+		while (lastApplicationSuccessful() && rs.good()) {
 			auto terminalPtr = apply(rs);
 			if (terminalPtr) {
 				ret.push_back(terminalPtr);
@@ -88,7 +99,7 @@ namespace ${{MachineName}} {
 	void (${{MachineName}}::* ${{MachineName}}::m_transitionActions[${{StateCount}}][${{TransitionCount}}])(char c) = {
 		${{TransitionActionMapEnumerated}}
 	};
-	void (${{MachineName}}::* ${{MachineName}}::m_stateActions[${{StateCount}}])() = {
+	void (${{MachineName}}::* ${{MachineName}}::m_stateActions[${{StateCount}}])(const RawStream& stream) = {
 		${{StateActionMapEnumerated}}
 	};
 

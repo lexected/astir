@@ -31,6 +31,8 @@ void NFA::operator|=(const NFA& rhs) {
     finalStates.insert(finalStatesCopy.begin(), finalStatesCopy.end());
 
     addEmptyTransition(0, stateIndexShift);
+
+    mergeInContexts(rhs);
 }
 
 void NFA::operator&=(const NFA& rhs) {
@@ -52,10 +54,11 @@ void NFA::operator&=(const NFA& rhs) {
         addEmptyTransition(finalState, rhsStartState);
     }
     this->finalStates = finalStatesCopy;
+
+    mergeInContexts(rhs);
 }
 
 void NFA::addContextedAlternative(const NFA& rhs, const std::string& broaderContextPath, const std::string& contextName, bool createContext) {
-    const std::string sourceGenerationPath = broaderContextPath + "__" + contextName;
     State stateIndexShift = this->states.size();
     auto stateCopy = rhs.states;
     for (auto& state : stateCopy) {
@@ -71,18 +74,21 @@ void NFA::addContextedAlternative(const NFA& rhs, const std::string& broaderCont
     }
     addEmptyTransition(0, stateIndexShift, createContextActionRegister);
 
-    NFAActionRegister assignContextActionRegister;
-    assignContextActionRegister.emplace_back(NFAActionType::AssignContext, sourceGenerationPath, broaderContextPath);
+    NFAActionRegister elevateContextActionRegister;
+    elevateContextActionRegister.emplace_back(NFAActionType::ElevateContext, broaderContextPath, contextName);
+    elevateContextActionRegister.emplace_back(NFAActionType::DestroyContext, broaderContextPath, contextName);
 
     const State newFinalState = addState();
 
     std::set<State> finalStatesCopy;
     for (const auto& finalStateIndex : rhs.finalStates) {
         const State shiftedStateIndex = stateIndexShift + finalStateIndex;
-        addEmptyTransition(shiftedStateIndex, newFinalState);
+        addEmptyTransition(shiftedStateIndex, newFinalState, elevateContextActionRegister);
     }
     
     finalStates.insert(newFinalState);
+
+    mergeInContexts(rhs);
 }
 
 State NFA::addState() {
@@ -132,6 +138,12 @@ void NFA::registerContext(const std::string& parentName, const std::string& name
     contexts.push_back(std::pair<std::string, std::string>(parentName, name));
 }
 
+void NFA::mergeInContexts(const NFA& rhs) {
+    for (const auto& contextPair : rhs.contexts) {
+        registerContext(contextPair.first, contextPair.second);
+    }
+}
+
 NFA NFA::buildDFA() const {
     // the idea of the conversion algorithm is quite simple,
     // but what makes the whole conversion rather challenging
@@ -141,8 +153,9 @@ NFA NFA::buildDFA() const {
     NFA base;
     std::deque<DFAState> stateMap; // must be a deque, not a vector!
 
-    auto initialSet = calculateEpsilonClosure(std::set<State>({ (State)0 }));
-    stateMap.push_back(DFAState(initialSet));
+    DFAState initialState = calculateEpsilonClosure(std::set<State>({ (State)0 }));
+    base.states[0].actions = initialState.actions;
+    stateMap.push_back(initialState);
 
     State unmarkedStateDfaState;
     while ((unmarkedStateDfaState = findUnmarkedState(stateMap)) != stateMap.size()) {
@@ -169,6 +182,8 @@ NFA NFA::buildDFA() const {
             base.addTransition(unmarkedStateDfaState, Transition(theCorrespondingDFAStateIndex, transitionSymbolPtr));
         }
     }
+
+    base.mergeInContexts(*this);
 
     return base;
 }
@@ -270,7 +285,7 @@ void NFA::calculateDisjointLiteralSymbolGroups(std::list<LiteralSymbolGroup>& sy
 
         if (iit != symbolGroups.end()) {
             if (equalTransitionFound) {
-                it->actions += iit->actions;
+                iit->actions += it->actions;
                 it = symbolGroups.erase(it);
             } else {
                 LiteralSymbolGroup::disjoin(symbolGroups, *it, *iit);

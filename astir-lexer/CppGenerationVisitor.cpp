@@ -105,47 +105,53 @@ void CppGenerationVisitor::visit(const NFAActionRegister* actionRegister) {
 	}
 }
 
-void CppGenerationVisitor::visit(const NFAAction* actionRegister) {
-	switch (actionRegister->type) {
+void CppGenerationVisitor::visit(const NFAAction* action) {
+	switch (action->type) {
 		case NFAActionType::Append:
-			m_output << actionRegister->contextPath << '.' << actionRegister->targetName << ".push_back(c);" << std::endl;
+			m_output << action->contextPath << "->" << action->targetName << ".push_back(c);";
 			break;
 		case NFAActionType::Prepend:
-			m_output << actionRegister->contextPath << '.' << actionRegister->targetName << ".push_front(c);" << std::endl;
+			m_output << action->contextPath << "->" << action->targetName << ".push_front(c);";
 			break;
 		case NFAActionType::Clear:
-			m_output << actionRegister->contextPath << '.' << actionRegister->targetName << ".clear();" << std::endl;
+			m_output << action->contextPath << "->" << action->targetName << ".clear();";
 			break;
 		case NFAActionType::RightTrim:
-			m_output << actionRegister->contextPath << '.' << actionRegister->targetName << ".pop_back();" << std::endl;
+			m_output << action->contextPath << "->" << action->targetName << ".pop_back();";
 			break;
 		case NFAActionType::LeftTrim:
-			m_output << actionRegister->contextPath << '.' << actionRegister->targetName << ".pop_front();" << std::endl;
+			m_output << action->contextPath << "->" << action->targetName << ".pop_front();";
 			break;
 		case NFAActionType::Flag:
-			m_output << actionRegister->contextPath << '.' << actionRegister->targetName << " = true;" << std::endl;
+			m_output << action->contextPath << "->" << action->targetName << " = true;";
 			break;
 		case NFAActionType::Unflag:
-			m_output << actionRegister->contextPath << '.' << actionRegister->targetName << " = false;" << std::endl;
+			m_output << action->contextPath << "->" << action->targetName << " = false;";
 			break;
 		case NFAActionType::Set:
-			m_output << actionRegister->contextPath << '.' << actionRegister->targetName << " = c;" << std::endl;
+			m_output << action->contextPath << "->" << action->targetName << " = c;";
 			break;
 		case NFAActionType::Unset:
-			m_output << actionRegister->contextPath << '.' << actionRegister->targetName << " = nullptr;" << std::endl;
+			m_output << action->contextPath << "->" << action->targetName << " = nullptr;";
 			break;
 
 		case NFAActionType::CreateContext:
-			m_output << actionRegister->contextPath << '.' << actionRegister->targetName << " = std::make_shared<" << actionRegister->targetName << ">();" << std::endl;
+			m_output << action->contextPath << "__" << action->targetName << " = std::make_shared<" << action->targetName << ">(stream.currentLocation());";
 			break;
-		case NFAActionType::AssignContext:
-			m_output << actionRegister->contextPath << '.' << actionRegister->targetName << " = " << actionRegister->contextPath << "__" << actionRegister->targetName << ';' << std::endl;
+		/*case NFAActionType::DestroyContext: DO NOT USE
+			m_output << action->contextPath << "__" << action->targetName << " = nullptr;";
+			break;*/
+		case NFAActionType::ElevateContext:
+			m_output << action->contextPath << " = " << action->contextPath << "__" << action->targetName << ';';
+			break;
+		case NFAActionType::SetContext:
+			m_output << action->contextPath << "->" << action->targetName << " = " << action->contextPath << "__" << action->targetName << ';';
 			break;
 		case NFAActionType::AppendContext:
-			m_output << actionRegister->contextPath << '.' << actionRegister->targetName << ".push_back(" << actionRegister->contextPath << "__" << actionRegister->targetName << ");" << std::endl;
+			m_output << action->contextPath << "->" << action->targetName << ".push_back(" << action->contextPath << "__" << action->targetName << ");";
 			break;
 		case NFAActionType::PrependContext:
-			m_output << actionRegister->contextPath << '.' << actionRegister->targetName << ".push_front(" << actionRegister->contextPath << "__" << actionRegister->targetName << ");" << std::endl;
+			m_output << action->contextPath << "->" << action->targetName << ".push_front(" << action->contextPath << "__" << action->targetName << ");";
 			break;
 	}
 }
@@ -164,7 +170,7 @@ std::string CppGenerationVisitor::generateTypeDeclarations(const std::list<const
 		ss <<"{" << std::endl;
 
 		ss << "public:" << std::endl;
-		ss << "\tEOS(const std::shared_ptr<RawStreamLocation>& location)" << std::endl;
+		ss << '\t' << mc->name << "(const std::shared_ptr<RawStreamLocation>& location)" << std::endl;
 		ss << "\t\t: Production(location)";
 		if (mc->isTerminal()) {
 			ss << ", Terminal(TerminalType::" << mc->name << ")";
@@ -206,7 +212,7 @@ void CppGenerationVisitor::generateAutomatonMechanicsMaps(const std::string& mac
 		const NFAActionRegister& snar = stateObject.actions;
 		if (snar.size() > 0) {
 			ActionRegisterId registerId = ++m_actionRegistersUsed;
-			actionRegisterDeclarationStream << "void actionRegister" << registerId << "();" << std::endl;
+			actionRegisterDeclarationStream << "void actionRegister" << registerId << "(const RawStream& stream);" << std::endl;
 			actionRegisterDefinitionStream << generateActionRegisterDefinition(machineName, registerId, snar, true);
 
 			stateActionRegisterMap[state] = registerId;
@@ -267,8 +273,8 @@ void CppGenerationVisitor::generateAutomatonMechanicsMaps(const std::string& mac
 std::string CppGenerationVisitor::generateAutomatonContextDeclarations(const NFA& fa) const {
 	std::stringstream ss;
 
-	for (const auto& contextNameTypePair : fa.contexts) {
-		ss << "std::shared_ptr<" << contextNameTypePair.second << "> " << contextNameTypePair.first << ';' << std::endl;
+	for (const auto& contextParentChildPair : fa.contexts) {
+		ss << "std::shared_ptr<" << contextParentChildPair.second << "> " << contextParentChildPair.first << "__"  << contextParentChildPair.second << ';' << std::endl;
 	}
 	
 	return ss.str();
@@ -290,7 +296,7 @@ std::string CppGenerationVisitor::generateStateFinality(const NFA& fa) const {
 
 std::string CppGenerationVisitor::generateActionRegisterDefinition(const std::string& machineName, ActionRegisterId registerId, const NFAActionRegister& nar, bool isStateAction) {
 	std::stringstream ss;
-	ss << "void " << machineName << "::" << "actionRegister" << registerId << (isStateAction ? "()" : "(char c)") << " {" << std::endl;
+	ss << "void " << machineName << "::" << "actionRegister" << registerId << (isStateAction ? "(const RawStream& stream)" : "(char c)") << " {" << std::endl;
 
 	nar.accept(this);
 	ss << outputAndReset();

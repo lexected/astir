@@ -22,7 +22,7 @@ public:
 	unsigned long column;
 
 	TextLocation()
-		: line(0), column(0) { }
+		: line(1), column(0) { }
 
 	TextLocation(unsigned long line, unsigned long column)
 		: line(line), column(column) { }
@@ -69,7 +69,7 @@ public:
 	const std::shared_ptr<RawStreamLocation>& currentLocation() const { return m_currentStreamLocation; }
 protected:
 	RawStream(std::istream& underlyingStream, const std::shared_ptr<RawStreamLocation>& startingStreamLocation)
-		: m_underlyingStream(underlyingStream), m_buffer(), m_nextByteToGive(0), m_currentStreamLocation(startingStreamLocation) { }
+		: m_underlyingStream(underlyingStream), m_buffer(), m_nextByteToGive(0), m_currentStreamLocation(startingStreamLocation), m_pinLocation(startingStreamLocation) { }
 
 private:
 	std::istream& m_underlyingStream;

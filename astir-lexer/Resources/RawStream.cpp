@@ -10,9 +10,11 @@ bool RawStream::get(char& c) {
     } else {
         bool ret = bool{ m_underlyingStream.get(c) };
 
-        m_buffer.push_back(c);
-        ++m_nextByteToGive;
-        m_currentStreamLocation->note(c);
+        if (ret) {
+            m_buffer.push_back(c);
+            ++m_nextByteToGive;
+            m_currentStreamLocation->note(c);
+        }
 
         return ret;
     }
@@ -26,8 +28,9 @@ void RawStream::pin() {
     if (m_nextByteToGive > 0) {
         m_buffer.erase(m_buffer.cbegin(), m_buffer.cbegin() + m_nextByteToGive);
         m_nextByteToGive = 0;
-        m_pinLocation = m_currentStreamLocation;
     }
+
+    m_pinLocation = m_currentStreamLocation;
 }
 
 void RawStream::resetToPin() {
@@ -42,6 +45,7 @@ void RawStream::unpin() {
 }
 
 void TextLocation::note(char c) {
+    ++column;
     if(c == '\n') {
         ++line;
         column = 0;

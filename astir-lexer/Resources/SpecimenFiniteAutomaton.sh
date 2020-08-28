@@ -24,7 +24,7 @@ namespace ${{MachineName}} {
 		${{TerminalTypesEnumerated}}
 	};
 
-	class Terminal : public IRawStreamLocalizable {
+	class Terminal {
 	public:
 		TerminalType type;
 		std::string string;
@@ -35,14 +35,13 @@ namespace ${{MachineName}} {
 			: type(type), string(str) { }
 	};
 
-	class EOS : public Terminal {
+	class EOS : public Production, public Terminal {
 	public:
 		EOS(const std::shared_ptr<RawStreamLocation>& location)
-			: Terminal(TerminalType::EOS, location) { }
+			: Production(location), Terminal(TerminalType::EOS) { }
 	};
 
 	${{TypeDeclarations}}
-
 	using State = size_t;
 	class ${{MachineName}} {
 	public:
@@ -61,7 +60,7 @@ namespace ${{MachineName}} {
 		static State m_stateMap[${{StateCount}}][${{TransitionCount}}];
 		static bool m_stateFinality[${{StateCount}}];
 		static void (${{MachineName}}::* m_transitionActions[${{StateCount}}][${{TransitionCount}}])(char c);
-		static void (${{MachineName}}::* m_stateActions[${{StateCount}}])();
+		static void (${{MachineName}}::* m_stateActions[${{StateCount}}])(const RawStream& stream);
 
 		// action contexts
 		std::shared_ptr<Terminal> m_token;

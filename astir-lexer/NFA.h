@@ -115,6 +115,7 @@ public:
 	void addFinalActions(const NFAActionRegister& actions);
 
 	void registerContext(const std::string& name, const std::string& type);
+	void mergeInContexts(const NFA& rhs);
 
 	NFA buildDFA() const;
 
