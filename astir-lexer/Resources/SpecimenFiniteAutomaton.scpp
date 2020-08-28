@@ -86,13 +86,11 @@ namespace ${{MachineName}} {
 		${{StateFinalityEnumerated}} 
 	};
 	void (${{MachineName}}::* ${{MachineName}}::m_transitionActions[${{StateCount}}][${{TransitionCount}}])(char c) = {
-		${{TransitionActionAddressesEnumerated}}
+		${{TransitionActionMapEnumerated}}
 	};
 	void (${{MachineName}}::* ${{MachineName}}::m_stateActions[${{StateCount}}])() = {
-		${{StateActionAddressesEnumerated}}
+		${{StateActionMapEnumerated}}
 	};
 
-	${{StateActionsDefinitions}}
-
-	${{TransitionActionsDefinitions}}
+	${{ActionDefinitions}}
 }

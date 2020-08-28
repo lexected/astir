@@ -6,6 +6,7 @@
 
 #include "Exception.h"
 #include "SemanticTree.h"
+#include "NFAAction.h"
 
 NFA::NFA()
     : finalStates(), states() {
@@ -53,7 +54,8 @@ void NFA::operator&=(const NFA& rhs) {
     this->finalStates = finalStatesCopy;
 }
 
-void NFA::addContextedAlternative(const NFA& rhs, const std::string& targetGenerationPath, const std::string& sourceGenerationPath, bool createContext) {
+void NFA::addContextedAlternative(const NFA& rhs, const std::string& broaderContextPath, const std::string& contextName, bool createContext) {
+    const std::string sourceGenerationPath = broaderContextPath + "__" + contextName;
     State stateIndexShift = this->states.size();
     auto stateCopy = rhs.states;
     for (auto& state : stateCopy) {
@@ -65,12 +67,12 @@ void NFA::addContextedAlternative(const NFA& rhs, const std::string& targetGener
     states.insert(states.end(), stateCopy.begin(), stateCopy.end());
     NFAActionRegister createContextActionRegister;
     if (createContext) {
-        createContextActionRegister.emplace_back(NFAActionType::CreateContext, targetGenerationPath, sourceGenerationPath);
+        createContextActionRegister.emplace_back(NFAActionType::CreateContext, broaderContextPath, contextName);
     }
     addEmptyTransition(0, stateIndexShift, createContextActionRegister);
 
     NFAActionRegister assignContextActionRegister;
-    assignContextActionRegister.emplace_back(NFAActionType::AssignContext, sourceGenerationPath, targetGenerationPath);
+    assignContextActionRegister.emplace_back(NFAActionType::AssignContext, sourceGenerationPath, broaderContextPath);
 
     const State newFinalState = addState();
 
@@ -119,6 +121,15 @@ void NFA::addFinalActions(const NFAActionRegister& actions) {
         State newState = addState();
         addEmptyTransition(fs, newState, actions);
     }
+}
+
+void NFA::registerContext(const std::string& parentName, const std::string& name) {
+    auto it = std::find(contexts.begin(), contexts.end(), std::pair<std::string, std::string>(parentName, name));
+    if (it != contexts.end()) {
+        throw SemanticAnalysisException("Re-registering context '" + name + "' within parent context '" + name + "'");
+    }
+
+    contexts.push_back(std::pair<std::string, std::string>(parentName, name));
 }
 
 NFA NFA::buildDFA() const {
@@ -402,34 +413,6 @@ bool ProductionSymbolGroup::contains(const SymbolGroup* symbol) const {
     }
 
     return referencedComponent->entails(psg->referencedComponent->name);
-}
-
-NFAActionRegister NFAActionRegister::operator+(const NFAActionRegister& rhs) const {
-    NFAActionRegister ret(*this);
-
-    for (const auto& are : rhs) {
-        auto it = std::find_if(begin(), end(), [are](const NFAAction& entry) {
-            return entry.type == are.type && are.contextPath == entry.contextPath && are.targetPath == entry.targetPath;
-            });
-        if (it == end()) {
-            ret.push_back(are);
-        }
-    }
-
-    return ret;
-}
-
-const NFAActionRegister& NFAActionRegister::operator+=(const NFAActionRegister& rhs) {
-    for (const auto& are : rhs) {
-        auto it = std::find_if(begin(), end(), [&are](const NFAAction& entry) {
-            return entry.type == are.type && are.contextPath == entry.contextPath && are.targetPath == entry.targetPath;
-            });
-        if (it == end()) {
-            this->push_back(are);
-        }
-    }
-
-    return *this;
 }
 
 bool EmptySymbolGroup::contains(const SymbolGroup* symbol) const {

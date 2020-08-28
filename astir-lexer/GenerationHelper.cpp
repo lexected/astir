@@ -2,7 +2,7 @@
 
 #include "GenerationException.h"
 
-void GenerationHelper::macroWrite(const std::string& sourceString, const std::map<std::string, std::string>& macroPairs, std::ostream& output) {
+void GenerationHelper::macroWrite(const std::string& sourceString, const std::map<std::string, std::string>& macroPairs, std::ostream& m_output) {
 	size_t it = 0;
 	unsigned long lastIndentation = 0;
 	size_t sourceStringLength = sourceString.length();
@@ -28,7 +28,7 @@ void GenerationHelper::macroWrite(const std::string& sourceString, const std::ma
 		size_t precedingTextCount = startOfMacro - it;
 
 		// copy the preceeding text unchanged
-		output.write(precedingTextStart, precedingTextCount);
+		m_output.write(precedingTextStart, precedingTextCount);
 		
 		// scan the preceeding text for relevant indentation offset to be used for the text inserted
 		if (precedingTextCount > 0) {
@@ -63,22 +63,22 @@ void GenerationHelper::macroWrite(const std::string& sourceString, const std::ma
 			while (theCharacterAfterLastNewlineOffset < newTextLength) {
 				size_t offsetFromCurrentPos = macroReplacementText.find('\n', theCharacterAfterLastNewlineOffset);
 				if (offsetFromCurrentPos == std::string::npos) {
-					output.write(macroReplacementText.c_str() + theCharacterAfterLastNewlineOffset, newTextLength - theCharacterAfterLastNewlineOffset);
+					m_output.write(macroReplacementText.c_str() + theCharacterAfterLastNewlineOffset, newTextLength - theCharacterAfterLastNewlineOffset);
 					break;
 				}
 				++offsetFromCurrentPos;
 
-				output.write(macroReplacementText.c_str() + theCharacterAfterLastNewlineOffset, offsetFromCurrentPos - theCharacterAfterLastNewlineOffset);
-				output << indentationString;
+				m_output.write(macroReplacementText.c_str() + theCharacterAfterLastNewlineOffset, offsetFromCurrentPos - theCharacterAfterLastNewlineOffset);
+				m_output << indentationString;
 				theCharacterAfterLastNewlineOffset = offsetFromCurrentPos;
 			}
 		} else {
-			output << macroReplacementText;
+			m_output << macroReplacementText;
 		}
 		
 		it = endOfMacro + 2;
 	}
 
-	output.write(sourceString.c_str() + it, sourceString.length()-it);
-	output.flush();
+	m_output.write(sourceString.c_str() + it, sourceString.length()-it);
+	m_output.flush();
 }

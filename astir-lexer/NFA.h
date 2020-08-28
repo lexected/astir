@@ -4,56 +4,15 @@
 #include <deque>
 #include <vector>
 #include <list>
+#include <map>
 
 #include "Regex.h"
+#include "NFAAction.h"
 
 class Machine;
 class MachineComponent;
-struct Field;
 
 using State = size_t;
-
-enum class NFAActionType : unsigned char {
-	Set = 1,
-	Unset = 2,
-	Flag = 3,
-	Unflag = 4,
-	Append = 5,
-	Prepend = 6,
-	Clear = 7,
-	LeftTrim = 8,
-	RightTrim = 9,
-
-	CreateContext = 101,
-	AssignContext = 102,
-	AppendContext = 103,
-	PrependContext = 104,
-
-	None = 255
-};
-
-struct NFAAction {
-	NFAActionType type;
-	std::string contextPath;
-	std::string targetPath;
-
-	/*NFAAction(RegexActionType regexAction)
-		: action((NFAActionType)regexAction), targetComponent(nullptr), contextPath() { }
-	NFAAction(NFAActionType faAction)
-		: action(faAction), targetComponent(nullptr), contextPath() { }
-	NFAAction(NFAActionType faAction, const Field* targetComponent)
-		: action(faAction), targetComponent(targetComponent), contextPath() { }*/
-	NFAAction(NFAActionType faAction, const std::string& contextPath, const std::string& targetPath)
-		: type(faAction), contextPath(contextPath), targetPath(targetPath) { }
-};
-
-class NFAActionRegister : public std::list<NFAAction> {
-public:
-	NFAActionRegister() = default;
-
-	NFAActionRegister operator+(const NFAActionRegister& rhs) const;
-	const NFAActionRegister& operator+=(const NFAActionRegister& rhs);
-};
 
 struct SymbolGroup {
 public:
@@ -138,6 +97,7 @@ class NFA {
 public:
 	std::set<State> finalStates;
 	std::vector<NFAState> states;
+	std::list<std::pair<std::string, std::string>> contexts; // name, type
 	// 0th element of this vector is by default the initial state
 
 	NFA();
@@ -145,7 +105,7 @@ public:
 	void operator|=(const NFA& rhs);
 	void operator&=(const NFA& rhs);
 
-	void addContextedAlternative(const NFA& rhs, const std::string& targetGenerationPath, const std::string& sourceGenerationPath, bool createContext = true);
+	void addContextedAlternative(const NFA& rhs, const std::string& parentContextPath, const std::string& subcontextName, bool createContext = true);
 
 	State addState();
 	void addTransition(State state, const Transition& transition);
@@ -153,6 +113,8 @@ public:
 	Transition& addEmptyTransition(State state, State target, const NFAActionRegister& ar);
 	State concentrateFinalStates();
 	void addFinalActions(const NFAActionRegister& actions);
+
+	void registerContext(const std::string& name, const std::string& type);
 
 	NFA buildDFA() const;
 

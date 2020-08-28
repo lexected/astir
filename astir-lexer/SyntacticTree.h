@@ -8,6 +8,7 @@
 #include "ISyntacticEntity.h"
 #include "Regex.h"
 #include "SemanticTree.h"
+#include "Field.h"
 
 /*
 	As a general rule, avoid creating full insertive constructors for objects, since the container ownership of unique_ptrs then often gets quite tricky.
@@ -83,7 +84,6 @@ enum class RuleStatementType {
 	Production
 };
 
-struct Field;
 struct MachineStatement : public ISyntacticEntity {
 	std::string name;
 	std::list<std::string> categories;
@@ -107,40 +107,4 @@ struct RuleStatement : public MachineStatement, public ISemanticallyProcessable<
 		: terminalitySpecified(false), terminality(false), typeSpecified(false), type(RuleStatementType::Production) { }
 
 	std::shared_ptr<Rule> makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Rule>>& ownershipPtr) const override;
-};
-
-struct Field : public ISyntacticEntity {
-	std::string name;
-
-	virtual bool flaggable() const = 0;
-	virtual bool settable() const = 0;
-	virtual bool listable() const = 0;
-};
-
-struct FlagField : public Field {
-	bool flaggable() const override;
-	bool settable() const override;
-	bool listable() const override;
-};
-
-struct RawField : public Field {
-	bool flaggable() const override;
-	bool settable() const override;
-	bool listable() const override;
-};
-
-struct VariablyTypedField : public Field {
-	std::string type;
-};
-
-struct ItemField : public VariablyTypedField {
-	bool flaggable() const override;
-	bool settable() const override;
-	bool listable() const override;
-};
-
-struct ListField : public VariablyTypedField {
-	bool flaggable() const override;
-	bool settable() const override;
-	bool listable() const override;
 };

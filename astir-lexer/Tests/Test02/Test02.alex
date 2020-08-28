@@ -1,0 +1,11 @@
+deterministic finite automaton Test02 {
+	terminal production p1 {
+		flag isShort;
+		flag isLong;
+	} = "a"@flag:isShort@unflag:isLong
+		| "a" "a"@unflag:isShort@flag:isLong
+		;
+
+	terminal production p2 = "a" "b" "b";
+	terminal production p3 = "a"* "b"+;
+}

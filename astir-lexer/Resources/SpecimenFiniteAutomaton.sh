@@ -66,11 +66,7 @@ namespace ${{MachineName}} {
 		// action contexts
 		std::shared_ptr<Terminal> m_token;
 		${{ActionContextsDeclarations}}
-
-		// transition actions
-		${{TransitionActionsDeclarations}}
-
-		// state actions
-		${{StateActionsDeclarations}}
+		// actions
+		${{ActionDeclarations}}
 	};
 };

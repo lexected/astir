@@ -8,9 +8,8 @@
 NFA NFABuilder::visit(const Category* category) const {
     NFA base;
 
-    const std::string assignmentTarget = m_generationContextPath + "__" + category->name;
-    std::string generationContextPathPrefix = assignmentTarget + "__";
-
+    const std::string parentContextPath = m_generationContextPath + "__" + category->name;
+    const std::string generationContextPathPrefix = parentContextPath + "__";
     for (const auto referencePair : category->references) {
         if (referencePair.second.isAFollowsReference) {
             throw SemanticAnalysisException("What is going on??");
@@ -23,10 +22,12 @@ NFA NFABuilder::visit(const Category* category) const {
 
             base |= modification;*/
         } else {
-            const std::string assignmentSource = generationContextPathPrefix + referencePair.first;
-            NFABuilder contextualizedBuilder(m_contextMachine, referencePair.second.component, assignmentSource);
+            const std::string& newSubcontextName = referencePair.first;
+            const std::string newSubcontextPath = generationContextPathPrefix + newSubcontextName;
+            NFABuilder contextualizedBuilder(m_contextMachine, referencePair.second.component, newSubcontextPath);
+            base.registerContext(parentContextPath, newSubcontextName);
             
-            base.addContextedAlternative(referencePair.second.component->accept(contextualizedBuilder), assignmentTarget, assignmentSource);
+            base.addContextedAlternative(referencePair.second.component->accept(contextualizedBuilder), parentContextPath, newSubcontextName);
         }
     }
 
@@ -34,8 +35,11 @@ NFA NFABuilder::visit(const Category* category) const {
 }
 
 NFA NFABuilder::visit(const Rule* rule) const {
-    NFABuilder contextualizedBuilder(this->m_contextMachine, rule, m_generationContextPath + "__" + rule->name);
-    return rule->regex->accept(contextualizedBuilder);
+    const std::string newContextPath = m_generationContextPath + "__" + rule->name;
+    NFABuilder contextualizedBuilder(this->m_contextMachine, rule, newContextPath);
+    NFA ret = rule->regex->accept(contextualizedBuilder);
+    ret.registerContext(m_generationContextPath, rule->name);
+    return ret;
 }
 
 NFA NFABuilder::visit(const DisjunctiveRegex* regex) const {
@@ -176,7 +180,6 @@ NFA NFABuilder::visit(const ArbitraryLiteralRegex* regex) const {
     return base;
 }
 
-
 NFA NFABuilder::visit(const ReferenceRegex* regex) const {
     NFA base;
     const State newBaseState = base.addState();
@@ -188,8 +191,8 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
         auto actionRegister = computeActionRegisterEntries(regex->actions);
         base.addTransition(0, Transition(newBaseState, std::make_shared<ProductionSymbolGroup>(component, actionRegister)));
     } else {
-        const std::string targetPath = m_generationContextPath + "__" + regex->referenceName;
-        auto actionRegister = computeActionRegisterEntries(regex->actions, targetPath, true);
+        const std::string subcontextBridgingPath = m_generationContextPath + "__" + regex->referenceName;
+        auto actionRegister = computeActionRegisterEntries(regex->actions, subcontextBridgingPath, true);
 
         NFABuilder contextualizedBuilder(m_contextMachine, component, m_generationContextPath);
         NFA subNfa = component->accept(contextualizedBuilder);
@@ -197,8 +200,8 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 
         
         NFAActionRegister createContextActionRegister;
-        createContextActionRegister.emplace_back(NFAActionType::CreateContext, m_generationContextPath, targetPath);
-        // within the current context context (m_generationContextPath) create a new context (targetPath)
+        createContextActionRegister.emplace_back(NFAActionType::CreateContext, m_generationContextPath, regex->referenceName);
+        // within the current context context (m_generationContextPath) create a new context (subcontextBridgingPath)
         base.addEmptyTransition(0, newBaseState, createContextActionRegister);
         base &= subNfa;
     }
