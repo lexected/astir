@@ -140,6 +140,42 @@ MachineComponent* Machine::findMachineComponent(const std::string& name, bool* f
 	return nullptr;
 }
 
+std::list<const MachineComponent*> Machine::getTerminalComponents() const {
+	std::list<const MachineComponent*> terminals;
+
+	for (const auto& machineComponentPair : this->components) {
+		if (machineComponentPair.second->isTerminal()) {
+			terminals.push_back(machineComponentPair.second.get());
+		}
+	}
+
+	return terminals;
+}
+
+std::list<const MachineComponent*> Machine::getTerminalTypeComponents() const {
+	std::list<const MachineComponent*> terminals;
+
+	for (const auto& machineComponentPair : this->components) {
+		if (machineComponentPair.second->isTerminal() && machineComponentPair.second->isTypeForming()) {
+			terminals.push_back(machineComponentPair.second.get());
+		}
+	}
+
+	return terminals;
+}
+
+std::list<const MachineComponent*> Machine::getTypeComponents() const {
+	std::list<const MachineComponent*> terminals;
+
+	for (const auto& machineComponentPair : this->components) {
+		if (machineComponentPair.second->isTypeForming()) {
+			terminals.push_back(machineComponentPair.second.get());
+		}
+	}
+
+	return terminals;
+}
+
 void Machine::checkForDeclarationCategoryRecursion(std::list<std::string>& namesEncountered, const std::string& nameConsidered, const IFileLocalizable& occurence, bool mustBeACategory) const {
 	bool collision = std::find(namesEncountered.cbegin(), namesEncountered.cend(), nameConsidered) != namesEncountered.cend();
 	namesEncountered.push_back(nameConsidered);
@@ -333,6 +369,10 @@ const bool Category::isTypeForming() const {
 	return true;
 }
 
+const bool Category::isTerminal() const {
+	return false;
+}
+
 void Rule::initialize() {
 	if (initialized()) {
 		return;
@@ -372,6 +412,10 @@ bool Rule::entails(const std::string& name, std::list<const Category*>& path) co
 
 const bool Rule::isTypeForming() const {
 	return typeForming;
+}
+
+const bool Rule::isTerminal() const {
+	return this->terminal;
 }
 
 void Rule::verifyContextualValidity(const Machine& machine) const {

@@ -78,6 +78,10 @@ public:
 	void initialize() override;
 
 	MachineComponent* findMachineComponent(const std::string& name, bool* follows = nullptr) const; // anyone calling this function shall not take up even a partial ownership of the component, normal pointer suffices
+	std::list<const MachineComponent*> getTerminalComponents() const;
+	std::list<const MachineComponent*> getTerminalTypeComponents() const;
+	std::list<const MachineComponent*> getTypeComponents() const;
+
 	void checkForDeclarationCategoryRecursion(std::list<std::string>& namesEncountered, const std::string& nameConsidered, const IFileLocalizable& occurence, bool mustBeACategory = false) const;
 	const IFileLocalizable* findRecursiveReferenceThroughName(const std::string& referenceName, std::list<std::string>& namesEncountered, const std::string& targetName) const;
 	virtual void checkForComponentRecursion() const = 0;
@@ -125,6 +129,7 @@ public:
 	virtual bool entails(const std::string& name, std::list<const Category*>& path) const = 0;
 
 	virtual const bool isTypeForming() const = 0;
+	virtual const bool isTerminal() const = 0;
 
 	virtual void verifyContextualValidity(const Machine& machine) const;
 };
@@ -154,6 +159,7 @@ public:
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
 	const bool isTypeForming() const override;
+	const bool isTerminal() const override;
 private:
 	std::shared_ptr<const CategoryStatement> m_categoryStatement;
 };
@@ -173,6 +179,7 @@ public:
 	bool entails(const std::string& name) const override;
 	bool entails(const std::string& name, std::list<const Category*>& path) const override;
 	const bool isTypeForming() const override;
+	const bool isTerminal() const override;
 
 	void verifyContextualValidity(const Machine& machine) const override;
 
