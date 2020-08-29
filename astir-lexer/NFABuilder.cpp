@@ -8,6 +8,17 @@
 NFA NFABuilder::visit(const Category* category) const {
 	NFA base;
 
+	// add an interim state for the context creation transition
+	State interimState = base.addState();
+	base.finalStates.insert(interimState);
+
+	// add a transition from the first state to the second one, actioned by context creation
+	NFAActionRegister createContextActionRegister;
+	createContextActionRegister.emplace_back(NFAActionType::CreateContext, m_generationContextPath, category->name);
+	base.addEmptyTransition(0, interimState, createContextActionRegister);
+	base.registerContext(m_generationContextPath, category->name);
+
+	NFA alternationPoint;
 	const std::string parentContextPath = m_generationContextPath + "__" + category->name;
 	const std::string generationContextPathPrefix = parentContextPath + "__";
 	for (const auto referencePair : category->references) {
@@ -15,11 +26,19 @@ NFA NFABuilder::visit(const Category* category) const {
 		NFA alternativeNfa = referencePair.second.component->accept(*this);
 
 		NFAActionRegister elevateContextActionRegister;
-		elevateContextActionRegister.emplace_back(NFAActionType::ElevateContext, parentContextPath, newSubcontextName);
-		alternativeNfa.concentrateFinalStates(elevateContextActionRegister);
+		if(referencePair.second.component->isTypeForming()) {
+			// if the component is type-forming, a new context has been created in alternativeNfa and it needs to be elevated to the category level
+			elevateContextActionRegister.emplace_back(NFAActionType::ElevateContext, parentContextPath, newSubcontextName);
+			alternativeNfa.concentrateFinalStates(elevateContextActionRegister);
+		}
+		// if the component isn't type-forming, all the actions of the component (as of now just pattern) act on the category field
+		// category context creation can not be omitted (although one could be tempted to say that it is not strictly necessary if the category referencess are all type-forming) since we do not know upfront whether there really are no patterns referring to the category
+		// but yes, there is some space for optimisation here, as that can easily be figured out with a loop or during the reference building process
 
-		base |= alternativeNfa;
+		alternationPoint |= alternativeNfa;
 	}
+
+	base &= alternationPoint;
 
 	return base;
 }

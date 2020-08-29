@@ -90,9 +90,11 @@ void Machine::initialize() {
 				throw SemanticAnalysisException("Pattern '" + statementPtr->name + "' was specified as '" + (statementPtr->terminality ? "terminal" : "nonterminal") + "' but patterns cannot have terminality", *statementPtr);
 			}
 
+			/*
+			THIS IS ACTUALLY LEGAL
 			if (!statementPtr->categories.empty()) {
 				throw SemanticAnalysisException("Pattern '" + statementPtr->name + "' refers to at least one category, but patterns cannot inherit from categories as they are not type-forming", *statementPtr);
-			}
+			}*/
 
 			rulePtr = std::make_shared<Pattern>(statementPtr, statementPtr->name, statementPtr->disjunction);
 		} else if (typeDecision == RuleStatementType::Production) {
