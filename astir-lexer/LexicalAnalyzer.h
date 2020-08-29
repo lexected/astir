@@ -54,8 +54,6 @@ private:
 		std::pair<std::string, TokenType>("on", TokenType::KW_ON),
 		std::pair<std::string, TokenType>("with", TokenType::KW_WITH),
 
-		std::pair<std::string, TokenType>("deterministic", TokenType::KW_DETERMINISTIC),
-		std::pair<std::string, TokenType>("nondeterministic", TokenType::KW_NONDETERMINISTIC),
 		std::pair<std::string, TokenType>("finite", TokenType::KW_FINITE),
 		std::pair<std::string, TokenType>("automaton", TokenType::KW_AUTOMATON),
 		std::pair<std::string, TokenType>("productions_terminal_by_default", TokenType::KW_PRODUCTIONS_TERMINAL_BY_DEFAULT),

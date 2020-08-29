@@ -36,10 +36,6 @@ std::string Token::convertTypeToString(TokenType type) {
 		case TokenType::KW_ON:
 			return "KW_ON";
 		
-		case TokenType::KW_DETERMINISTIC:
-			return "KW_DETERMINISTIC";
-		case TokenType::KW_NONDETERMINISTIC:
-			return "KW_NONDETERMINISTIC";
 		case TokenType::KW_FINITE:
 			return "KW_FINITE";
 		case TokenType::KW_AUTOMATON:

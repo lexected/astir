@@ -86,6 +86,14 @@ void Machine::initialize() {
 
 		// then, if applicable, also decide on the terminality of the rule
 		if (typeDecision == RuleStatementType::Pattern) {
+			if (statementPtr->terminalitySpecified) {
+				throw SemanticAnalysisException("Pattern '" + statementPtr->name + "' was specified as '" + (statementPtr->terminality ? "terminal" : "nonterminal") + "' but patterns cannot have terminality", *statementPtr);
+			}
+
+			if (!statementPtr->categories.empty()) {
+				throw SemanticAnalysisException("Pattern '" + statementPtr->name + "' refers to at least one category, but patterns cannot inherit from categories as they are not type-forming", *statementPtr);
+			}
+
 			rulePtr = std::make_shared<Pattern>(statementPtr, statementPtr->name, statementPtr->disjunction);
 		} else if (typeDecision == RuleStatementType::Production) {
 			bool terminalityDecision;
@@ -122,7 +130,6 @@ void Machine::initialize() {
 	for (const auto& componentPair : components) {
 		componentPair.second->initialize();
 	}
-
 
 	// now that the fields are initialized, we can proceed to checking that there are no name collisions and that all types used are valid
 	for (const auto& componentPair : components) {

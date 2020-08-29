@@ -281,7 +281,7 @@ std::unique_ptr<RuleStatement> Parser::parseRuleStatement(std::list<Token>::cons
 		++it;
 	}
 
-	std::string grammarStatementType = "production";
+	std::string grammarStatementType = "production/pattern";
 	if (it->type == TokenType::KW_PATTERN) {
 		grastat->typeSpecified = true;
 		grastat->type = RuleStatementType::Pattern;
@@ -292,10 +292,12 @@ std::unique_ptr<RuleStatement> Parser::parseRuleStatement(std::list<Token>::cons
 		grastat->typeSpecified = true;
 		grastat->type = RuleStatementType::Production;
 		++it;
+
+		grammarStatementType = "production";
 	}
 
 	if (it->type != TokenType::IDENTIFIER) {
-		throw UnexpectedTokenException(*it, "an identifier to serve as "+ grammarStatementType+" name", " for " + grammarStatementType + " declaration", *savedIt);
+		throw UnexpectedTokenException(*it, "an identifier to serve as "+ grammarStatementType + " name", " for " + grammarStatementType + " declaration", *savedIt);
 	}
 	grastat->name = it->string;
 	++it;
@@ -304,7 +306,7 @@ std::unique_ptr<RuleStatement> Parser::parseRuleStatement(std::list<Token>::cons
 		++it;
 		do {
 			if (it->type != TokenType::IDENTIFIER) {
-				throw UnexpectedTokenException(*it, "an " + grammarStatementType + " name identifier", "for inheritance in " + grammarStatementType + " declaration", *savedIt);
+				throw UnexpectedTokenException(*it, "a " + grammarStatementType + " name identifier", "for inheritance in " + grammarStatementType + " declaration", *savedIt);
 			}
 			grastat->categories.push_back(it->string);
 			++it;
