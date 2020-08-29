@@ -7,5 +7,5 @@ deterministic finite automaton Test02 {
 		;
 
 	terminal production p2 = "a" "b" "b";
-	terminal production p3 = "a"* "b"+;
+	terminal production p3 = "a"* "b"+; 
 }

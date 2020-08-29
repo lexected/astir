@@ -46,6 +46,9 @@
     <Filter Include="Resource Files\Tests\Uncategorized">
       <UniqueIdentifier>{42098e62-6d69-43a2-b8e6-8923040f3218}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\Tests\Test03">
+      <UniqueIdentifier>{57269340-5064-475d-a9cc-ec2ce4e975d4}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Resource Files\Tests\Test01">
       <UniqueIdentifier>{96550b82-097c-49a9-8557-10e545b679ad}</UniqueIdentifier>
     </Filter>
@@ -204,6 +207,9 @@
     </None>
     <None Include="Tests\Test02\Test02.alex">
       <Filter>Resource Files\Tests\Test02</Filter>
+    </None>
+    <None Include="Tests\Test03\Test03.alex">
+      <Filter>Resource Files\Tests\Test03</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -1,0 +1,12 @@
+deterministic finite automaton Test03 {
+	terminal production p1 { // end of line comment
+		flag/* a completely unnecessarycomment * 1 * / */ isShort;
+		flag isLong;
+	} = "a"@flag:isShort@unflag:isLong/* multiline
+		comment */
+		| "aa"@unflag:isShort@flag:isLong
+		;
+
+	terminal production p2 = "a\142\x62" "" '' 'halelujah'; // "a" "b" "b"
+	terminal production p3 = "\141"* "b"+; // "a"* "b"+
+}

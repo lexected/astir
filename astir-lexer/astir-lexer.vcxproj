@@ -194,6 +194,7 @@
     <None Include="Grammar.astir" />
     <None Include="Tests\Test01\Test01.alex" />
     <None Include="Tests\Test02\Test02.alex" />
+    <None Include="Tests\Test03\Test03.alex" />
     <None Include="Tests\Uncategorized\C99Tokenizer.alex" />
     <None Include="Tests\Uncategorized\ExampleParser.apar" />
     <None Include="Tests\Uncategorized\ExampleTokenizer.alex" />

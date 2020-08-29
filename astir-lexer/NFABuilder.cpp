@@ -11,7 +11,7 @@ NFA NFABuilder::visit(const Category* category) const {
 	const std::string parentContextPath = m_generationContextPath + "__" + category->name;
 	const std::string generationContextPathPrefix = parentContextPath + "__";
 	for (const auto referencePair : category->references) {
-		if (referencePair.second.isAFollowsReference) {
+		if (referencePair.second.isAReferenceFromUnderlyingMachine) {
 			throw SemanticAnalysisException("What is going on??");
 
 			// unlikely to ever happen but ... actually won't ever happen at all ... right, I'm just not keen on deleting this
@@ -185,9 +185,9 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 	const State newBaseState = base.addState();
 	base.finalStates.insert(newBaseState);
 
-	bool follows;
-	auto component = this->m_contextMachine.findMachineComponent(regex->referenceName, &follows);
-	if (follows) {
+	bool on;
+	auto component = this->m_contextMachine.findMachineComponent(regex->referenceName, &on);
+	if (on) {
 		auto actionRegister = computeActionRegisterEntries(regex->actions, "");
 		base.addTransition(0, Transition(newBaseState, std::make_shared<ProductionSymbolGroup>(component, actionRegister)));
 	} else {

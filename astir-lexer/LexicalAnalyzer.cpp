@@ -5,7 +5,7 @@
 
 LexicalAnalyzer::LexicalAnalyzer()
 	: m_currentLocation(1, 0), m_state(LexicalAnalyzerState::Default), m_currentToken(),
-	m_currentCharacter('\0'), m_endOfStreamReached(true), m_consumeNew(false) {
+	m_currentCharacter('\0'), m_endOfStreamReached(true), m_consumeNew(false), m_stringIsDoubleQuote(false) {
 }
 
 std::list<Token> LexicalAnalyzer::process(std::istream& input) {
@@ -39,21 +39,26 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 					m_currentToken.string.append(std::string({ m_currentCharacter }));
 					m_currentToken.type = TokenType::IDENTIFIER;
 					m_currentToken.setLocation(m_currentLocation);
-				} else if(std::isalnum(m_currentCharacter) || m_currentCharacter == '_') {
+				} else if (std::isalnum(m_currentCharacter) || m_currentCharacter == '_') {
 					m_state = LexicalAnalyzerState::Number;
 					m_currentToken.string.append(std::string({ m_currentCharacter }));
 					m_currentToken.type = TokenType::NUMBER;
 					m_currentToken.setLocation(m_currentLocation);
 				} else if (isspace(m_currentCharacter)) {
 					/* do nothin' */
-				} else if (m_currentCharacter == '"') {
+				} else if (m_currentCharacter == '"' || m_currentCharacter == '\'') {
 					m_state = LexicalAnalyzerState::String;
+					m_stringIsDoubleQuote = (m_currentCharacter == '"');
 					m_currentToken.type = TokenType::STRING;
 					m_currentToken.setLocation(m_currentLocation);
 				} else if (m_currentCharacter == '<') {
 					m_state = LexicalAnalyzerState::LeftArrow;
 					m_currentToken.string = "<-";
 					m_currentToken.type = TokenType::OP_LEFTARR;
+					m_currentToken.setLocation(m_currentLocation);
+				} else if (m_currentCharacter == '/') {
+					m_state = LexicalAnalyzerState::ForwardSlash;
+					m_currentToken.string = "/";
 					m_currentToken.setLocation(m_currentLocation);
 				} else {
 					m_currentToken.string = std::string({ m_currentCharacter });
@@ -107,9 +112,6 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 						case '|':
 							m_currentToken.type = TokenType::OP_OR;
 							break;
-						case '/':
-							m_currentToken.type = TokenType::OP_FWDSLASH;
-							break;
 						case ',':
 							m_currentToken.type = TokenType::OP_COMMA;
 							break;
@@ -155,12 +157,122 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 				}
 				break;
 			case LexicalAnalyzerState::String:
-				if (m_currentCharacter != '"' && !m_endOfStreamReached) {
-					m_currentToken.string.append(std::string({ m_currentCharacter }));
-				} else {
-					ret.push_back(m_currentToken);
+				if (m_currentCharacter == '\n') {
+					throw LexicalAnalyzerException("Unexpected end of line encountered at " + m_currentLocation.toString() + ", string started at " + m_currentToken.locationString() + " was left unterminated");
+				} else if (m_currentCharacter == '\\') {
+					m_state = LexicalAnalyzerState::StringEscapeSequence;
+				} else if (m_currentCharacter == '"' && m_stringIsDoubleQuote || m_currentCharacter == '\'' && !m_stringIsDoubleQuote) {
+					if (!m_currentToken.string.empty() || m_currentToken.string.empty() && m_currentLocation.column - 1 == m_currentToken.location().column) {
+						ret.push_back(m_currentToken);
+					}
+					
 					m_currentToken.string.clear();
 					m_state = LexicalAnalyzerState::Default;
+				} else if (!m_endOfStreamReached) {
+					m_currentToken.string.append(1, m_currentCharacter);
+					if(m_stringIsDoubleQuote) {
+						ret.push_back(m_currentToken);
+						m_currentToken.string.clear();
+					}
+				} else {
+					throw LexicalAnalyzerException("Unexpected end of stream encountered at " + m_currentLocation.toString() + ", string started at " + m_currentToken.locationString() + " was left unterminated");
+				}
+				break;
+			case LexicalAnalyzerState::StringEscapeSequence: {
+				char toAppend = '\0';
+				if (m_currentCharacter == '\'') {
+					toAppend = '\'';
+				} else if (m_currentCharacter == '\"') {
+					toAppend = '\"';
+				} else if (m_currentCharacter == '?') {
+					toAppend = '?';
+				} else if (m_currentCharacter == '\\') {
+					toAppend = '\\';
+				} else if (m_currentCharacter == 'a') {
+					toAppend = '\a';
+				} else if (m_currentCharacter == 'b') {
+					toAppend = '\b';
+				} else if (m_currentCharacter == 'f') {
+					toAppend = '\f';
+				} else if (m_currentCharacter == 'n') {
+					toAppend = '\n';
+				} else if (m_currentCharacter == 'r') {
+					toAppend = '\n';
+				} else if (m_currentCharacter == 't') {
+					toAppend = '\t';
+				} else if (m_currentCharacter == 'v') {
+					toAppend = '\v';
+				} 
+				if (toAppend != '\0') {
+					m_currentToken.string.append(1, toAppend);
+					if (m_stringIsDoubleQuote) {
+						ret.push_back(m_currentToken);
+						m_currentToken.string.clear();
+					}
+					m_state = LexicalAnalyzerState::String;
+				} else if (m_currentCharacter == 'x') {
+					m_state = LexicalAnalyzerState::StringHexEscapeSequence;
+				} else if (m_currentCharacter >= '0' && m_currentCharacter <= '7') {
+					m_state = LexicalAnalyzerState::StringOctalEscapeSequence;
+					m_currentEscapeSequence.append(1, m_currentCharacter);
+				} else {
+					throw LexicalAnalyzerException("Unknown escape sequence encountered at " + m_currentLocation.toString() + " in string started at " + m_currentToken.locationString());
+				}
+				break;
+			}
+			case LexicalAnalyzerState::StringOctalEscapeSequence:
+				if (m_currentCharacter >= '0' && m_currentCharacter <= '9') {
+					m_currentEscapeSequence.append(1, m_currentCharacter);
+				} else {
+					unsigned long long value = std::stoull(m_currentEscapeSequence, 0, 8);
+					size_t bits = (m_currentEscapeSequence.length()-1) * 3;
+					if (m_currentEscapeSequence[0] > '4') {
+						bits += 3;
+					}
+					if (bits % 8 > 0) {
+						bits = bits + 8 - (bits % 8);
+					}
+					size_t bytes = bits / 8;
+					const char* valueBytesPtr = (char*)&value;
+					while (bytes > 0) {
+						m_currentToken.string.append(1, *valueBytesPtr);
+						if (m_stringIsDoubleQuote) {
+							ret.push_back(m_currentToken);
+							m_currentToken.string.clear();
+						}
+						++valueBytesPtr;
+						--bytes;
+					}
+					m_currentEscapeSequence.clear();
+					m_consumeNew = false;
+					m_state = LexicalAnalyzerState::String;
+				}
+				break;
+			case LexicalAnalyzerState::StringHexEscapeSequence:
+				if (m_currentCharacter >= '0' && m_currentCharacter <= '9'
+					|| m_currentCharacter >= 'a' && m_currentCharacter <= 'f'
+					|| m_currentCharacter >= 'A' && m_currentCharacter <= 'F') {
+					m_currentEscapeSequence.append(1, m_currentCharacter);
+				} else {
+					unsigned long long value = std::stoull(m_currentEscapeSequence, 0, 16);
+					size_t bits = m_currentEscapeSequence.length() * 4;
+					if (bits % 8 > 0) {
+						bits = bits + 8 - (bits % 8);
+					}
+					size_t bytes = bits / 8;
+					const char* valueBytesPtr = (const char*)&value;
+					while (bytes > 0) {
+						m_currentToken.string.append(1, *valueBytesPtr);
+						if (m_stringIsDoubleQuote) {
+							ret.push_back(m_currentToken);
+							m_currentToken.string.clear();
+						}
+						++valueBytesPtr;
+						--bytes;
+					}
+					m_currentEscapeSequence.clear();
+					m_consumeNew = false;
+					m_state = LexicalAnalyzerState::String;
 				}
 				break;
 			case LexicalAnalyzerState::LeftArrow:
@@ -170,6 +282,45 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 					ret.push_back(m_currentToken);
 					m_currentToken.string.clear();
 					m_state = LexicalAnalyzerState::Default;
+				}
+				break;
+			case LexicalAnalyzerState::ForwardSlash:
+				if (m_currentCharacter == '/') {
+					m_state = LexicalAnalyzerState::LineComment;
+				} else if (m_currentCharacter == '*') {
+					m_state = LexicalAnalyzerState::MultilineComment;
+				} else {
+					m_currentToken.type = TokenType::OP_FWDSLASH;
+					ret.push_back(m_currentToken);
+					m_currentToken.string.clear();
+					m_state = LexicalAnalyzerState::Default;
+				}
+				break;
+			case LexicalAnalyzerState::LineComment:
+				if (m_currentCharacter == '\n' || m_endOfStreamReached) {
+					m_currentToken.string.clear();
+					m_state = LexicalAnalyzerState::Default;
+				}
+				break;
+			case LexicalAnalyzerState::MultilineComment:
+				if (m_endOfStreamReached) {
+					throw LexicalAnalyzerException("Multiline comment without closure started on " + m_currentToken.locationString() + ", expected '*/' to close the multiline comment before the input stream end");
+				}
+
+				if (m_currentCharacter == '*') {
+					m_state = LexicalAnalyzerState::MultilineCommentStarEncountered;
+				}
+				break;
+			case LexicalAnalyzerState::MultilineCommentStarEncountered:
+				if (m_endOfStreamReached) {
+					throw LexicalAnalyzerException("Multiline comment without closure started on " + m_currentToken.locationString() + ", expected '*/' (now only '/' is missing as star has recently been encountered) to close the multiline comment before the input stream end");
+				}
+
+				if (m_currentCharacter == '/') {
+					m_currentToken.string.clear();
+					m_state = LexicalAnalyzerState::Default;
+				} else {
+					m_state = LexicalAnalyzerState::MultilineComment;
 				}
 				break;
 		}
