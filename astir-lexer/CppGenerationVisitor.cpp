@@ -107,51 +107,46 @@ void CppGenerationVisitor::visit(const NFAActionRegister* actionRegister) {
 
 void CppGenerationVisitor::visit(const NFAAction* action) {
 	switch (action->type) {
-		case NFAActionType::Append:
-			m_output << action->contextPath << "->" << action->targetName << ".push_back(c);";
-			break;
-		case NFAActionType::Prepend:
-			m_output << action->contextPath << "->" << action->targetName << ".push_front(c);";
-			break;
-		case NFAActionType::Clear:
-			m_output << action->contextPath << "->" << action->targetName << ".clear();";
-			break;
-		case NFAActionType::RightTrim:
-			m_output << action->contextPath << "->" << action->targetName << ".pop_back();";
-			break;
-		case NFAActionType::LeftTrim:
-			m_output << action->contextPath << "->" << action->targetName << ".pop_front();";
-			break;
 		case NFAActionType::Flag:
 			m_output << action->contextPath << "->" << action->targetName << " = true;";
 			break;
 		case NFAActionType::Unflag:
 			m_output << action->contextPath << "->" << action->targetName << " = false;";
 			break;
+
+		case NFAActionType::Capture:
+			// TODO: implement
+			break;
+		case NFAActionType::Empty:
+			m_output << action->contextPath << "->" << action->targetName << ".clear();";
+			break;
+		case NFAActionType::Append:
+			m_output << action->contextPath << "->" << action->targetName << ".append(1, c);";
+			break;
+		case NFAActionType::Prepend:
+			m_output << action->contextPath << "->" << action->targetName << ".insert(0, 1, c);";
+			break;
+		
+		case NFAActionType::CreateContext:
+			m_output << action->contextPath << "__" << action->targetName << " = std::make_shared<" << action->targetName << ">(stream.currentLocation());";
+			break;
+		case NFAActionType::ElevateContext:
+			m_output << action->contextPath << " = " << action->contextPath << "__" << action->targetName << ';';
+			break;
 		case NFAActionType::Set:
-			m_output << action->contextPath << "->" << action->targetName << " = c;";
+			m_output << action->contextPath << "->" << action->targetName << " = " << action->payload << ';';
 			break;
 		case NFAActionType::Unset:
 			m_output << action->contextPath << "->" << action->targetName << " = nullptr;";
 			break;
-
-		case NFAActionType::CreateContext:
-			m_output << action->contextPath << "__" << action->targetName << " = std::make_shared<" << action->targetName << ">(stream.currentLocation());";
+		case NFAActionType::Push:
+			m_output << action->contextPath << "->" << action->targetName << ".push_back(" << action->payload << ");";
 			break;
-		/*case NFAActionType::DestroyContext: DO NOT USE
-			m_output << action->contextPath << "__" << action->targetName << " = nullptr;";
-			break;*/
-		case NFAActionType::ElevateContext:
-			m_output << action->contextPath << " = " << action->contextPath << "__" << action->targetName << ';';
+		case NFAActionType::Pop:
+			m_output << action->contextPath << "->" << action->targetName << ".pop_back();";
 			break;
-		case NFAActionType::SetContext:
-			m_output << action->contextPath << "->" << action->targetName << " = " << action->contextPath << "__" << action->targetName << ';';
-			break;
-		case NFAActionType::AppendContext:
-			m_output << action->contextPath << "->" << action->targetName << ".push_back(" << action->contextPath << "__" << action->targetName << ");";
-			break;
-		case NFAActionType::PrependContext:
-			m_output << action->contextPath << "->" << action->targetName << ".push_front(" << action->contextPath << "__" << action->targetName << ");";
+		case NFAActionType::Clear:
+			m_output << action->contextPath << "->" << action->targetName << ".clear();";
 			break;
 	}
 }

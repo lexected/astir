@@ -120,7 +120,7 @@ NFA NFABuilder::visit(const AnyRegex* regex) const {
 	NFA base;
 	auto newState = base.addState();
 
-	auto actionRegister = computeActionRegisterEntries(regex->actions);
+	auto actionRegister = computeActionRegisterEntries(regex->actions, "");
 
 	auto literalGroups = computeLiteralGroups(regex);
 	for (auto& literalSymbolGroup : literalGroups) {
@@ -139,7 +139,7 @@ NFA NFABuilder::visit(const ExceptAnyRegex* regex) const {
 	NFA::calculateDisjointLiteralSymbolGroups(literalGroups);
 	auto negatedGroups = NFA::negateLiteralSymbolGroups(literalGroups);
 
-	auto actionRegister = computeActionRegisterEntries(regex->actions);
+	auto actionRegister = computeActionRegisterEntries(regex->actions, "");
 
 	for (auto& literalSymbolGroup : negatedGroups) {
 		base.addTransition(0, Transition(newState, std::make_shared<LiteralSymbolGroup>(literalSymbolGroup, actionRegister)));
@@ -153,7 +153,7 @@ NFA NFABuilder::visit(const ExceptAnyRegex* regex) const {
 NFA NFABuilder::visit(const LiteralRegex* regex) const {
 	NFA base;
 	
-	auto actionRegister = computeActionRegisterEntries(regex->actions);
+	auto actionRegister = computeActionRegisterEntries(regex->actions, "");
 
 	State prevState = 0;
 	for(unsigned char c : regex->literal) {   
@@ -171,7 +171,7 @@ NFA NFABuilder::visit(const LiteralRegex* regex) const {
 NFA NFABuilder::visit(const ArbitraryLiteralRegex* regex) const {
 	NFA base;
 
-	auto actionRegister = computeActionRegisterEntries(regex->actions);
+	auto actionRegister = computeActionRegisterEntries(regex->actions, "");
 
 	auto newState = base.addState();
 	base.addTransition(0, Transition(newState, std::make_shared<ArbitrarySymbolGroup>(actionRegister)));
@@ -188,11 +188,11 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 	bool follows;
 	auto component = this->m_contextMachine.findMachineComponent(regex->referenceName, &follows);
 	if (follows) {
-		auto actionRegister = computeActionRegisterEntries(regex->actions);
+		auto actionRegister = computeActionRegisterEntries(regex->actions, "");
 		base.addTransition(0, Transition(newBaseState, std::make_shared<ProductionSymbolGroup>(component, actionRegister)));
 	} else {
-		const std::string subcontextBridgingPath = m_generationContextPath + "__" + regex->referenceName;
-		auto actionRegister = computeActionRegisterEntries(regex->actions, subcontextBridgingPath, true);
+		const std::string subcontextToBeUsedAsPayloadPath = m_generationContextPath + "__" + regex->referenceName;
+		auto actionRegister = computeActionRegisterEntries(regex->actions, subcontextToBeUsedAsPayloadPath);
 
 		NFABuilder contextualizedBuilder(m_contextMachine, component, m_generationContextPath);
 		NFA subNfa = component->accept(contextualizedBuilder);
@@ -201,7 +201,7 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 		
 		NFAActionRegister createContextActionRegister;
 		createContextActionRegister.emplace_back(NFAActionType::CreateContext, m_generationContextPath, regex->referenceName);
-		// within the current context context (m_generationContextPath) create a new context (subcontextBridgingPath)
+		// within the current context context (m_generationContextPath) create a new context (subcontextToBeUsedAsPayloadPath)
 		base.addEmptyTransition(0, newBaseState, createContextActionRegister);
 		base &= subNfa;
 	}
@@ -212,7 +212,7 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 NFA NFABuilder::visit(const LineEndRegex* regex) const {
 	NFA base;
 
-	auto actionRegister = computeActionRegisterEntries(regex->actions);
+	auto actionRegister = computeActionRegisterEntries(regex->actions, "");
 
 	auto lineFeedState = base.addState();
 	base.addTransition(0, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n', actionRegister)));
@@ -241,26 +241,15 @@ std::list<LiteralSymbolGroup> NFABuilder::computeLiteralGroups(const AnyRegex* r
 	return literalGroup;
 }
 
-NFAActionRegister NFABuilder::computeActionRegisterEntries(const std::list<RegexAction>& actions) const {
-	return computeActionRegisterEntries(actions, "", false);
-}
-
-NFAActionRegister NFABuilder::computeActionRegisterEntries(const std::list<RegexAction>& actions, const std::string& subcontextPath, bool setToAssignWhereNecessary) const {
+NFAActionRegister NFABuilder::computeActionRegisterEntries(const std::list<RegexAction>& actions, const std::string& payload) const {
 	NFAActionRegister ret;
 
 	for (const RegexAction& atp : actions) {
-		if (setToAssignWhereNecessary) {
-			if (atp.type == RegexActionType::Set) {
-				ret.emplace_back(NFAActionType::SetContext, subcontextPath, atp.target);
-			} else if (atp.type == RegexActionType::Append) {
-				ret.emplace_back(NFAActionType::AppendContext, subcontextPath, atp.target);
-			} else if (atp.type == RegexActionType::Prepend) {
-				ret.emplace_back(NFAActionType::PrependContext, subcontextPath, atp.target);
-			}
-			
-		} else {
+		if (payload.empty()) {
 			ret.emplace_back((NFAActionType)atp.type, m_generationContextPath, atp.target);
 			// within the context (m_generationContextPath) we modify the target (m_generationContextPath + "__" + atp.target) with the payload of the transition
+		} else {
+			ret.emplace_back((NFAActionType)atp.type, m_generationContextPath, atp.target, payload);
 		}
 	}
 

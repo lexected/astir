@@ -76,7 +76,6 @@ void NFA::addContextedAlternative(const NFA& rhs, const std::string& broaderCont
 
     NFAActionRegister elevateContextActionRegister;
     elevateContextActionRegister.emplace_back(NFAActionType::ElevateContext, broaderContextPath, contextName);
-    elevateContextActionRegister.emplace_back(NFAActionType::DestroyContext, broaderContextPath, contextName);
 
     const State newFinalState = addState();
 

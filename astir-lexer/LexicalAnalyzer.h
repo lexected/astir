@@ -58,14 +58,20 @@ private:
 		std::pair<std::string, TokenType>("item", TokenType::KW_ITEM),
 		std::pair<std::string, TokenType>("list", TokenType::KW_LIST),
 		std::pair<std::string, TokenType>("raw", TokenType::KW_RAW),
-		std::pair<std::string, TokenType>("set", TokenType::KW_SET),
-		std::pair<std::string, TokenType>("unset", TokenType::KW_UNSET),
+
 		std::pair<std::string, TokenType>("flag", TokenType::KW_FLAG),
 		std::pair<std::string, TokenType>("unflag", TokenType::KW_UNFLAG),
+
+		std::pair<std::string, TokenType>("capture", TokenType::KW_CAPTURE),
+		std::pair<std::string, TokenType>("empty", TokenType::KW_EMPTY),
 		std::pair<std::string, TokenType>("append", TokenType::KW_APPEND),
 		std::pair<std::string, TokenType>("prepend", TokenType::KW_PREPEND),
+
+		std::pair<std::string, TokenType>("set", TokenType::KW_SET),
+		std::pair<std::string, TokenType>("unset", TokenType::KW_UNSET),
+		
+		std::pair<std::string, TokenType>("push", TokenType::KW_PUSH),
+		std::pair<std::string, TokenType>("pop", TokenType::KW_POP),
 		std::pair<std::string, TokenType>("clear", TokenType::KW_CLEAR),
-		std::pair<std::string, TokenType>("left_trim", TokenType::KW_LEFT_TRIM),
-		std::pair<std::string, TokenType>("right_trim", TokenType::KW_RIGHT_TRIM)
 		});
 };

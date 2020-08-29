@@ -581,17 +581,18 @@ std::unique_ptr<PrimitiveRegex> Parser::parsePrimitiveRegex(std::list<Token>::co
 RegexActionType Parser::parseRegexAction(std::list<Token>::const_iterator& it) const {
 	RegexActionType ret;
 	switch (it->type) {
-		case TokenType::KW_SET:
-			ret = RegexActionType::Set;
-			break;
-		case TokenType::KW_UNSET:
-			ret = RegexActionType::Unset;
-			break;
 		case TokenType::KW_FLAG:
 			ret = RegexActionType::Flag;
 			break;
 		case TokenType::KW_UNFLAG:
 			ret = RegexActionType::Unflag;
+			break;
+
+		case TokenType::KW_CAPTURE:
+			ret = RegexActionType::Capture;
+			break;
+		case TokenType::KW_EMPTY:
+			ret = RegexActionType::Empty;
 			break;
 		case TokenType::KW_APPEND:
 			ret = RegexActionType::Append;
@@ -599,14 +600,21 @@ RegexActionType Parser::parseRegexAction(std::list<Token>::const_iterator& it) c
 		case TokenType::KW_PREPEND:
 			ret = RegexActionType::Prepend;
 			break;
+
+		case TokenType::KW_SET:
+			ret = RegexActionType::Set;
+			break;
+		case TokenType::KW_UNSET:
+			ret = RegexActionType::Unset;
+			break;
+		case TokenType::KW_PUSH:
+			ret = RegexActionType::Push;
+			break;
+		case TokenType::KW_POP:
+			ret = RegexActionType::Pop;
+			break;
 		case TokenType::KW_CLEAR:
 			ret = RegexActionType::Clear;
-			break;
-		case TokenType::KW_LEFT_TRIM:
-			ret = RegexActionType::LeftTrim;
-			break;
-		case TokenType::KW_RIGHT_TRIM:
-			ret = RegexActionType::RightTrim;
 			break;
 		default:
 			throw UnexpectedTokenException(*it, "a valid action type keyword to follow the action operator '@'", "for action-atomic regex");

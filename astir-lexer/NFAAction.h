@@ -6,33 +6,37 @@
 #include "IGenerationVisitable.h"
 
 enum class NFAActionType : unsigned char {
-	Set = 1,
-	Unset = 2,
-	Flag = 3,
-	Unflag = 4,
+	Flag = 1,
+	Unflag = 2,
+
+	Capture = 3,
+	Empty = 4,
 	Append = 5,
 	Prepend = 6,
-	Clear = 7,
-	LeftTrim = 8,
-	RightTrim = 9,
+
+	Set = 7,
+	Unset = 8,
+	Push = 9,
+	Pop = 10,
+	Clear = 11,
 
 	CreateContext = 101,
-	DestroyContext = 102, // UNSAFE IN VAST MAJORITY OF SCENARIOS DUE TO NATURE OF NFA EMPTY TRANSITIONS (and because my context encapsulation is far from perfect), DO NOT USE!
-	ElevateContext = 103,
-	SetContext = 104,
-	AppendContext = 105,
-	PrependContext = 106,
+	ElevateContext = 102,
 
 	None = 255
 };
+
 
 struct NFAAction : public IGenerationVisitable {
 	NFAActionType type;
 	std::string contextPath;
 	std::string targetName;
+	std::string payload;
 
 	NFAAction(NFAActionType faAction, const std::string& contextPath, const std::string& targetName)
-		: type(faAction), contextPath(contextPath), targetName(targetName) { }
+		: type(faAction), contextPath(contextPath), targetName(targetName), payload() { }
+	NFAAction(NFAActionType faAction, const std::string& contextPath, const std::string& targetName, const std::string& payload)
+		: type(faAction), contextPath(contextPath), targetName(targetName), payload(payload) { }
 
 	void accept(GenerationVisitor* visitor) const override;
 };

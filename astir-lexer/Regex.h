@@ -42,16 +42,20 @@ struct LookaheadRegex : public RootRegex {
 };
 
 enum class RegexActionType : unsigned char {
-	Set = 1,
-	Unset = 2,
-	Flag = 3,
-	Unflag = 4,
+	Flag = 1,
+	Unflag = 2,
+
+	Capture = 3,
+	Empty = 4,
 	Append = 5,
 	Prepend = 6,
-	Clear = 7,
-	LeftTrim = 8,
-	RightTrim = 9,
 
+	Set = 7,
+	Unset = 8,
+	Push = 9,
+	Pop = 10,
+	Clear = 11,
+	
 	None = 255
 };
 struct RegexAction : public ISyntacticEntity {
@@ -90,7 +94,7 @@ struct PrimitiveRegex : public AtomicRegex {
 	std::list<RegexAction> actions;
 
 	void checkActionUsage(const Machine& machine, const MachineComponent* context) const override;
-	virtual void checkActionUsageFieldType(const Machine& machine, const MachineComponent* context, RegexActionType type, const Field* targetField) const;
+	virtual std::string computeItemType(const Machine& machine, const MachineComponent* context) const;
 };
 
 struct RegexRange {
@@ -118,7 +122,7 @@ struct LiteralRegex : public PrimitiveRegex {
 struct ReferenceRegex : public PrimitiveRegex {
 	std::string referenceName;
 
-	void checkActionUsageFieldType(const Machine& machine, const MachineComponent* context, RegexActionType type, const Field* targetField) const override;
+	std::string computeItemType(const Machine& machine, const MachineComponent* context) const override;
 
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
 
