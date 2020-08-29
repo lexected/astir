@@ -162,11 +162,18 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 				} else if (m_currentCharacter == '\\') {
 					m_state = LexicalAnalyzerState::StringEscapeSequence;
 				} else if (m_currentCharacter == '"' && m_stringIsDoubleQuote || m_currentCharacter == '\'' && !m_stringIsDoubleQuote) {
-					ret.push_back(m_currentToken);
+					if (!m_currentToken.string.empty() || m_currentToken.string.empty() && m_currentLocation.column - 1 == m_currentToken.location().column) {
+						ret.push_back(m_currentToken);
+					}
+					
 					m_currentToken.string.clear();
 					m_state = LexicalAnalyzerState::Default;
 				} else if (!m_endOfStreamReached) {
 					m_currentToken.string.append(1, m_currentCharacter);
+					if(m_stringIsDoubleQuote) {
+						ret.push_back(m_currentToken);
+						m_currentToken.string.clear();
+					}
 				} else {
 					throw LexicalAnalyzerException("Unexpected end of stream encountered at " + m_currentLocation.toString() + ", string started at " + m_currentToken.locationString() + " was left unterminated");
 				}
@@ -198,6 +205,10 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 				} 
 				if (toAppend != '\0') {
 					m_currentToken.string.append(1, toAppend);
+					if (m_stringIsDoubleQuote) {
+						ret.push_back(m_currentToken);
+						m_currentToken.string.clear();
+					}
 					m_state = LexicalAnalyzerState::String;
 				} else if (m_currentCharacter == 'x') {
 					m_state = LexicalAnalyzerState::StringHexEscapeSequence;
@@ -225,6 +236,10 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 					const char* valueBytesPtr = (char*)&value;
 					while (bytes > 0) {
 						m_currentToken.string.append(1, *valueBytesPtr);
+						if (m_stringIsDoubleQuote) {
+							ret.push_back(m_currentToken);
+							m_currentToken.string.clear();
+						}
 						++valueBytesPtr;
 						--bytes;
 					}
@@ -248,6 +263,10 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 					const char* valueBytesPtr = (const char*)&value;
 					while (bytes > 0) {
 						m_currentToken.string.append(1, *valueBytesPtr);
+						if (m_stringIsDoubleQuote) {
+							ret.push_back(m_currentToken);
+							m_currentToken.string.clear();
+						}
 						++valueBytesPtr;
 						--bytes;
 					}
