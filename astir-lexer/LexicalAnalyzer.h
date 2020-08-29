@@ -17,6 +17,9 @@ enum class LexicalAnalyzerState {
 	Identifier,
 	Number,
 	String,
+	StringEscapeSequence,
+	StringOctalEscapeSequence,
+	StringHexEscapeSequence,
 	LeftArrow
 };
 
@@ -37,6 +40,8 @@ public:
 private:
 	FileLocation m_currentLocation;
 	LexicalAnalyzerState m_state;
+	bool m_stringIsDoubleQuote;
+	std::string m_currentEscapeSequence;
 	Token m_currentToken;
 
 	char m_currentCharacter;

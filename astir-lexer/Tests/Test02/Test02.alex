@@ -7,6 +7,6 @@ deterministic finite automaton Test02 {
 		| "a" "a"@unflag:isShort@flag:isLong
 		;
 
-	terminal production p2 = "a" "b" "b";
-	terminal production p3 = "a"* "b"+;
+	terminal production p2 = "a" "\142" "\x62"; // "a" "b" "b"
+	terminal production p3 = "\141"* "b"+; // "a"* "b"+
 }
