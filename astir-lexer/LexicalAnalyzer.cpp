@@ -39,7 +39,7 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 					m_currentToken.string.append(std::string({ m_currentCharacter }));
 					m_currentToken.type = TokenType::IDENTIFIER;
 					m_currentToken.setLocation(m_currentLocation);
-				} else if(std::isalnum(m_currentCharacter) || m_currentCharacter == '_') {
+				} else if (std::isalnum(m_currentCharacter) || m_currentCharacter == '_') {
 					m_state = LexicalAnalyzerState::Number;
 					m_currentToken.string.append(std::string({ m_currentCharacter }));
 					m_currentToken.type = TokenType::NUMBER;
@@ -54,6 +54,10 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 					m_state = LexicalAnalyzerState::LeftArrow;
 					m_currentToken.string = "<-";
 					m_currentToken.type = TokenType::OP_LEFTARR;
+					m_currentToken.setLocation(m_currentLocation);
+				} else if (m_currentCharacter == '/') {
+					m_state = LexicalAnalyzerState::ForwardSlash;
+					m_currentToken.string = "/";
 					m_currentToken.setLocation(m_currentLocation);
 				} else {
 					m_currentToken.string = std::string({ m_currentCharacter });
@@ -106,9 +110,6 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 							break;
 						case '|':
 							m_currentToken.type = TokenType::OP_OR;
-							break;
-						case '/':
-							m_currentToken.type = TokenType::OP_FWDSLASH;
 							break;
 						case ',':
 							m_currentToken.type = TokenType::OP_COMMA;
@@ -170,6 +171,45 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 					ret.push_back(m_currentToken);
 					m_currentToken.string.clear();
 					m_state = LexicalAnalyzerState::Default;
+				}
+				break;
+			case LexicalAnalyzerState::ForwardSlash:
+				if (m_currentCharacter == '/') {
+					m_state = LexicalAnalyzerState::LineComment;
+				} else if (m_currentCharacter == '*') {
+					m_state = LexicalAnalyzerState::MultilineComment;
+				} else {
+					m_currentToken.type = TokenType::OP_FWDSLASH;
+					ret.push_back(m_currentToken);
+					m_currentToken.string.clear();
+					m_state = LexicalAnalyzerState::Default;
+				}
+				break;
+			case LexicalAnalyzerState::LineComment:
+				if (m_currentCharacter == '\n' || m_endOfStreamReached) {
+					m_currentToken.string.clear();
+					m_state = LexicalAnalyzerState::Default;
+				}
+				break;
+			case LexicalAnalyzerState::MultilineComment:
+				if (m_endOfStreamReached) {
+					throw LexicalAnalyzerException("Multiline comment without closure started on " + m_currentToken.locationString() + ", expected '*/' to close the multiline comment before the input stream end");
+				}
+
+				if (m_currentCharacter == '*') {
+					m_state = LexicalAnalyzerState::MultilineCommentStarEncountered;
+				}
+				break;
+			case LexicalAnalyzerState::MultilineCommentStarEncountered:
+				if (m_endOfStreamReached) {
+					throw LexicalAnalyzerException("Multiline comment without closure started on " + m_currentToken.locationString() + ", expected '*/' (now only '/' is missing as star has recently been encountered) to close the multiline comment before the input stream end");
+				}
+
+				if (m_currentCharacter == '/') {
+					m_currentToken.string.clear();
+					m_state = LexicalAnalyzerState::Default;
+				} else {
+					m_state = LexicalAnalyzerState::MultilineComment;
 				}
 				break;
 		}

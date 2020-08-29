@@ -1,8 +1,9 @@
 deterministic finite automaton Test02 {
-	terminal production p1 {
-		flag isShort;
+	terminal production p1 { // end of line comment
+		flag/* a completely unnecessarycomment * 1 * / */ isShort;
 		flag isLong;
-	} = "a"@flag:isShort@unflag:isLong
+	} = "a"@flag:isShort@unflag:isLong/* multiline
+		comment */
 		| "a" "a"@unflag:isShort@flag:isLong
 		;
 

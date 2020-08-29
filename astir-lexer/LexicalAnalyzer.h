@@ -9,6 +9,11 @@
 
 enum class LexicalAnalyzerState {
 	Default,
+	ForwardSlash,
+	LineComment,
+	MultilineComment,
+	MultilineCommentStarEncountered,
+
 	Identifier,
 	Number,
 	String,
