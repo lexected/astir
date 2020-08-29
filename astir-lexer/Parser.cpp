@@ -101,12 +101,14 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 			machineDefinition->uses.push_back(it->string);
 			++it;
 		}
-	} else if (it->type == TokenType::KW_FOLLOWS) {
+	} else if (it->type == TokenType::KW_ON) {
 		++it;
+
 		if (it->type != TokenType::IDENTIFIER) {
-			throw UnexpectedTokenException(*it, "an identifier for the target of 'follows'", "for machine declaration", *savedIt);
+			throw UnexpectedTokenException(*it, "an identifier for the target of 'on' (i.e. underlying/input machine)", "for machine declaration", *savedIt);
 		}
-		machineDefinition->follows = it->string;
+
+		machineDefinition->on = it->string;
 		++it;
 	}
 
@@ -147,10 +149,10 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 
 bool Parser::tryParseMachineFlag(std::list<Token>::const_iterator& it, std::map<MachineFlag, MachineDefinitionAttribute>& attributes) const {
 	std::pair<MachineFlag, bool> setting;
-	if (it->type == TokenType::KW_GROUPED_STRING_LITERALS) {
-		setting = make_pair<MachineFlag, bool>(MachineFlag::GroupedStringLiterals, true);
-	} else if (it->type == TokenType::KW_INDIVIDUAL_STRING_LITERALS) {
-		setting = make_pair<MachineFlag, bool>(MachineFlag::GroupedStringLiterals, false);
+	if (it->type == TokenType::KW_PRODUCTIONS_TERMINAL_BY_DEFAULT) {
+		setting = make_pair<MachineFlag, bool>(MachineFlag::ProductionsTerminalByDefault, true);
+	} else if (it->type == TokenType::KW_PRODUCTIONS_NONTERMINAL_BY_DEFAULT) {
+		setting = make_pair<MachineFlag, bool>(MachineFlag::ProductionsTerminalByDefault, false);
 	} else {
 		return false;
 	}
@@ -169,20 +171,9 @@ bool Parser::tryParseMachineFlag(std::list<Token>::const_iterator& it, std::map<
 
 std::unique_ptr<MachineDefinition> Parser::parseMachineType(std::list<Token>::const_iterator& it) const {
 	auto savedIt = it;
-	if (it->type == TokenType::KW_DETERMINISTIC || it->type == TokenType::KW_NONDETERMINISTIC || it->type == TokenType::KW_FINITE) {
+	if (it->type == TokenType::KW_FINITE) {
 		std::unique_ptr<FiniteAutomatonDefinition> faDef = std::make_unique<FiniteAutomatonDefinition>();
 		faDef->copyLocation(*savedIt);
-
-		FiniteAutomatonType faType = FiniteAutomatonType::Nondeterministic;
-		if (it->type != TokenType::KW_FINITE) {
-			faType = (it->type == TokenType::KW_DETERMINISTIC ? FiniteAutomatonType::Deterministic : FiniteAutomatonType::Nondeterministic);
-			++it;
-		}
-		faDef->type = faType;
-
-		if (it->type != TokenType::KW_FINITE) {
-			throw UnexpectedTokenException(*it, "the keyword 'finite'", "for finite automaton declaration", *savedIt);
-		}
 		++it;
 
 		if (it->type != TokenType::KW_AUTOMATON) {

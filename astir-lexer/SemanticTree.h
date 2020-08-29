@@ -68,7 +68,7 @@ struct ReferenceRegex;
 class Machine : public ISemanticEntity, public IGenerationVisitable {
 public:
 	const std::string name;
-	std::shared_ptr<Machine> follows; // ownership is shared.. in theory just a normal pointer to Machine would be lastApplicationSuccessful as specifications own the pointers, but OK - can be resolved later
+	std::shared_ptr<Machine> on; // ownership is shared.. in theory just a normal pointer to Machine would be lastApplicationSuccessful as specifications own the pointers, but OK - can be resolved later
 	std::list<std::shared_ptr<Machine>> uses; // ownership is shared
 	std::map<std::string, std::shared_ptr<MachineComponent>> components;
 
@@ -77,7 +77,7 @@ public:
 
 	void initialize() override;
 
-	MachineComponent* findMachineComponent(const std::string& name, bool* follows = nullptr) const; // anyone calling this function shall not take up even a partial ownership of the component, normal pointer suffices
+	MachineComponent* findMachineComponent(const std::string& name, bool* wasFoundInUnderlyingMachine = nullptr) const; // anyone calling this function shall not take up even a partial ownership of the component, normal pointer suffices
 	std::list<const MachineComponent*> getTerminalComponents() const;
 	std::list<const MachineComponent*> getTerminalTypeComponents() const;
 	std::list<const MachineComponent*> getTypeComponents() const;
@@ -87,17 +87,10 @@ public:
 	virtual void checkForComponentRecursion() const = 0;
 };
 
-enum class FiniteAutomatonType {
-	Deterministic,
-	Nondeterministic
-};
-
 class FiniteAutomatonMachine : public Machine {
 public:
-	const FiniteAutomatonType type;
-
-	FiniteAutomatonMachine(const std::shared_ptr<const FiniteAutomatonDefinition>& machineDefinition, const std::string& name, FiniteAutomatonType type)
-		: Machine(name), m_finiteAutomatonDefinition(machineDefinition), type(type) { }
+	FiniteAutomatonMachine(const std::shared_ptr<const FiniteAutomatonDefinition>& machineDefinition, const std::string& name)
+		: Machine(name), m_finiteAutomatonDefinition(machineDefinition) { }
 
 	void checkForComponentRecursion() const override;
 	std::shared_ptr<const ISyntacticEntity> underlyingSyntacticEntity() const override;
@@ -136,12 +129,12 @@ public:
 
 struct CategoryReference {
 	const MachineComponent* component;
-	bool isAFollowsReference;
+	bool isAReferenceFromUnderlyingMachine; // well, if you put it this way, it really does sounds stupid!
 
 	CategoryReference()
-		: component(nullptr), isAFollowsReference(false) { }
-	CategoryReference(const MachineComponent* component, bool isAFollowsReference)
-		: component(component), isAFollowsReference(isAFollowsReference) { }
+		: component(nullptr), isAReferenceFromUnderlyingMachine(false) { }
+	CategoryReference(const MachineComponent* component, bool isAReferenceFromUnderlyingMachine)
+		: component(component), isAReferenceFromUnderlyingMachine(isAReferenceFromUnderlyingMachine) { }
 };
 
 class Category : public MachineComponent {

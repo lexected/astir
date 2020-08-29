@@ -33,8 +33,8 @@ std::string Token::convertTypeToString(TokenType type) {
 
 		case TokenType::KW_WITH:
 			return "KW_WITH";
-		case TokenType::KW_FOLLOWS:
-			return "KW_FOLLOWS";
+		case TokenType::KW_ON:
+			return "KW_ON";
 		
 		case TokenType::KW_DETERMINISTIC:
 			return "KW_DETERMINISTIC";

@@ -45,10 +45,10 @@ std::shared_ptr<SemanticTree> SyntacticTree::makeSemanticEntity(const std::share
 	// now add links between machines
 	for (const auto& machineDefinitionPtr : this->machineDefinitions) {
 		auto machineConsidered = semanticTree->machines[machineDefinitionPtr->name];
-		if (!machineDefinitionPtr->follows.empty()) {
-			machineConsidered->follows = semanticTree->machines[machineDefinitionPtr->follows];
+		if (!machineDefinitionPtr->on.empty()) {
+			machineConsidered->on = semanticTree->machines[machineDefinitionPtr->on];
 		} else {
-			machineConsidered->follows = nullptr;
+			machineConsidered->on = nullptr;
 		}
 		
 		for (const auto& used : machineDefinitionPtr->uses) {
@@ -63,7 +63,7 @@ std::shared_ptr<SemanticTree> SyntacticTree::makeSemanticEntity(const std::share
 }
 
 std::shared_ptr<Machine> FiniteAutomatonDefinition::makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Machine>>& ownershipPtr) const {
-	return std::make_shared<FiniteAutomatonMachine>(std::dynamic_pointer_cast<const FiniteAutomatonDefinition>(ownershipPtr), name, type);
+	return std::make_shared<FiniteAutomatonMachine>(std::dynamic_pointer_cast<const FiniteAutomatonDefinition>(ownershipPtr), name);
 }
 
 std::shared_ptr<Category> CategoryStatement::makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Category>>& ownershipPtr) const {

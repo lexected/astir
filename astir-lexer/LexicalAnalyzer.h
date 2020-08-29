@@ -51,15 +51,15 @@ private:
 	const std::map<std::string, TokenType> m_keywordMap = std::map<std::string, TokenType>({
 		std::pair<std::string, TokenType>("uses", TokenType::KW_USES),
 
-		std::pair<std::string, TokenType>("follows", TokenType::KW_FOLLOWS),
+		std::pair<std::string, TokenType>("on", TokenType::KW_ON),
 		std::pair<std::string, TokenType>("with", TokenType::KW_WITH),
 
 		std::pair<std::string, TokenType>("deterministic", TokenType::KW_DETERMINISTIC),
 		std::pair<std::string, TokenType>("nondeterministic", TokenType::KW_NONDETERMINISTIC),
 		std::pair<std::string, TokenType>("finite", TokenType::KW_FINITE),
 		std::pair<std::string, TokenType>("automaton", TokenType::KW_AUTOMATON),
-		std::pair<std::string, TokenType>("individual_string_literals", TokenType::KW_INDIVIDUAL_STRING_LITERALS),
-		std::pair<std::string, TokenType>("grouped_string_literals", TokenType::KW_GROUPED_STRING_LITERALS),
+		std::pair<std::string, TokenType>("productions_terminal_by_default", TokenType::KW_PRODUCTIONS_TERMINAL_BY_DEFAULT),
+		std::pair<std::string, TokenType>("productions_nonterminal_by_default", TokenType::KW_PRODUCTIONS_NONTERMINAL_BY_DEFAULT),
 		std::pair<std::string, TokenType>("category", TokenType::KW_CATEGORY),
 		std::pair<std::string, TokenType>("terminal", TokenType::KW_TERMINAL),
 		std::pair<std::string, TokenType>("nonterminal", TokenType::KW_NONTERMINAL),

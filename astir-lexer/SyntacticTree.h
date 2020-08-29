@@ -40,7 +40,7 @@ struct UsesStatement : public ISyntacticEntity {
 };
 
 enum class MachineFlag {
-	GroupedStringLiterals
+	ProductionsTerminalByDefault
 };
 
 struct MachineDefinitionAttribute {
@@ -60,21 +60,23 @@ public:
 	std::string name;
 	std::map<MachineFlag, MachineDefinitionAttribute> attributes;
 	std::list<std::string> uses;
-	std::string follows;
+	std::string on;
 	std::list<std::shared_ptr<CategoryStatement>> categoryStatements;
 	std::list<std::shared_ptr<RuleStatement>> ruleStatements;
 
 	MachineDefinition()
 		: attributes({
-				{ MachineFlag::GroupedStringLiterals, MachineDefinitionAttribute(false) }
+				{ MachineFlag::ProductionsTerminalByDefault, MachineDefinitionAttribute(false) }
 			}) { }
+	MachineDefinition(const std::map<MachineFlag, MachineDefinitionAttribute>& attributes)
+		: attributes() { }
 };
 
 struct FiniteAutomatonDefinition : public MachineDefinition {
-	FiniteAutomatonType type;
-	
 	FiniteAutomatonDefinition()
-		:  MachineDefinition(), type(FiniteAutomatonType::Nondeterministic) { }
+		:  MachineDefinition({
+				{ MachineFlag::ProductionsTerminalByDefault, MachineDefinitionAttribute(true) }
+			}) { }
 
 	std::shared_ptr<Machine> makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Machine>>& ownershipPtr) const override;
 };

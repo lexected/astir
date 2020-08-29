@@ -17,8 +17,8 @@ void SemanticTree::checkForMachineHierarchyRecursion(std::list<std::string>& nam
 	}
 
 	const MachineDefinition* definitionConsidered = dynamic_cast<const MachineDefinition*>(this->machines.find(nameConsidered)->second->underlyingSyntacticEntity().get());
-	if (!definitionConsidered->follows.empty()) {
-		checkForMachineHierarchyRecursion(namesEncountered, definitionConsidered->follows);
+	if (!definitionConsidered->on.empty()) {
+		checkForMachineHierarchyRecursion(namesEncountered, definitionConsidered->on);
 	}
 	for (const auto& used : definitionConsidered->uses) {
 		checkForMachineHierarchyRecursion(namesEncountered, used);
@@ -54,8 +54,8 @@ void Machine::initialize() {
 		usedPtr->initialize();
 	}
 
-	if (follows) {
-		follows->initialize();
+	if (on) {
+		on->initialize();
 	}
 
 	const MachineDefinition* machineDefinition = dynamic_cast<const MachineDefinition*>(underlyingSyntacticEntity().get());
@@ -86,11 +86,11 @@ void Machine::initialize() {
 	for (const auto& componentPair : components) {
 		const MachineStatement* machineStatement = dynamic_cast<const MachineStatement*>(componentPair.second->underlyingSyntacticEntity().get());
 		for (const auto& categoryUsedName : machineStatement->categories) {
-			bool isFromFollows;
-			auto mc = findMachineComponent(categoryUsedName, &isFromFollows);
+			bool isFromUnderlyingMachine;
+			auto mc = findMachineComponent(categoryUsedName, &isFromUnderlyingMachine);
 			Category* cat = dynamic_cast<Category*>(mc);
 			componentPair.second->categories.push_back(cat);
-			cat->references[componentPair.first] = CategoryReference(componentPair.second.get(), isFromFollows);
+			cat->references[componentPair.first] = CategoryReference(componentPair.second.get(), isFromUnderlyingMachine);
 		}
 	}
 
@@ -105,7 +105,7 @@ void Machine::initialize() {
 		componentPair.second->checkFieldDeclarations(*this);
 	}
 
-	// on the rule and category level we need to check that there is no disallowed recursion within the productions themselves
+	// wasFoundInUnderlyingMachine the rule and category level we need to check that there is no disallowed recursion within the productions themselves
 	checkForComponentRecursion();
 
 	// once the basic field and rule/category reference verifications have been conducted, we need to check whether the actions of individual rules are contextually valid
@@ -114,7 +114,7 @@ void Machine::initialize() {
 	}
 }
 
-MachineComponent* Machine::findMachineComponent(const std::string& name, bool* follows) const {
+MachineComponent* Machine::findMachineComponent(const std::string& name, bool* wasFoundInUnderlyingMachine) const {
 	MachineComponent* ret;
 	for (const auto& used : uses) {
 		if (ret = used->findMachineComponent(name)) {
@@ -122,17 +122,17 @@ MachineComponent* Machine::findMachineComponent(const std::string& name, bool* f
 		}
 	}
 	
-	if (this->follows && (ret = this->follows->findMachineComponent(name))) {
-		if (follows) {
-			*follows = true;
+	if (this->on && (ret = this->on->findMachineComponent(name))) {
+		if (wasFoundInUnderlyingMachine) {
+			*wasFoundInUnderlyingMachine = true;
 		}
 		return ret;
 	}
 
 	auto it = components.find(name);
 	if (it != components.cend()) {
-		if (follows) {
-			*follows = false;
+		if (wasFoundInUnderlyingMachine) {
+			*wasFoundInUnderlyingMachine = false;
 		}
 		return it->second.get();
 	}
@@ -216,7 +216,7 @@ const IFileLocalizable* Machine::findRecursiveReferenceThroughName(const std::st
 }
 
 SemanticAnalysisException::SemanticAnalysisException(const std::string& message, const IFileLocalizable& somethingLocalizableToPinpointLocationBy)
-	: Exception(message + " -- on " + somethingLocalizableToPinpointLocationBy.locationString()) { }
+	: Exception(message + " -- wasFoundInUnderlyingMachine " + somethingLocalizableToPinpointLocationBy.locationString()) { }
 
 
 void FiniteAutomatonMachine::checkForComponentRecursion() const {
