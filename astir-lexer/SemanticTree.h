@@ -159,22 +159,45 @@ private:
 
 class Rule : public MachineComponent {
 public:
-	const bool terminal;
-	const bool typeForming;
 	std::shared_ptr<DisjunctiveRegex> regex;
 
-	Rule(const std::shared_ptr<const RuleStatement>& ruleStatement, const std::string& name, bool terminal, bool typeForming, const std::shared_ptr<DisjunctiveRegex>& regex)
-		: m_ruleStatement(ruleStatement), MachineComponent(name), terminal(terminal), typeForming(typeForming), regex(regex) { }
+	Rule(const std::shared_ptr<const RuleStatement>& ruleStatement, const std::string& name, const std::shared_ptr<DisjunctiveRegex>& regex)
+		: m_ruleStatement(ruleStatement), MachineComponent(name), regex(regex) { }
+
 	void initialize() override;
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const override;
 	std::shared_ptr<const ISyntacticEntity> underlyingSyntacticEntity() const override;
 	
 	bool entails(const std::string& name) const override;
 	bool entails(const std::string& name, std::list<const Category*>& path) const override;
+
+	void verifyContextualValidity(const Machine& machine) const override;
+private:
+	std::shared_ptr<const RuleStatement> m_ruleStatement;
+};
+
+class Pattern : public Rule {
+public:
+	Pattern(const std::shared_ptr<const RuleStatement>& ruleStatement, const std::string& name, const std::shared_ptr<DisjunctiveRegex>& regex)
+		: Rule(ruleStatement, name, regex) { }
+
 	const bool isTypeForming() const override;
 	const bool isTerminal() const override;
 
-	void verifyContextualValidity(const Machine& machine) const override;
+	NFA accept(const NFABuilder& nfaBuilder) const override;
+private:
+	std::shared_ptr<const RuleStatement> m_ruleStatement;
+};
+
+class Production : public Rule {
+public:
+	bool terminal;
+
+	Production(const std::shared_ptr<const RuleStatement>& ruleStatement, const std::string& name, std::shared_ptr<DisjunctiveRegex>& regex, bool terminal)
+		: Rule(ruleStatement, name, regex), terminal(terminal) { }
+
+	const bool isTypeForming() const override;
+	const bool isTerminal() const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 private:

@@ -65,7 +65,7 @@ void Machine::initialize() {
 			throw SemanticAnalysisException("Category name '" + statementPtr->name + "' encountered in machine '" + name + "' already defined", *this); // TODO: could use an improvement; already defined where?
 		}
 
-		components[statementPtr->name] = statementPtr->makeSemanticEntity(statementPtr);
+		components[statementPtr->name] = std::make_shared<Category>(statementPtr, statementPtr->name);
 	}
 
 	for (const auto& statementPtr : machineDefinition->ruleStatements) {
@@ -73,7 +73,31 @@ void Machine::initialize() {
 			throw SemanticAnalysisException("Rule name '" + statementPtr->name + "' encountered in machine '" + name + "' already defined", *this); // TODO: could use an improvement; already defined where?
 		}
 
-		components[statementPtr->name] = statementPtr->makeSemanticEntity(statementPtr);
+		std::shared_ptr<Rule> rulePtr;
+
+		// decide on the type
+		RuleStatementType typeDecision;
+		if (statementPtr->typeSpecified) {
+			typeDecision = statementPtr->type;
+		} else {
+			const auto machineDefinitionAttributeIterator = machineDefinition->attributes.find(MachineFlag::RulesProductionsByDefault);
+			typeDecision = machineDefinitionAttributeIterator->second.value ? RuleStatementType::Production : RuleStatementType::Pattern;
+		}
+
+		// then, if applicable, also decide on the terminality of the rule
+		if (typeDecision == RuleStatementType::Pattern) {
+			rulePtr = std::make_shared<Pattern>(statementPtr, statementPtr->name, statementPtr->disjunction);
+		} else if (typeDecision == RuleStatementType::Production) {
+			bool terminalityDecision;
+			if (!statementPtr->terminalitySpecified) {
+				const auto machineDefinitionAttributeIterator = machineDefinition->attributes.find(MachineFlag::ProductionsTerminalByDefault);
+				terminalityDecision = machineDefinitionAttributeIterator->second.value;
+			}
+			rulePtr = std::make_shared<Production>(statementPtr, statementPtr->name, statementPtr->disjunction, terminalityDecision);
+		}
+
+		// register the newly build semantic object
+		components[statementPtr->name] = rulePtr;
 	}
 
 	// check for possible category reference recursion (and obviously whether the referenced category is indeed a category)
@@ -242,17 +266,20 @@ void FiniteAutomatonMachine::initialize() {
 	this->Machine::initialize();
 
 	NFA base;
+	NFABuilder builder(*this, nullptr, "m_token");
 	for (const auto& componentPair : this->components) {
 		const MachineComponent* componentPtr = componentPair.second.get();
-		NFABuilder builder(*this, componentPtr, "m_token");
-		base.addContextedAlternative(componentPtr->accept(builder), "m_token", componentPtr->name, true);
+		const std::string& newSubcontextName = componentPtr->name;
+		NFA alternativeNfa = componentPtr->accept(builder);
+
+		NFAActionRegister elevateContextActionRegister;
+		elevateContextActionRegister.emplace_back(NFAActionType::ElevateContext, "m_token", newSubcontextName);
+		alternativeNfa.concentrateFinalStates(elevateContextActionRegister);
+
+		base |= alternativeNfa;
 	}
 
-	if (this->type == FiniteAutomatonType::Deterministic) {
-		m_nfa = base.buildDFA();
-	} else {
-		m_nfa = base;
-	}
+	m_nfa = base.buildDFA();
 }
 
 void FiniteAutomatonMachine::accept(GenerationVisitor* visitor) const {
@@ -410,18 +437,30 @@ bool Rule::entails(const std::string& name, std::list<const Category*>& path) co
 	return name == this->name;
 }
 
-const bool Rule::isTypeForming() const {
-	return typeForming;
-}
-
-const bool Rule::isTerminal() const {
-	return this->terminal;
-}
-
 void Rule::verifyContextualValidity(const Machine& machine) const {
 	regex->checkActionUsage(machine, this);
 }
 
-NFA Rule::accept(const NFABuilder& nfaBuilder) const {
+const bool Pattern::isTypeForming() const {
+	return false;
+}
+
+const bool Pattern::isTerminal() const {
+	return false;
+}
+
+NFA Pattern::accept(const NFABuilder& nfaBuilder) const {
+	return nfaBuilder.visit(this);
+}
+
+const bool Production::isTypeForming() const {
+	return true;
+}
+
+const bool Production::isTerminal() const {
+	return terminal;
+}
+
+NFA Production::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }

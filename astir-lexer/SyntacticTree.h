@@ -40,7 +40,8 @@ struct UsesStatement : public ISyntacticEntity {
 };
 
 enum class MachineFlag {
-	ProductionsTerminalByDefault
+	ProductionsTerminalByDefault,
+	RulesProductionsByDefault
 };
 
 struct MachineDefinitionAttribute {
@@ -66,16 +67,20 @@ public:
 
 	MachineDefinition()
 		: attributes({
-				{ MachineFlag::ProductionsTerminalByDefault, MachineDefinitionAttribute(false) }
+				{ MachineFlag::ProductionsTerminalByDefault, MachineDefinitionAttribute(false) },
+				{ MachineFlag::RulesProductionsByDefault, MachineDefinitionAttribute(true) }
 			}) { }
 	MachineDefinition(const std::map<MachineFlag, MachineDefinitionAttribute>& attributes)
-		: attributes() { }
+		: attributes(attributes) { }
+	// TODO: instead of setting the attribute map hard, combine the two maps with values overriden by the incoming when duplicate
 };
+
 
 struct FiniteAutomatonDefinition : public MachineDefinition {
 	FiniteAutomatonDefinition()
 		:  MachineDefinition({
-				{ MachineFlag::ProductionsTerminalByDefault, MachineDefinitionAttribute(true) }
+				{ MachineFlag::ProductionsTerminalByDefault, MachineDefinitionAttribute(true) },
+				{ MachineFlag::RulesProductionsByDefault, MachineDefinitionAttribute(true) },
 			}) { }
 
 	std::shared_ptr<Machine> makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Machine>>& ownershipPtr) const override;
@@ -94,11 +99,9 @@ struct MachineStatement : public ISyntacticEntity {
 	virtual ~MachineStatement() = default;
 };
 
-struct CategoryStatement : public MachineStatement, public ISemanticallyProcessable<Category> {
-	std::shared_ptr<Category> makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Category>>& ownershipPtr) const override;
-};
+struct CategoryStatement : public MachineStatement { };
 
-struct RuleStatement : public MachineStatement, public ISemanticallyProcessable<Rule> {
+struct RuleStatement : public MachineStatement {
 	bool terminalitySpecified;
 	bool terminality;
 	bool typeSpecified;
@@ -107,6 +110,4 @@ struct RuleStatement : public MachineStatement, public ISemanticallyProcessable<
 
 	RuleStatement()
 		: terminalitySpecified(false), terminality(false), typeSpecified(false), type(RuleStatementType::Production) { }
-
-	std::shared_ptr<Rule> makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Rule>>& ownershipPtr) const override;
 };

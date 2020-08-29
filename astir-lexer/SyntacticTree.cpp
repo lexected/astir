@@ -3,23 +3,6 @@
 
 #include <set>
 
-std::shared_ptr<Rule> RuleStatement::makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Rule>>& ownershipPtr) const {
-	bool terminal;
-	bool typeForming;
-
-	terminal = this->terminalitySpecified ? this->terminality : false;
-
-	if (type == RuleStatementType::Production) {
-		typeForming = true;
-	} else if(type == RuleStatementType::Pattern) {
-		typeForming = false;
-	} else {
-		throw SemanticAnalysisException("Unrecognized RuleStatement type. This should never happen in practice.");
-	}
-
-	return std::make_shared<Rule>(std::dynamic_pointer_cast<const RuleStatement>(ownershipPtr), this->name, terminal, typeForming, this->disjunction);
-}
-
 std::shared_ptr<SemanticTree> SyntacticTree::makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<SemanticTree>>& ownershipPtr) const {
 	std::shared_ptr<SemanticTree> semanticTree = std::make_shared<SemanticTree>(std::dynamic_pointer_cast<const SyntacticTree>(ownershipPtr));
 
@@ -65,8 +48,3 @@ std::shared_ptr<SemanticTree> SyntacticTree::makeSemanticEntity(const std::share
 std::shared_ptr<Machine> FiniteAutomatonDefinition::makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Machine>>& ownershipPtr) const {
 	return std::make_shared<FiniteAutomatonMachine>(std::dynamic_pointer_cast<const FiniteAutomatonDefinition>(ownershipPtr), name);
 }
-
-std::shared_ptr<Category> CategoryStatement::makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Category>>& ownershipPtr) const {
-	return std::make_shared<Category>(std::dynamic_pointer_cast<const CategoryStatement>(ownershipPtr), this->name);
-}
-

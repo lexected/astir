@@ -11,34 +11,48 @@ NFA NFABuilder::visit(const Category* category) const {
 	const std::string parentContextPath = m_generationContextPath + "__" + category->name;
 	const std::string generationContextPathPrefix = parentContextPath + "__";
 	for (const auto referencePair : category->references) {
-		if (referencePair.second.isAReferenceFromUnderlyingMachine) {
-			throw SemanticAnalysisException("What is going on??");
+		const std::string& newSubcontextName = referencePair.first;
+		NFA alternativeNfa = referencePair.second.component->accept(*this);
 
-			// unlikely to ever happen but ... actually won't ever happen at all ... right, I'm just not keen on deleting this
-			/*NFA modification;
-			State newState = modification.addState();
-			modification.finalStates.insert(newState);
-			modification.addTransition(0, Transition(newState, std::make_shared<ProductionSymbolGroup>(referencePair.second.component)));
+		NFAActionRegister elevateContextActionRegister;
+		elevateContextActionRegister.emplace_back(NFAActionType::ElevateContext, parentContextPath, newSubcontextName);
+		alternativeNfa.concentrateFinalStates(elevateContextActionRegister);
 
-			base |= modification;*/
-		} else {
-			const std::string& newSubcontextName = referencePair.first;
-			const std::string newSubcontextPath = generationContextPathPrefix + newSubcontextName;
-			NFABuilder contextualizedBuilder(m_contextMachine, referencePair.second.component, newSubcontextPath);
-			base.registerContext(parentContextPath, newSubcontextName);
-			
-			base.addContextedAlternative(referencePair.second.component->accept(contextualizedBuilder), parentContextPath, newSubcontextName);
-		}
+		base |= alternativeNfa;
 	}
 
 	return base;
 }
 
-NFA NFABuilder::visit(const Rule* rule) const {
+NFA NFABuilder::visit(const Pattern* rule) const {
 	const std::string newContextPath = m_generationContextPath + "__" + rule->name;
+
 	NFABuilder contextualizedBuilder(this->m_contextMachine, rule, newContextPath);
-	NFA ret = rule->regex->accept(contextualizedBuilder);
+	NFA regexNfa = rule->regex->accept(contextualizedBuilder);
+
+	return regexNfa;
+}
+
+NFA NFABuilder::visit(const Production* rule) const {
+	const std::string newContextPath = m_generationContextPath + "__" + rule->name;
+	
+	// create an NFA with two states, the second one final
+	NFA ret;
+	State interimState = ret.addState();
+	ret.finalStates.insert(interimState);
+
+	// add a transition from the first one to the second one, actioned by context creation
+	NFAActionRegister createContextActionRegister;
+	createContextActionRegister.emplace_back(NFAActionType::CreateContext, m_generationContextPath, rule->name);
+	ret.addEmptyTransition(0, interimState, createContextActionRegister);
 	ret.registerContext(m_generationContextPath, rule->name);
+
+	// chain the regex NFA onto the contexted NFA we prepared above
+	NFABuilder contextualizedBuilder(this->m_contextMachine, rule, newContextPath);
+	NFA regexNfa = rule->regex->accept(contextualizedBuilder);
+	ret &= regexNfa;
+
+	// return the contexted result
 	return ret;
 }
 
@@ -185,25 +199,18 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 	const State newBaseState = base.addState();
 	base.finalStates.insert(newBaseState);
 
-	bool on;
-	auto component = this->m_contextMachine.findMachineComponent(regex->referenceName, &on);
-	if (on) {
+	bool wasFoundInInputMachine;
+	auto component = this->m_contextMachine.findMachineComponent(regex->referenceName, &wasFoundInInputMachine);
+	if (wasFoundInInputMachine) {
 		auto actionRegister = computeActionRegisterEntries(regex->actions, "");
 		base.addTransition(0, Transition(newBaseState, std::make_shared<ProductionSymbolGroup>(component, actionRegister)));
 	} else {
-		const std::string subcontextToBeUsedAsPayloadPath = m_generationContextPath + "__" + regex->referenceName;
-		auto actionRegister = computeActionRegisterEntries(regex->actions, subcontextToBeUsedAsPayloadPath);
+		const std::string payloadPath = component->isTypeForming() ? m_generationContextPath + "__" + regex->referenceName : "";
+		auto actionRegister = computeActionRegisterEntries(regex->actions, payloadPath);
 
 		NFABuilder contextualizedBuilder(m_contextMachine, component, m_generationContextPath);
-		NFA subNfa = component->accept(contextualizedBuilder);
-		subNfa.addFinalActions(actionRegister);
-
-		
-		NFAActionRegister createContextActionRegister;
-		createContextActionRegister.emplace_back(NFAActionType::CreateContext, m_generationContextPath, regex->referenceName);
-		// within the current context context (m_generationContextPath) create a new context (subcontextToBeUsedAsPayloadPath)
-		base.addEmptyTransition(0, newBaseState, createContextActionRegister);
-		base &= subNfa;
+		base = component->accept(contextualizedBuilder);
+		base.addFinalActions(actionRegister);
 	}
 
 	return base;

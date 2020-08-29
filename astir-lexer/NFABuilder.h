@@ -12,7 +12,8 @@ public:
 		: m_contextMachine(context), m_contextComponent(component), m_generationContextPath(generationContextPath) { }
 
 	NFA visit(const Category* category) const;
-	NFA visit(const Rule* rule) const;
+	NFA visit(const Pattern* rule) const;
+	NFA visit(const Production* rule) const;
 
 	NFA visit(const DisjunctiveRegex* regex) const;
 	NFA visit(const ConjunctiveRegex* regex) const;

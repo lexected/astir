@@ -105,13 +105,12 @@ public:
 	void operator|=(const NFA& rhs);
 	void operator&=(const NFA& rhs);
 
-	void addContextedAlternative(const NFA& rhs, const std::string& parentContextPath, const std::string& subcontextName, bool createContext = true);
-
 	State addState();
 	void addTransition(State state, const Transition& transition);
 	Transition& addEmptyTransition(State state, State target);
 	Transition& addEmptyTransition(State state, State target, const NFAActionRegister& ar);
 	State concentrateFinalStates();
+	State concentrateFinalStates(const NFAActionRegister& actions);
 	void addFinalActions(const NFAActionRegister& actions);
 
 	void registerContext(const std::string& name, const std::string& type);

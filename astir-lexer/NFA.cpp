@@ -58,38 +58,6 @@ void NFA::operator&=(const NFA& rhs) {
     mergeInContexts(rhs);
 }
 
-void NFA::addContextedAlternative(const NFA& rhs, const std::string& broaderContextPath, const std::string& contextName, bool createContext) {
-    State stateIndexShift = this->states.size();
-    auto stateCopy = rhs.states;
-    for (auto& state : stateCopy) {
-        for (auto& transition : state.transitions) {
-            transition.target += stateIndexShift;
-        }
-    }
-
-    states.insert(states.end(), stateCopy.begin(), stateCopy.end());
-    NFAActionRegister createContextActionRegister;
-    if (createContext) {
-        createContextActionRegister.emplace_back(NFAActionType::CreateContext, broaderContextPath, contextName);
-    }
-    addEmptyTransition(0, stateIndexShift, createContextActionRegister);
-
-    NFAActionRegister elevateContextActionRegister;
-    elevateContextActionRegister.emplace_back(NFAActionType::ElevateContext, broaderContextPath, contextName);
-
-    const State newFinalState = addState();
-
-    std::set<State> finalStatesCopy;
-    for (const auto& finalStateIndex : rhs.finalStates) {
-        const State shiftedStateIndex = stateIndexShift + finalStateIndex;
-        addEmptyTransition(shiftedStateIndex, newFinalState, elevateContextActionRegister);
-    }
-    
-    finalStates.insert(newFinalState);
-
-    mergeInContexts(rhs);
-}
-
 State NFA::addState() {
     auto ret = (State)states.size();
     states.emplace_back();
@@ -111,9 +79,13 @@ Transition& NFA::addEmptyTransition(State state, State target, const NFAActionRe
 }
 
 State NFA::concentrateFinalStates() {
+    return concentrateFinalStates(NFAActionRegister());
+}
+
+State NFA::concentrateFinalStates(const NFAActionRegister& actions) {
     auto newFinalState = addState();
     for (auto finalState : finalStates) {
-        addEmptyTransition(finalState, newFinalState);
+        addEmptyTransition(finalState, newFinalState, actions);
     }
     finalStates.clear();
     finalStates.insert(newFinalState);
@@ -122,10 +94,14 @@ State NFA::concentrateFinalStates() {
 }
 
 void NFA::addFinalActions(const NFAActionRegister& actions) {
+    std::set<State> newFinalStates;
     for (State fs : finalStates) {
         State newState = addState();
         addEmptyTransition(fs, newState, actions);
+        newFinalStates.insert(newState);
     }
+
+    finalStates = newFinalStates;
 }
 
 void NFA::registerContext(const std::string& parentName, const std::string& name) {

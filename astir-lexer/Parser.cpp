@@ -153,6 +153,10 @@ bool Parser::tryParseMachineFlag(std::list<Token>::const_iterator& it, std::map<
 		setting = make_pair<MachineFlag, bool>(MachineFlag::ProductionsTerminalByDefault, true);
 	} else if (it->type == TokenType::KW_PRODUCTIONS_NONTERMINAL_BY_DEFAULT) {
 		setting = make_pair<MachineFlag, bool>(MachineFlag::ProductionsTerminalByDefault, false);
+	} else if (it->type == TokenType::KW_RULES_PRODUCTIONS_BY_DEFAULT) {
+		setting = make_pair<MachineFlag, bool>(MachineFlag::RulesProductionsByDefault, true);
+	} else if (it->type == TokenType::KW_RULES_PATTERNS_BY_DEFAULT) {
+		setting = make_pair<MachineFlag, bool>(MachineFlag::ProductionsTerminalByDefault, false);
 	} else {
 		return false;
 	}
