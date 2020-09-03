@@ -130,6 +130,9 @@ void CppGenerationVisitor::visit(const NFAAction* action) {
 		case NFAActionType::CreateContext:
 			m_output << action->contextPath << "__" << action->targetName << " = std::make_shared<" << action->targetName << ">(stream.currentLocation());";
 			break;
+		case NFAActionType::TerminalizeContext:
+			m_output << action->contextPath << "__" << action->targetName << ".raw = stream.rawSincePin();";
+			break;
 		case NFAActionType::ElevateContext:
 			m_output << action->contextPath << " = " << action->contextPath << "__" << action->targetName << ';';
 			break;
@@ -196,12 +199,10 @@ void CppGenerationVisitor::generateAutomatonMechanicsMaps(const std::string& mac
 		const auto& stateObject = fa.states[state];
 
 		// a single line of the state transition map, (State)-1 by default
-		State transitionStateMapLine[256];
-		std::fill(std::begin(transitionStateMapLine), std::end(transitionStateMapLine), (State)(-1));
+		std::vector<std::vector<State>> transitionStateMapLine(256, std::vector<State>());
 
 		// a single line of transition action-register map, 0 (to be nullptr) by default
-		ActionRegisterId transitionActionRegisterMapLine[256];
-		std::fill(std::begin(transitionActionRegisterMapLine), std::end(transitionActionRegisterMapLine), (ActionRegisterId)0);
+		std::vector<std::vector<ActionRegisterId>> transitionActionRegisterMapLine(256, std::vector<ActionRegisterId>());
 		
 		// handle the action register of state actions
 		const NFAActionRegister& snar = stateObject.actions;
@@ -215,7 +216,9 @@ void CppGenerationVisitor::generateAutomatonMechanicsMaps(const std::string& mac
 
 		for (const auto& transition : stateObject.transitions) {
 			auto symbolPtr = std::dynamic_pointer_cast<LiteralSymbolGroup>(transition.condition);
-			std::fill(transitionStateMapLine+symbolPtr->rangeStart, transitionStateMapLine + symbolPtr->rangeEnd+1, transition.target);
+			for (auto it = transitionStateMapLine.begin() + symbolPtr->rangeStart; it <= transitionStateMapLine.begin() + symbolPtr->rangeEnd; ++it) {
+				it->push_back(transition.target);
+			}
 			
 			// handle the action register of transition actions
 			const NFAActionRegister& tnar = transition.condition->actions;
@@ -224,27 +227,29 @@ void CppGenerationVisitor::generateAutomatonMechanicsMaps(const std::string& mac
 				actionRegisterDeclarationStream << "void actionRegister" << registerId << "(char c);" << std::endl;
 				actionRegisterDefinitionStream << generateActionRegisterDefinition(machineName, registerId, tnar, false);
 
-				std::fill(transitionActionRegisterMapLine + symbolPtr->rangeStart, transitionActionRegisterMapLine + symbolPtr->rangeEnd + 1, registerId);
+				for (auto it = transitionActionRegisterMapLine.begin() + symbolPtr->rangeStart; it <= transitionActionRegisterMapLine.begin() + symbolPtr->rangeEnd; ++it) {
+					it->push_back(registerId);
+				}
 			}
 		}
 
 		stateMapStream << "{ ";
-		for (const State& transitionStateMapEntry : transitionStateMapLine) {
-			if (transitionStateMapEntry == (State)(-1)) {
-				stateMapStream << "(State)-1, ";
-			} else {
+		for (const std::vector<State>& transitionStateMapEntryVector : transitionStateMapLine) {
+			stateMapStream << "{ ";
+			for (const State transitionStateMapEntry : transitionStateMapEntryVector) {
 				stateMapStream << transitionStateMapEntry << ", ";
 			}
+			stateMapStream << "}, ";
 		}
 		stateMapStream << "},\n";
 
 		transitionActionMapStream << "{ ";
-		for (const ActionRegisterId& actionMapEntry : transitionActionRegisterMapLine) {
-			if (actionMapEntry == (ActionRegisterId)0) {
-				transitionActionMapStream << "nullptr, ";
-			} else {
+		for (const std::vector<ActionRegisterId>& actionMapEntryVector : transitionActionRegisterMapLine) {
+			transitionActionMapStream << "{ ";
+			for (const ActionRegisterId actionMapEntry : actionMapEntryVector) {
 				transitionActionMapStream << "&actionRegister" << actionMapEntry << ", ";
 			}
+			transitionActionMapStream << "}, ";
 		}
 		transitionActionMapStream << "},\n";
 	}

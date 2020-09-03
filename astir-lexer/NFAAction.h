@@ -21,7 +21,8 @@ enum class NFAActionType : unsigned char {
 	Clear = 11,
 
 	CreateContext = 101,
-	ElevateContext = 102,
+	TerminalizeContext = 102,
+	ElevateContext = 103,
 
 	None = 255
 };

@@ -26,8 +26,13 @@ NFA NFABuilder::visit(const Category* category) const {
 		NFA alternativeNfa = referencePair.second.component->accept(*this);
 
 		NFAActionRegister elevateContextActionRegister;
+		
 		if(referencePair.second.component->isTypeForming()) {
 			// if the component is type-forming, a new context has been created in alternativeNfa and it needs to be elevated to the category level
+			// but, if it is also terminal, we need to associate the raw capture with the context before elevating
+			if (referencePair.second.component->isTerminal()) {
+				elevateContextActionRegister.emplace_back(NFAActionType::TerminalizeContext, parentContextPath, newSubcontextName);
+			}
 			elevateContextActionRegister.emplace_back(NFAActionType::ElevateContext, parentContextPath, newSubcontextName);
 			alternativeNfa.concentrateFinalStates(elevateContextActionRegister);
 		}

@@ -119,7 +119,7 @@ void NFA::mergeInContexts(const NFA& rhs) {
     }
 }
 
-NFA NFA::buildDFA() const {
+NFA NFA::buildPseudoDFA() const {
     // the idea of the conversion algorithm is quite simple,
     // but what makes the whole conversion rather challenging
     // is the bookkeeping necessary to know what actions are
@@ -244,22 +244,22 @@ std::list<std::shared_ptr<SymbolGroup>> NFA::calculateTransitionSymbols(const st
 
 void NFA::calculateDisjointLiteralSymbolGroups(std::list<LiteralSymbolGroup>& symbolGroups) {
     auto it = symbolGroups.begin();
-    bool equalTransitionFound = false;
+    bool equalEmptyTransitionFound = false;
     while(it != symbolGroups.end()) {
         auto iit = it;
         ++iit;
         for (; iit != symbolGroups.end(); ++iit) {
-            if (iit->equals(*it)) {
-                equalTransitionFound = true;
+            if (iit->equals(*it) && iit->actions.empty() && it->actions.empty()) {
+                equalEmptyTransitionFound = true;
                 break;
             } else if (!iit->disjoint(*it)) {
-                equalTransitionFound = false;
+                equalEmptyTransitionFound = false;
                 break;
             }
         }
 
         if (iit != symbolGroups.end()) {
-            if (equalTransitionFound) {
+            if (equalEmptyTransitionFound) {
                 iit->actions += it->actions;
                 it = symbolGroups.erase(it);
             } else {
@@ -315,7 +315,7 @@ void NFA::calculateDisjointProductionSymbolGroups(std::list<ProductionSymbolGrou
                 for (const Category* cat : categoryPath) {
                     for (auto pair : cat->references) {
                         if (pair.second.component != prevComponent) {
-                            symbolGroups.emplace_back(pair.second.component, it->actions); // no need to worry about isFromFollows heres
+                            symbolGroups.emplace_back(pair.second.component, it->actions); // no need to worry about isFromFollows here
                         }
                     }
                     prevComponent = cat;
@@ -387,8 +387,12 @@ void LiteralSymbolGroup::disjoin(std::list<LiteralSymbolGroup>& symbolGroups, co
             symbolGroups.emplace_back(bottom_beg, bottom_end, bottom_beg == lhs.rangeStart ? lhs.actions : rhs.actions);
         }
 
-        NFAActionRegister actionsUnionized = lhs.actions + rhs.actions;
-        symbolGroups.emplace_back(mid_beg, mid_end, actionsUnionized);
+        if (lhs.actions.empty() && rhs.actions.empty()) {
+            symbolGroups.emplace_back(mid_beg, mid_end, NFAActionRegister());
+        } else {
+            symbolGroups.emplace_back(mid_beg, mid_end, lhs.actions);
+            symbolGroups.emplace_back(mid_beg, mid_end, rhs.actions);
+        }
 
         if (top_beg <= top_end) {
             symbolGroups.emplace_back(top_beg, top_end, top_beg == lhs.rangeEnd ? rhs.actions : lhs .actions);

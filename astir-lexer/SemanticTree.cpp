@@ -282,13 +282,21 @@ void FiniteAutomatonMachine::initialize() {
 		NFA alternativeNfa = componentPtr->accept(builder);
 
 		NFAActionRegister elevateContextActionRegister;
-		elevateContextActionRegister.emplace_back(NFAActionType::ElevateContext, "m_token", newSubcontextName);
+		if (componentPair.second->isTypeForming()) {
+			// if the component is type-forming, a new context has been created in alternativeNfa and it needs to be elevated to the category level
+			// but, if it is also terminal, we need to associate the raw capture with the context before elevating
+			if (componentPair.second->isTerminal()) {
+				elevateContextActionRegister.emplace_back(NFAActionType::TerminalizeContext, "m_token", newSubcontextName);
+			}
+			elevateContextActionRegister.emplace_back(NFAActionType::ElevateContext, "m_token", newSubcontextName);
+			alternativeNfa.concentrateFinalStates(elevateContextActionRegister);
+		}
 		alternativeNfa.concentrateFinalStates(elevateContextActionRegister);
 
 		base |= alternativeNfa;
 	}
 
-	m_nfa = base.buildDFA();
+	m_nfa = base.buildPseudoDFA();
 }
 
 void FiniteAutomatonMachine::accept(GenerationVisitor* visitor) const {

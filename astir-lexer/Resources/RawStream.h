@@ -62,8 +62,12 @@ public:
 	bool good() const;
 
 	void pin();
+	std::string rawSincePin() const;
 	void resetToPin();
 	void unpin();
+
+	size_t currentPosition() const;
+	void resetToPosition(size_t newPosition);
 
 	const std::shared_ptr<RawStreamLocation>& pinLocation() const { return m_pinLocation; }
 	const std::shared_ptr<RawStreamLocation>& currentLocation() const { return m_currentStreamLocation; }

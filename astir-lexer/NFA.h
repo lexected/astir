@@ -116,7 +116,7 @@ public:
 	void registerContext(const std::string& name, const std::string& type);
 	void mergeInContexts(const NFA& rhs);
 
-	NFA buildDFA() const;
+	NFA buildPseudoDFA() const;
 
 	static void calculateDisjointLiteralSymbolGroups(std::list<LiteralSymbolGroup>& symbolGroups);
 	static std::list<LiteralSymbolGroup> negateLiteralSymbolGroups(const std::list<LiteralSymbolGroup>& symbolGroups);

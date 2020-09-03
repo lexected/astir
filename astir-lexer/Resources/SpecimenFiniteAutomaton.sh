@@ -27,12 +27,12 @@ namespace ${{MachineName}} {
 	class Terminal {
 	public:
 		TerminalType type;
-		std::string string;
+		std::string raw;
 	protected:
 		Terminal(TerminalType type)
-			: type(type), string("") { }
+			: type(type), raw("") { }
 		Terminal(TerminalType type, const std::string& str)
-			: type(type), string(str) { }
+			: type(type), raw(str) { }
 	};
 
 	class EOS : public Production, public Terminal {
@@ -57,10 +57,10 @@ namespace ${{MachineName}} {
 	private:
 		// state-switching internals
 		State m_currentState;
-		static State m_stateMap[${{StateCount}}][${{TransitionCount}}];
+		static std::vector<State> m_stateMap[${{StateCount}}][${{TransitionCount}}];
 		static bool m_stateFinality[${{StateCount}}];
-		static void (${{MachineName}}::* m_transitionActions[${{StateCount}}][${{TransitionCount}}])(char c);
-		static void (${{MachineName}}::* m_stateActions[${{StateCount}}])(const RawStream& stream);
+		static std::vector<void (${{MachineName}}::*)(char)> m_transitionActions[${{StateCount}}][${{TransitionCount}}];
+		static void (${{MachineName}}::* m_stateActions[${{StateCount}}])(;
 
 		// action contexts
 		std::shared_ptr<Terminal> m_token;

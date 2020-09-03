@@ -8,59 +8,95 @@ namespace ${{MachineName}} {
 	}
 
 	std::shared_ptr<Terminal> ${{MachineName}}::apply(RawStream& rs) {
+		struct BranchingPoint {
+			size_t inputPosition;
+			std::vector<State> remainingStates;
+
+			BranchingPoint(size_t inputPosition, const& std::vector<State> remainingStates)
+				: inputPosition(inputPosition), remainingStates(remainingStates) { }
+		};
+
+		const std::vector<State> emptyStateVector;
 		char currentCharacter;
 		State lastAcceptingState = (State)(-1);
+		size_t lastAcceptedPosition = 0;
 		std::shared_ptr<Terminal> tokenToReturn = nullptr;
+		std::list<BranchingPoint> branchingPoints;
+		bool consumeNew = true;
 
+		// register the actions associated with state 0 if there are any
 		if(this->m_stateActions[0] != nullptr) {
-			(this->*m_stateActions[0])(rs);
+			// TODO
 		}
 
 		rs.pin();
 		while (true) {
 			State stateToGoTo;
-			if (!rs.get(currentCharacter)) {
-				stateToGoTo = (State)(-1);
-			} else {
-				stateToGoTo = m_stateMap[m_currentState][currentCharacter];
-			}
-
-			if (stateToGoTo == (State)(-1)) {
-				if (lastAcceptingState == (State)(-1)) {
-					if (m_currentState > 0) {
-						// failure, we are not in the first state and we have not reached any accepting state so far, so we will return nullptr. The users are then encouraged to make use of lastApplicationSuccessful() and RawStream location information to identify the issue
-						break;
-					} else {
-						// all done, lastApplicationSuccessful!
-						break;
+			bool readingOutcome = rs.get(currentCharacter);
+			const std::vector<State>& nextStates = !readingOutcome ? emptyStateVector : m_stateMap[m_currentState][currentCharacter];
+			if(nextStates.empty()) {
+				if(!branchingPoints.empty()) {
+					BranchingPoint& lastBp = branchingPoints.back();
+					rs.revertTo(lastBp.inputPosition);
+					stateToGoTo = lastBp.remainingStates.back();
+					lastBp.remainingStates.pop_back();
+					
+					if(lastBp.remainingStates.empty()) {
+						branchingPoints.pop_back();
 					}
 				} else {
-					// accept, reset m_currentState to 0, and backtrack input to where the lastAcceptingState was hit
-					m_currentState = 0;
-					rs.resetToPin();
-					tokenToReturn = m_token;
-					break;
+					if (lastAcceptingState == (State)(-1)) {
+						if (m_currentState > 0) {
+							// failure, we are not in the first state and we have not reached any accepting state so far, so we will return nullptr. The users are then encouraged to make use of lastApplicationSuccessful() and RawStream location information to identify the issue
+							break;
+						} else {
+							// all done, lastApplicationSuccessful!
+							break;
+						}
+					} else {
+						// accept, reset m_currentState to 0, and backtrack input to where the lastAcceptingState was hit
+						m_currentState = 0;
+						rs.resetToPosition(lastAcceptedPosition);
+
+						// execute all actions leading up to this position
+						// TODO
+						// plan to return the built token
+						tokenToReturn = m_token;
+
+						// pin the input stream forward
+						rs.pin();
+						
+						// break out of this loop and proceed
+						break;
+					}
 				}
+			} else if(nextStates.size() == 1) {
+				stateToGoTo = nextStates.front();
 			} else {
-				// execute the transition actions
-				if(this->m_transitionActions[m_currentState][currentCharacter] != nullptr) {
-					(this->*m_transitionActions[m_currentState][currentCharacter])(currentCharacter);
-				}
-
-				// execute the state actions, but only if a transition occurs
-				if(stateToGoTo != m_currentState && this->m_stateActions[stateToGoTo] != nullptr) {
-					(this->*m_stateActions[stateToGoTo])(rs);
-				}
-
-				// if this is a final state, take a note of that
-				if (m_stateFinality[stateToGoTo]) {
-					lastAcceptingState = stateToGoTo;
-					rs.pin();
-				}
-
-				// and finally, change the current state to the new state
-				m_currentState = stateToGoTo;
+				branchingPoints.emplace_back(rs.currentPosition(), nextStates);
+				BranchingPoint& lastBp = branchingPoints.back();
+				stateToGoTo = lastBp.remainingStates.back();
+				lastBp.remainingStates.pop_back();
 			}
+
+			// register the transition actions for execution
+			if(this->m_transitionActions[stateToGoTo][currentCharacter] != nullptr) {
+				// TODO
+			}
+
+			// register the state actions, but only if an actual changing transition occurs
+			if(stateToGoTo != m_currentState && this->m_stateActions[stateToGoTo] != nullptr) {
+				// TODO
+			}
+
+			// if this is a final state and strictly longer than the previous accepted sequence, take a note of that
+			if (m_stateFinality[stateToGoTo] && rs.currentPosition() > lastAcceptedPosition) {
+				lastAcceptingState = stateToGoTo;
+				lastAcceptedPosition = rs.currentPosition();
+			}
+
+			// finally, change the state
+			m_currentState = stateToGoTo;
 		}
 
 		m_token = nullptr;
@@ -90,16 +126,16 @@ namespace ${{MachineName}} {
 		m_currentState = 0;
 	}
 
-	State ${{MachineName}}::m_stateMap[${{StateCount}}][${{TransitionCount}}] = {
+	std::vector<State> ${{MachineName}}::m_stateMap[${{StateCount}}][${{TransitionCount}}] = {
 		${{StateMapEnumerated}} 
 	};
 	bool ${{MachineName}}::m_stateFinality[${{StateCount}}] = { 
 		${{StateFinalityEnumerated}} 
 	};
-	void (${{MachineName}}::* ${{MachineName}}::m_transitionActions[${{StateCount}}][${{TransitionCount}}])(char c) = {
+	void std::vector<(${{MachineName}}::*)(char)> ${{MachineName}}::m_transitionActions[${{StateCount}}][${{TransitionCount}}] = {
 		${{TransitionActionMapEnumerated}}
 	};
-	void (${{MachineName}}::* ${{MachineName}}::m_stateActions[${{StateCount}}])(const RawStream& stream) = {
+	void (${{MachineName}}::* ${{MachineName}}::m_stateActions[${{StateCount}}])() = {
 		${{StateActionMapEnumerated}}
 	};
 

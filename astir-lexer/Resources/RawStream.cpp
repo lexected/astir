@@ -33,6 +33,11 @@ void RawStream::pin() {
     m_pinLocation = m_currentStreamLocation;
 }
 
+std::string RawStream::rawSincePin() const {
+    std::string ret(m_buffer.cbegin(), m_buffer.cbegin() + m_nextByteToGive);
+    return ret;
+}
+
 void RawStream::resetToPin() {
     m_nextByteToGive = 0;
     m_currentStreamLocation = m_pinLocation;
@@ -42,6 +47,19 @@ void RawStream::unpin() {
     m_buffer.clear();
     m_nextByteToGive = 0;
     m_pinLocation = nullptr;
+}
+
+size_t RawStream::currentPosition() const {
+    return m_nextByteToGive;
+}
+
+void RawStream::resetToPosition(size_t newPosition) {
+    m_nextByteToGive = newPosition;
+
+    m_currentStreamLocation = m_pinLocation->clone();
+    for (size_t it = 0; it < newPosition; ++it) {
+        m_currentStreamLocation->note(m_buffer[it]);
+    }
 }
 
 void TextLocation::note(char c) {
