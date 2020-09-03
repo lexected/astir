@@ -10,36 +10,59 @@ namespace ${{MachineName}} {
 	std::shared_ptr<Terminal> ${{MachineName}}::apply(RawStream& rs) {
 		struct BranchingPoint {
 			size_t inputPosition;
+			size_t actionStackPosition;
 			std::vector<State> remainingStates;
+			std::vector<(${{MachineName}}::*)(char)> remainingActions;
 
-			BranchingPoint(size_t inputPosition, const& std::vector<State> remainingStates)
-				: inputPosition(inputPosition), remainingStates(remainingStates) { }
+			BranchingPoint(size_t inputPosition,
+					size_t actionStackPosition,
+					const std::vector<State>& remainingStates,
+					const std::vector<(${{MachineName}}::*)(char)>& remainingActions)
+				: inputPosition(inputPosition), actionStackPosition(actionStackPosition),
+				remainingStates(remainingStates), remainingActions(remainingActions) { }
+		};
+
+		struct ActionPack {
+			(${{MachineName}}::* action)(char);
+			char payload;
+
+			ActionPack((${{MachineName}}::* action)(char), char payload)
+				: action(action), payload(payload) { }
 		};
 
 		const std::vector<State> emptyStateVector;
-		char currentCharacter;
-		State lastAcceptingState = (State)(-1);
-		size_t lastAcceptedPosition = 0;
+		const std::vector<(${{MachineName}}::*)(char)> emptyActionVector;
 		std::shared_ptr<Terminal> tokenToReturn = nullptr;
+		
 		std::list<BranchingPoint> branchingPoints;
-		bool consumeNew = true;
+		State lastAcceptingState = (State)(-1);
+		size_t lastAcceptedInputPosition = 0;
+		size_t lastAcceptedActionStackPosition = 0;
+		std::vector<ActionPack> actionStack;
 
 		// register the actions associated with state 0 if there are any
 		if(this->m_stateActions[0] != nullptr) {
-			// TODO
+			actionStack.emplace_back(this->m_stateActions[0], '\0');
 		}
 
 		rs.pin();
 		while (true) {
-			State stateToGoTo;
+			char currentCharacter;
 			bool readingOutcome = rs.get(currentCharacter);
 			const std::vector<State>& nextStates = !readingOutcome ? emptyStateVector : m_stateMap[m_currentState][currentCharacter];
+			const std::vector<(${{MachineName}}::*)(char)>& nextActions = !readingOutcome ? emptyActionVector : this->m_transitionActions[m_currentState][currentCharacter];
+
+			State stateToGoTo;
+			(${{MachineName}}::* stateToGoToCorrespondingTransitionAction)(char);
 			if(nextStates.empty()) {
 				if(!branchingPoints.empty()) {
 					BranchingPoint& lastBp = branchingPoints.back();
 					rs.revertTo(lastBp.inputPosition);
 					stateToGoTo = lastBp.remainingStates.back();
+					stateToGoToCorrespondingTransitionAction = lastBp.remainingActions.back();
 					lastBp.remainingStates.pop_back();
+					stateToGoToCorrespondingTransitionAction.remainingActions.pop_back();
+					actionStack.resize(lastBp.actionStackPosition);
 					
 					if(lastBp.remainingStates.empty()) {
 						branchingPoints.pop_back();
@@ -59,7 +82,11 @@ namespace ${{MachineName}} {
 						rs.resetToPosition(lastAcceptedPosition);
 
 						// execute all actions leading up to this position
-						// TODO
+						for(size_t i = 0;i < lastAcceptedActionStackPosition;++i) {
+							const ActionPack& actionPackObject = actionStack[i];
+							actionPackObject.action(actionPackObject.payload);
+						}
+
 						// plan to return the built token
 						tokenToReturn = m_token;
 
@@ -72,27 +99,26 @@ namespace ${{MachineName}} {
 				}
 			} else if(nextStates.size() == 1) {
 				stateToGoTo = nextStates.front();
+				stateToGoToCorrespondingTransitionAction = nextActions.front();
 			} else {
-				branchingPoints.emplace_back(rs.currentPosition(), nextStates);
+				branchingPoints.emplace_back(rs.currentPosition(), actionStack.size(), nextStates, nextActions);
 				BranchingPoint& lastBp = branchingPoints.back();
 				stateToGoTo = lastBp.remainingStates.back();
 				lastBp.remainingStates.pop_back();
-			}
-
-			// register the transition actions for execution
-			if(this->m_transitionActions[stateToGoTo][currentCharacter] != nullptr) {
-				// TODO
+				stateToGoToCorrespondingTransitionAction = lastBp.remainingActions.back();
+				lastBp.remainingActions.pop_back();
 			}
 
 			// register the state actions, but only if an actual changing transition occurs
 			if(stateToGoTo != m_currentState && this->m_stateActions[stateToGoTo] != nullptr) {
-				// TODO
+				actionStack.emplace_back(this->m_stateActions[stateToGoTo], '\0');
 			}
 
 			// if this is a final state and strictly longer than the previous accepted sequence, take a note of that
 			if (m_stateFinality[stateToGoTo] && rs.currentPosition() > lastAcceptedPosition) {
 				lastAcceptingState = stateToGoTo;
 				lastAcceptedPosition = rs.currentPosition();
+				lastAcceptedActionStackPosition = actionStack.size();
 			}
 
 			// finally, change the state
