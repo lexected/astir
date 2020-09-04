@@ -121,7 +121,7 @@ void CppGenerationVisitor::visit(const NFAAction* action) {
 			m_output << "{" << std::endl;
 			m_output << "\t\tauto stackPos = m_captureStack.top();" << std::endl;
 			m_output << "\t\tm_captureStack.pop();" << std::endl;
-			m_output << "\t\t" << action->contextPath << "->" << action->targetName << " = std::string(input, stackPos, position-stackPos);" << std::endl;
+			m_output << "\t\t" << action->contextPath << "->" << action->targetName << " = std::string(input, stackPos, position-stackPos+1);" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
 			m_output << "\t}";
 			break;
 		case NFAActionType::Empty:
@@ -131,14 +131,14 @@ void CppGenerationVisitor::visit(const NFAAction* action) {
 			m_output << "{" << std::endl;
 			m_output << "\t\tauto stackPos = m_captureStack.top();" << std::endl;
 			m_output << "\t\tm_captureStack.pop();" << std::endl;
-			m_output << "\t\t" << action->contextPath << "->" << action->targetName << ".append(input, stackPos, position-stackPos);" << std::endl;
+			m_output << "\t\t" << action->contextPath << "->" << action->targetName << ".append(input, stackPos, position-stackPos+1);" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
 			m_output << "\t}";
 			break;
 		case NFAActionType::Prepend:
 			m_output << "{" << std::endl;
 			m_output << "\t\tauto stackPos = m_captureStack.top();" << std::endl;
 			m_output << "\t\tm_captureStack.pop();" << std::endl;
-			m_output << "\t\t" << action->contextPath << "->" << action->targetName << ".insert(0, input, stackPos, position-stackPos);" << std::endl;
+			m_output << "\t\t" << action->contextPath << "->" << action->targetName << ".insert(0, input, stackPos, position-stackPos+1);" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
 			m_output << "\t}";
 			break;
 		
@@ -150,7 +150,7 @@ void CppGenerationVisitor::visit(const NFAAction* action) {
 			m_output << "{" << std::endl;
 			m_output << "\t\tauto stackPos = m_captureStack.top();" << std::endl;
 			m_output << "\t\tm_captureStack.pop();" << std::endl;
-			m_output << "\t\t" << action->contextPath << "__" << action->targetName << "->raw = std::string(input, stackPos, position-stackPos);" << std::endl;
+			m_output << "\t\t" << action->contextPath << "__" << action->targetName << "->raw = std::string(input, stackPos, position-stackPos+1);" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
 			m_output << "\t}";
 			break;
 		case NFAActionType::ElevateContext:
@@ -256,8 +256,8 @@ void CppGenerationVisitor::generateAutomatonMechanicsMaps(const std::string& mac
 		stateMapStream << "{ ";
 		for (const std::vector<State>& transitionStateMapEntryVector : transitionStateMapLine) {
 			stateMapStream << "{ ";
-			for (const State transitionStateMapEntry : transitionStateMapEntryVector) {
-				stateMapStream << transitionStateMapEntry << ", ";
+			for (auto it = transitionStateMapEntryVector.crbegin(); it != transitionStateMapEntryVector.crend(); ++it) {
+				stateMapStream << *it << ", ";
 			}
 			stateMapStream << "}, ";
 		}
@@ -266,8 +266,8 @@ void CppGenerationVisitor::generateAutomatonMechanicsMaps(const std::string& mac
 		transitionActionMapStream << "{ ";
 		for (const std::vector<ActionRegisterId>& actionMapEntryVector : transitionActionRegisterMapLine) {
 			transitionActionMapStream << "{ ";
-			for (const ActionRegisterId actionMapEntry : actionMapEntryVector) {
-				transitionActionMapStream << "&actionRegister" << actionMapEntry << ", ";
+			for (auto it = actionMapEntryVector.crbegin(); it != actionMapEntryVector.crend(); ++it) {
+				transitionActionMapStream << "&actionRegister" << *it << ", ";
 			}
 			transitionActionMapStream << "}, ";
 		}

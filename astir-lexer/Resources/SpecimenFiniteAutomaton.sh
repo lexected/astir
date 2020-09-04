@@ -57,7 +57,7 @@ namespace ${{MachineName}} {
 		std::shared_ptr<Terminal> apply(RawStream& rs);
 		std::list<std::shared_ptr<Terminal>> process(RawStream& rs);
 
-		bool lastApplicationSuccessful() const { return m_currentState == 0; }
+		bool lastApplicationSuccessful() const { return m_stateFinality[m_currentState]; }
 		void reset();
 
 	private:
