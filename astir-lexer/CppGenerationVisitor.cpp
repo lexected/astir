@@ -114,24 +114,44 @@ void CppGenerationVisitor::visit(const NFAAction* action) {
 			m_output << action->contextPath << "->" << action->targetName << " = false;";
 			break;
 
+		case NFAActionType::InitiateCapture:
+			m_output << "m_captureStack.push(position);";
+			break;
 		case NFAActionType::Capture:
-			// TODO: implement
+			m_output << "{" << std::endl;
+			m_output << "\t\tauto stackPos = m_captureStack.top();" << std::endl;
+			m_output << "\t\tm_captureStack.pop();" << std::endl;
+			m_output << "\t\t" << action->contextPath << "->" << action->targetName << " = std::string(input, stackPos, position-stackPos);" << std::endl;
+			m_output << "\t}";
 			break;
 		case NFAActionType::Empty:
 			m_output << action->contextPath << "->" << action->targetName << ".clear();";
 			break;
 		case NFAActionType::Append:
-			m_output << action->contextPath << "->" << action->targetName << ".append(1, c);";
+			m_output << "{" << std::endl;
+			m_output << "\t\tauto stackPos = m_captureStack.top();" << std::endl;
+			m_output << "\t\tm_captureStack.pop();" << std::endl;
+			m_output << "\t\t" << action->contextPath << "->" << action->targetName << ".append(input, stackPos, position-stackPos);" << std::endl;
+			m_output << "\t}";
 			break;
 		case NFAActionType::Prepend:
-			m_output << action->contextPath << "->" << action->targetName << ".insert(0, 1, c);";
+			m_output << "{" << std::endl;
+			m_output << "\t\tauto stackPos = m_captureStack.top();" << std::endl;
+			m_output << "\t\tm_captureStack.pop();" << std::endl;
+			m_output << "\t\t" << action->contextPath << "->" << action->targetName << ".insert(0, input, stackPos, position-stackPos);" << std::endl;
+			m_output << "\t}";
 			break;
 		
 		case NFAActionType::CreateContext:
-			m_output << action->contextPath << "__" << action->targetName << " = std::make_shared<" << action->targetName << ">(stream.currentLocation());";
+			m_output << action->contextPath << "__" << action->targetName << " = std::make_shared<" << action->targetName << ">(location);" << std::endl;
+			m_output << "\tm_captureStack.push(position);";
 			break;
 		case NFAActionType::TerminalizeContext:
-			m_output << action->contextPath << "__" << action->targetName << ".raw = stream.rawSincePin();";
+			m_output << "{" << std::endl;
+			m_output << "\t\tauto stackPos = m_captureStack.top();" << std::endl;
+			m_output << "\t\tm_captureStack.pop();" << std::endl;
+			m_output << "\t\t" << action->contextPath << "__" << action->targetName << "->raw = std::string(input, stackPos, position-stackPos);" << std::endl;
+			m_output << "\t}";
 			break;
 		case NFAActionType::ElevateContext:
 			m_output << action->contextPath << " = " << action->contextPath << "__" << action->targetName << ';';
@@ -208,7 +228,7 @@ void CppGenerationVisitor::generateAutomatonMechanicsMaps(const std::string& mac
 		const NFAActionRegister& snar = stateObject.actions;
 		if (snar.size() > 0) {
 			ActionRegisterId registerId = ++m_actionRegistersUsed;
-			actionRegisterDeclarationStream << "void actionRegister" << registerId << "();" << std::endl;
+			actionRegisterDeclarationStream << "void actionRegister" << registerId << "(size_t position, const std::string & input, const std::shared_ptr<RawStreamLocation>& location);" << std::endl;
 			actionRegisterDefinitionStream << generateActionRegisterDefinition(machineName, registerId, snar, true);
 
 			stateActionRegisterMap[state] = registerId;
@@ -224,7 +244,7 @@ void CppGenerationVisitor::generateAutomatonMechanicsMaps(const std::string& mac
 			const NFAActionRegister& tnar = transition.condition->actions;
 			if (tnar.size() > 0) {
 				ActionRegisterId registerId = ++m_actionRegistersUsed;
-				actionRegisterDeclarationStream << "void actionRegister" << registerId << "(char c);" << std::endl;
+				actionRegisterDeclarationStream << "void actionRegister" << registerId << "(size_t position, const std::string & input, const std::shared_ptr<RawStreamLocation>& location);" << std::endl;
 				actionRegisterDefinitionStream << generateActionRegisterDefinition(machineName, registerId, tnar, false);
 
 				for (auto it = transitionActionRegisterMapLine.begin() + symbolPtr->rangeStart; it <= transitionActionRegisterMapLine.begin() + symbolPtr->rangeEnd; ++it) {
@@ -296,7 +316,7 @@ std::string CppGenerationVisitor::generateStateFinality(const NFA& fa) const {
 
 std::string CppGenerationVisitor::generateActionRegisterDefinition(const std::string& machineName, ActionRegisterId registerId, const NFAActionRegister& nar, bool isStateAction) {
 	std::stringstream ss;
-	ss << "void " << machineName << "::" << "actionRegister" << registerId << (isStateAction ? "(const RawStream& stream)" : "(char c)") << " {" << std::endl;
+	ss << "void " << machineName << "::" << "actionRegister" << registerId << (isStateAction ? "(size_t position, const std::string& input, const std::shared_ptr<RawStreamLocation>& location)" : "(size_t position, const std::string& input, const std::shared_ptr<RawStreamLocation>& location)") << " {" << std::endl;
 
 	nar.accept(this);
 	ss << outputAndReset();

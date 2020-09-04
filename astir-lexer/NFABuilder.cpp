@@ -6,18 +6,6 @@
 #include "SemanticTree.h"
 
 NFA NFABuilder::visit(const Category* category) const {
-	NFA base;
-
-	// add an interim state for the context creation transition
-	State interimState = base.addState();
-	base.finalStates.insert(interimState);
-
-	// add a transition from the first state to the second one, actioned by context creation
-	NFAActionRegister createContextActionRegister;
-	createContextActionRegister.emplace_back(NFAActionType::CreateContext, m_generationContextPath, category->name);
-	base.addEmptyTransition(0, interimState, createContextActionRegister);
-	base.registerContext(m_generationContextPath, category->name);
-
 	NFA alternationPoint;
 	const std::string parentContextPath = m_generationContextPath + "__" + category->name;
 	const std::string generationContextPathPrefix = parentContextPath + "__";
@@ -43,9 +31,13 @@ NFA NFABuilder::visit(const Category* category) const {
 		alternationPoint |= alternativeNfa;
 	}
 
-	base &= alternationPoint;
+	// add a transition from the first state to the second one, actioned by context creation
+	NFAActionRegister createContextActionRegister;
+	createContextActionRegister.emplace_back(NFAActionType::CreateContext, m_generationContextPath, category->name);
+	alternationPoint.addInitialTransitionActions(createContextActionRegister);
+	alternationPoint.registerContext(m_generationContextPath, category->name);
 
-	return base;
+	return alternationPoint;
 }
 
 NFA NFABuilder::visit(const Pattern* rule) const {
@@ -59,25 +51,19 @@ NFA NFABuilder::visit(const Pattern* rule) const {
 
 NFA NFABuilder::visit(const Production* rule) const {
 	const std::string newContextPath = m_generationContextPath + "__" + rule->name;
-	
-	// create an NFA with two states, the second one final
-	NFA ret;
-	State interimState = ret.addState();
-	ret.finalStates.insert(interimState);
 
-	// add a transition from the first one to the second one, actioned by context creation
-	NFAActionRegister createContextActionRegister;
-	createContextActionRegister.emplace_back(NFAActionType::CreateContext, m_generationContextPath, rule->name);
-	ret.addEmptyTransition(0, interimState, createContextActionRegister);
-	ret.registerContext(m_generationContextPath, rule->name);
-
-	// chain the regex NFA onto the contexted NFA we prepared above
+	// compute the NFA of the underlying regex
 	NFABuilder contextualizedBuilder(this->m_contextMachine, rule, newContextPath);
 	NFA regexNfa = rule->regex->accept(contextualizedBuilder);
-	ret &= regexNfa;
+	
+	// add context creation actions
+	NFAActionRegister createContextActionRegister;
+	createContextActionRegister.emplace_back(NFAActionType::CreateContext, m_generationContextPath, rule->name);
+	regexNfa.addInitialTransitionActions(createContextActionRegister);
+	regexNfa.registerContext(m_generationContextPath, rule->name);
 
 	// return the contexted result
-	return ret;
+	return regexNfa;
 }
 
 NFA NFABuilder::visit(const DisjunctiveRegex* regex) const {
@@ -158,14 +144,17 @@ NFA NFABuilder::visit(const AnyRegex* regex) const {
 	NFA base;
 	auto newState = base.addState();
 
-	auto actionRegister = computeActionRegisterEntries(regex->actions, "");
+	NFAActionRegister initial, final;
+	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
 	auto literalGroups = computeLiteralGroups(regex);
 	for (auto& literalSymbolGroup : literalGroups) {
-		base.addTransition(0, Transition(newState, std::make_shared<LiteralSymbolGroup>(literalSymbolGroup, actionRegister)));
+		base.addTransition(0, Transition(newState, std::make_shared<LiteralSymbolGroup>(literalSymbolGroup, initial)));
 	}
 
 	base.finalStates.insert(newState);
+	base.addFinalActions(final);
+
 	return base;
 }
 
@@ -177,13 +166,15 @@ NFA NFABuilder::visit(const ExceptAnyRegex* regex) const {
 	NFA::calculateDisjointLiteralSymbolGroups(literalGroups);
 	auto negatedGroups = NFA::negateLiteralSymbolGroups(literalGroups);
 
-	auto actionRegister = computeActionRegisterEntries(regex->actions, "");
+	NFAActionRegister initial, final;
+	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
 	for (auto& literalSymbolGroup : negatedGroups) {
-		base.addTransition(0, Transition(newState, std::make_shared<LiteralSymbolGroup>(literalSymbolGroup, actionRegister)));
+		base.addTransition(0, Transition(newState, std::make_shared<LiteralSymbolGroup>(literalSymbolGroup, initial)));
 	}
 
 	base.finalStates.insert(newState);
+	base.addFinalActions(final);
 
 	return base;
 }
@@ -191,17 +182,19 @@ NFA NFABuilder::visit(const ExceptAnyRegex* regex) const {
 NFA NFABuilder::visit(const LiteralRegex* regex) const {
 	NFA base;
 	
-	auto actionRegister = computeActionRegisterEntries(regex->actions, "");
+	NFAActionRegister initial, final;
+	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
 	State prevState = 0;
 	for(CharType c : regex->literal) {
 		State newState = base.addState();
-		base.addTransition(prevState, Transition(newState, std::make_shared<LiteralSymbolGroup>(c, c, actionRegister)));
+		base.addTransition(prevState, Transition(newState, std::make_shared<LiteralSymbolGroup>(c, c, initial)));
 
 		prevState = newState;
 	}
 
 	base.finalStates.insert(prevState);
+	base.addFinalActions(final);
 
 	return base;
 }
@@ -209,11 +202,13 @@ NFA NFABuilder::visit(const LiteralRegex* regex) const {
 NFA NFABuilder::visit(const ArbitraryLiteralRegex* regex) const {
 	NFA base;
 
-	auto actionRegister = computeActionRegisterEntries(regex->actions, "");
+	NFAActionRegister initial, final;
+	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
 	auto newState = base.addState();
-	base.addTransition(0, Transition(newState, std::make_shared<ArbitrarySymbolGroup>(actionRegister)));
+	base.addTransition(0, Transition(newState, std::make_shared<ArbitrarySymbolGroup>(initial)));
 	base.finalStates.insert(newState);
+	base.addFinalActions(final);
 
 	return base;
 }
@@ -226,15 +221,19 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 	bool wasFoundInInputMachine;
 	auto component = this->m_contextMachine.findMachineComponent(regex->referenceName, &wasFoundInInputMachine);
 	if (wasFoundInInputMachine) {
-		auto actionRegister = computeActionRegisterEntries(regex->actions, "");
-		base.addTransition(0, Transition(newBaseState, std::make_shared<ProductionSymbolGroup>(component, actionRegister)));
+		NFAActionRegister initial, final;
+		std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
+		base.addTransition(0, Transition(newBaseState, std::make_shared<ProductionSymbolGroup>(component, initial)));
+		base.addFinalActions(final);
 	} else {
 		const std::string payloadPath = component->isTypeForming() ? m_generationContextPath + "__" + regex->referenceName : "";
-		auto actionRegister = computeActionRegisterEntries(regex->actions, payloadPath);
+		NFAActionRegister initial, final;
+		std::tie(initial, final) = computeActionRegisterEntries(regex->actions, payloadPath);
 
 		NFABuilder contextualizedBuilder(m_contextMachine, component, m_generationContextPath);
 		base = component->accept(contextualizedBuilder);
-		base.addFinalActions(actionRegister);
+		base.addInitialTransitionActions(initial);
+		base.addFinalActions(final);
 	}
 
 	return base;
@@ -243,14 +242,16 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 NFA NFABuilder::visit(const LineEndRegex* regex) const {
 	NFA base;
 
-	auto actionRegister = computeActionRegisterEntries(regex->actions, "");
+	NFAActionRegister initial, final;
+	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
 	auto lineFeedState = base.addState();
-	base.addTransition(0, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n', actionRegister)));
+	base.addTransition(0, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n', final)));
 	base.finalStates.insert(lineFeedState);
 	auto carriageReturnState = base.addState();
 	base.addTransition(0, Transition(carriageReturnState, std::make_shared<LiteralSymbolGroup>('\r', '\r')));
-	base.addTransition(carriageReturnState, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n', actionRegister)));
+	base.addTransition(carriageReturnState, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n', final)));
+	base.addInitialTransitionActions(initial);
 
 	return base;
 }
@@ -272,17 +273,24 @@ std::list<LiteralSymbolGroup> NFABuilder::computeLiteralGroups(const AnyRegex* r
 	return literalGroup;
 }
 
-NFAActionRegister NFABuilder::computeActionRegisterEntries(const std::list<RegexAction>& actions, const std::string& payload) const {
-	NFAActionRegister ret;
+std::pair<NFAActionRegister, NFAActionRegister> NFABuilder::computeActionRegisterEntries(const std::list<RegexAction>& actions) const {
+	return computeActionRegisterEntries(actions, "");
+}
+
+std::pair<NFAActionRegister, NFAActionRegister>  NFABuilder::computeActionRegisterEntries(const std::list<RegexAction>& actions, const std::string& payload) const {
+	NFAActionRegister initial, final;
 
 	for (const RegexAction& atp : actions) {
 		if (payload.empty()) {
-			ret.emplace_back((NFAActionType)atp.type, m_generationContextPath, atp.target);
-			// within the context (m_generationContextPath) we modify the target (m_generationContextPath + "__" + atp.target) with the payload of the transition
+			final.emplace_back((NFAActionType)atp.type, m_generationContextPath, atp.target);
 		} else {
-			ret.emplace_back((NFAActionType)atp.type, m_generationContextPath, atp.target, payload);
+			final.emplace_back((NFAActionType)atp.type, m_generationContextPath, atp.target, payload);
+		}
+
+		if (atp.type == RegexActionType::Capture) {
+			initial.emplace_back(NFAActionType::InitiateCapture, m_generationContextPath, atp.target);
 		}
 	}
 
-	return ret;
+	return std::pair<NFAActionRegister, NFAActionRegister>(initial, final);
 }

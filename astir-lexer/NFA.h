@@ -93,12 +93,13 @@ struct NFAState {
 	NFAActionRegister actions;
 };
 
+using CapturePointId = size_t;
+
 class NFA {
 public:
 	std::set<State> finalStates;
-	std::vector<NFAState> states;
-	std::list<std::pair<std::string, std::string>> contexts; // name, type
-	// 0th element of this vector is by default the initial state
+	std::vector<NFAState> states; // 0th element of this vector is by default the initial state
+	std::list<std::pair<std::string, std::string>> contexts; // parent context name, subcontext name (also the type)
 
 	NFA();
 
@@ -109,12 +110,12 @@ public:
 	void addTransition(State state, const Transition& transition);
 	Transition& addEmptyTransition(State state, State target);
 	Transition& addEmptyTransition(State state, State target, const NFAActionRegister& ar);
+	void registerContext(const std::string& parentContextName, const std::string& name);
+
+	void addFinalActions(const NFAActionRegister& actions);
+	void addInitialTransitionActions(const NFAActionRegister& actions);
 	State concentrateFinalStates();
 	State concentrateFinalStates(const NFAActionRegister& actions);
-	void addFinalActions(const NFAActionRegister& actions);
-
-	void registerContext(const std::string& name, const std::string& type);
-	void mergeInContexts(const NFA& rhs);
 
 	NFA buildPseudoDFA() const;
 
@@ -122,6 +123,8 @@ public:
 	static std::list<LiteralSymbolGroup> negateLiteralSymbolGroups(const std::list<LiteralSymbolGroup>& symbolGroups);
 
 private:
+	void mergeInContexts(const NFA& rhs);
+
 	struct DFAState {
 		std::set<State> nfaStates;
 		bool marked;

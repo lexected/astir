@@ -104,6 +104,12 @@ void NFA::addFinalActions(const NFAActionRegister& actions) {
     finalStates = newFinalStates;
 }
 
+void NFA::addInitialTransitionActions(const NFAActionRegister& actions) {
+    for (Transition& transition : this->states[0].transitions) {
+        transition.condition->actions += actions;
+    }
+}
+
 void NFA::registerContext(const std::string& parentName, const std::string& name) {
     auto it = std::find(contexts.begin(), contexts.end(), std::pair<std::string, std::string>(parentName, name));
     if (it != contexts.end()) {
