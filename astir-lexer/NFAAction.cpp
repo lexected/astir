@@ -6,6 +6,13 @@ void NFAAction::accept(GenerationVisitor* visitor) const {
 	visitor->visit(this);
 }
 
+bool NFAAction::operator==(const NFAAction& rhs) const {
+    return
+        this->type == rhs.type && this->contextPath == rhs.contextPath
+        && this->targetName == rhs.targetName && this->payload == rhs.payload
+        ;
+}
+
 void NFAActionRegister::accept(GenerationVisitor* visitor) const {
 	visitor->visit(this);
 }
@@ -36,4 +43,9 @@ const NFAActionRegister& NFAActionRegister::operator+=(const NFAActionRegister& 
     }
 
     return *this;
+}
+
+bool NFAActionRegister::operator==(const NFAActionRegister& rhs) const {
+    // TODO: might need an improvement for the future to consider different orders... or maybe not?
+    return *static_cast<const std::list<NFAAction>*>(this) == rhs;
 }

@@ -40,6 +40,8 @@ struct NFAAction : public IGenerationVisitable {
 		: type(faAction), contextPath(contextPath), targetName(targetName), payload(payload) { }
 
 	void accept(GenerationVisitor* visitor) const override;
+
+	bool operator==(const NFAAction& rhs) const;
 };
 
 class NFAActionRegister : public std::list<NFAAction>, public IGenerationVisitable {
@@ -48,6 +50,7 @@ public:
 
 	NFAActionRegister operator+(const NFAActionRegister& rhs) const;
 	const NFAActionRegister& operator+=(const NFAActionRegister& rhs);
+	bool operator==(const NFAActionRegister& rhs) const;
 
 	void accept(GenerationVisitor* visitor) const override;
 };

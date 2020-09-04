@@ -1,4 +1,4 @@
-deterministic finite automaton Test02 {
+finite automaton Test02 {
 	terminal production p1 {
 		flag isShort;
 		flag isLong;

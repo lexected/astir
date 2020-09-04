@@ -194,7 +194,7 @@ NFA NFABuilder::visit(const LiteralRegex* regex) const {
 	auto actionRegister = computeActionRegisterEntries(regex->actions, "");
 
 	State prevState = 0;
-	for(unsigned char c : regex->literal) {   
+	for(CharType c : regex->literal) {
 		State newState = base.addState();
 		base.addTransition(prevState, Transition(newState, std::make_shared<LiteralSymbolGroup>(c, c, actionRegister)));
 
@@ -264,8 +264,8 @@ std::list<LiteralSymbolGroup> NFABuilder::computeLiteralGroups(const AnyRegex* r
 		}
 	}
 	for (const auto& range : regex->ranges) {
-		unsigned char beginning = (unsigned char)range.start;
-		unsigned char end = (unsigned char)range.end;
+		CharType beginning = (CharType)range.start;
+		CharType end = (CharType)range.end;
 		literalGroup.emplace_back(beginning, end);
 	}
 

@@ -678,7 +678,7 @@ bool Parser::tryParseAnyRegex(std::list<Token>::const_iterator& it, std::unique_
 				throw ParserException("In regex range capture, the end character was found to precede the beginning character", *it, *savedIt);
 			}
 			
-			ar->ranges.push_back({ firstString[0], it->string[0] });
+			ar->ranges.push_back({ (CharType)firstString[0], (CharType)it->string[0] });
 			++it;
 		} else {
 			ar->literals.push_back(move(firstString));

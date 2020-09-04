@@ -249,8 +249,13 @@ void NFA::calculateDisjointLiteralSymbolGroups(std::list<LiteralSymbolGroup>& sy
         auto iit = it;
         ++iit;
         for (; iit != symbolGroups.end(); ++iit) {
-            if (iit->equals(*it) && iit->actions.empty() && it->actions.empty()) {
-                equalEmptyTransitionFound = true;
+            if (iit->equals(*it)) {
+                if(iit->actions.empty() && it->actions.empty()) {
+                    equalEmptyTransitionFound = true;
+                } else {
+                    // in case of two equal transition conditions that only differ in actions associated with them, we leave the two be and
+                    continue;
+                }
                 break;
             } else if (!iit->disjoint(*it)) {
                 equalEmptyTransitionFound = false;
@@ -274,15 +279,15 @@ void NFA::calculateDisjointLiteralSymbolGroups(std::list<LiteralSymbolGroup>& sy
 
 std::list<LiteralSymbolGroup> NFA::negateLiteralSymbolGroups(const std::list<LiteralSymbolGroup>& symbolGroups) {
     std::list<LiteralSymbolGroup> ret;
-    unsigned char lastEnd = 0;
+    ComputationCharType lastEnd = 0;
     for (const auto lsg : symbolGroups) { 
         if (lsg.rangeStart > lastEnd+1) {
             ret.emplace_back(lastEnd+1, lsg.rangeStart - 1);
         }
         lastEnd = lsg.rangeEnd;
     }
-    if (lastEnd < (unsigned char)255) {
-        ret.emplace_back(lastEnd + 1, (unsigned char)255);
+    if (lastEnd < 255) {
+        ret.emplace_back((CharType)(lastEnd + 1), (CharType)255);
     }
 
     return ret;
@@ -357,7 +362,10 @@ bool LiteralSymbolGroup::contains(const SymbolGroup* symbol) const {
         return false;
     }
 
-    return this->rangeStart <= ls->rangeStart && this->rangeEnd >= ls->rangeEnd;
+    return 
+        this->rangeStart <= ls->rangeStart && this->rangeEnd >= ls->rangeEnd
+        && this->actions == symbol->actions
+        ;
 }
 
 bool LiteralSymbolGroup::equals(const LiteralSymbolGroup& rhs) const {
@@ -373,29 +381,29 @@ void LiteralSymbolGroup::disjoin(std::list<LiteralSymbolGroup>& symbolGroups, co
         symbolGroups.push_back(lhs);
         symbolGroups.push_back(rhs);
     } else if(lhs.rangeEnd >= rhs.rangeStart) {
-        auto mid_beg = std::max(lhs.rangeStart, rhs.rangeStart);
-        auto mid_end = std::min(lhs.rangeEnd, rhs.rangeEnd);
-        // thanks to the first condition we have mid_beg <= mid_end
+        ComputationCharType mid_beg = std::max(lhs.rangeStart, rhs.rangeStart);
+        ComputationCharType mid_end = std::min(lhs.rangeEnd, rhs.rangeEnd);
+        // thanks to the first condition we already have mid_beg <= mid_end
 
-        auto bottom_beg = std::min(lhs.rangeStart, rhs.rangeStart);
-        auto bottom_end = mid_beg - 1;
+        ComputationCharType bottom_beg = std::min(lhs.rangeStart, rhs.rangeStart);
+        ComputationCharType bottom_end = (short)mid_beg - 1;
 
-        auto top_beg = std::min(lhs.rangeEnd, rhs.rangeEnd) + 1;
-        auto top_end = std::max(lhs.rangeEnd, rhs.rangeEnd);
+        ComputationCharType top_beg = std::min(lhs.rangeEnd, rhs.rangeEnd) + 1;
+        ComputationCharType top_end = std::max(lhs.rangeEnd, rhs.rangeEnd);
 
         if (bottom_beg <= bottom_end) {
-            symbolGroups.emplace_back(bottom_beg, bottom_end, bottom_beg == lhs.rangeStart ? lhs.actions : rhs.actions);
+            symbolGroups.emplace_back((CharType)bottom_beg, (CharType)bottom_end, bottom_beg == lhs.rangeStart ? lhs.actions : rhs.actions);
         }
 
         if (lhs.actions.empty() && rhs.actions.empty()) {
-            symbolGroups.emplace_back(mid_beg, mid_end, NFAActionRegister());
+            symbolGroups.emplace_back((CharType)mid_beg, (CharType)mid_end, NFAActionRegister());
         } else {
-            symbolGroups.emplace_back(mid_beg, mid_end, lhs.actions);
-            symbolGroups.emplace_back(mid_beg, mid_end, rhs.actions);
+            symbolGroups.emplace_back((CharType)mid_beg, (CharType)mid_end, lhs.actions);
+            symbolGroups.emplace_back((CharType)mid_beg, (CharType)mid_end, rhs.actions);
         }
 
         if (top_beg <= top_end) {
-            symbolGroups.emplace_back(top_beg, top_end, top_beg == lhs.rangeEnd ? rhs.actions : lhs .actions);
+            symbolGroups.emplace_back((CharType)top_beg, (CharType)top_end, top_beg == lhs.rangeEnd ? rhs.actions : lhs .actions);
         }
     }
 }
@@ -406,7 +414,10 @@ bool ProductionSymbolGroup::contains(const SymbolGroup* symbol) const {
         return false;
     }
 
-    return referencedComponent->entails(psg->referencedComponent->name);
+    return
+        referencedComponent->entails(psg->referencedComponent->name)
+        && this->actions == symbol->actions
+        ;
 }
 
 bool EmptySymbolGroup::contains(const SymbolGroup* symbol) const {

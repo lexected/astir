@@ -208,7 +208,7 @@ void CppGenerationVisitor::generateAutomatonMechanicsMaps(const std::string& mac
 		const NFAActionRegister& snar = stateObject.actions;
 		if (snar.size() > 0) {
 			ActionRegisterId registerId = ++m_actionRegistersUsed;
-			actionRegisterDeclarationStream << "void actionRegister" << registerId << "(const RawStream& stream);" << std::endl;
+			actionRegisterDeclarationStream << "void actionRegister" << registerId << "();" << std::endl;
 			actionRegisterDefinitionStream << generateActionRegisterDefinition(machineName, registerId, snar, true);
 
 			stateActionRegisterMap[state] = registerId;

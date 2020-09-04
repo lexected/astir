@@ -55,6 +55,12 @@
     <Filter Include="Resource Files\Tests\Test02">
       <UniqueIdentifier>{96c4f0f8-9f52-4a5f-b93c-fb265e3c2f0b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\Tests\Test04">
+      <UniqueIdentifier>{ba024569-a224-41e9-9979-f70f3c52c5a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Tests\Test05">
+      <UniqueIdentifier>{5eb4e56c-4786-4313-bda1-b442e07440e3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -210,6 +216,12 @@
     </None>
     <None Include="Tests\Test03\Test03.alex">
       <Filter>Resource Files\Tests\Test03</Filter>
+    </None>
+    <None Include="Tests\Test04\Test04.alex">
+      <Filter>Resource Files\Tests\Test04</Filter>
+    </None>
+    <None Include="Tests\Test05\Test05.alex">
+      <Filter>Resource Files\Tests\Test05</Filter>
     </None>
   </ItemGroup>
 </Project>

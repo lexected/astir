@@ -2,6 +2,7 @@
 #include <string>
 #include <list>
 #include <memory>
+#include <vector>
 
 #include "RawStream.h"
 

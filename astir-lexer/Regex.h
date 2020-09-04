@@ -7,6 +7,9 @@
 #include "INFABuildable.h"
 #include "IActing.h"
 
+using CharType = unsigned char;
+using ComputationCharType = signed short int;
+
 struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IProductionReferencable { };
 
 struct RootRegex : public Regex {
@@ -98,8 +101,8 @@ struct PrimitiveRegex : public AtomicRegex {
 };
 
 struct RegexRange {
-	char start;
-	char end;
+	CharType start;
+	CharType end;
 };
 
 struct AnyRegex : public PrimitiveRegex {

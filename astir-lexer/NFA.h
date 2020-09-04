@@ -43,9 +43,9 @@ protected:
 struct LiteralSymbolGroup : public SymbolGroup {
 	LiteralSymbolGroup()
 		: rangeStart(0), rangeEnd(0) { }
-	LiteralSymbolGroup(unsigned char rangeStart, unsigned  char rangeEnd)
+	LiteralSymbolGroup(CharType rangeStart, CharType rangeEnd)
 		: rangeStart(rangeStart), rangeEnd(rangeEnd) { }
-	LiteralSymbolGroup(unsigned char rangeStart, unsigned  char rangeEnd, const NFAActionRegister& actions)
+	LiteralSymbolGroup(CharType rangeStart, CharType rangeEnd, const NFAActionRegister& actions)
 		: rangeStart(rangeStart), rangeEnd(rangeEnd), SymbolGroup(actions) { }
 	LiteralSymbolGroup(const LiteralSymbolGroup& lsg, const NFAActionRegister& actions)
 		: rangeStart(lsg.rangeStart), rangeEnd(lsg.rangeEnd), SymbolGroup(actions) { }
@@ -55,8 +55,8 @@ struct LiteralSymbolGroup : public SymbolGroup {
 	bool disjoint(const LiteralSymbolGroup& lhs) const;
 	static void disjoin(std::list<LiteralSymbolGroup>& symbolGroups, const LiteralSymbolGroup& lhs, const LiteralSymbolGroup& rhs);
 
-	unsigned char rangeStart;
-	unsigned char rangeEnd;
+	CharType rangeStart;
+	CharType rangeEnd;
 };
 
 struct ArbitrarySymbolGroup : public LiteralSymbolGroup {
