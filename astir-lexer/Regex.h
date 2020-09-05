@@ -132,7 +132,7 @@ struct ReferenceRegex : public PrimitiveRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 };
 
-struct ArbitraryLiteralRegex : public PrimitiveRegex {
+struct ArbitrarySymbolRegex : public PrimitiveRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 };
 

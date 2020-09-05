@@ -22,9 +22,8 @@ namespace ${{MachineName}} {
 	};
 
 	enum class TerminalType {
-		EOS,
-
 		${{TerminalTypesEnumerated}}
+		EOS
 	};
 
 	class Terminal {

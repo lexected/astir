@@ -61,6 +61,9 @@
     <Filter Include="Resource Files\Tests\Test05">
       <UniqueIdentifier>{5eb4e56c-4786-4313-bda1-b442e07440e3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\Tests\Test06">
+      <UniqueIdentifier>{c792f448-9ab7-4465-9677-92c14e9a21ba}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -222,6 +225,9 @@
     </None>
     <None Include="Tests\Test05\Test05.alex">
       <Filter>Resource Files\Tests\Test05</Filter>
+    </None>
+    <None Include="Tests\Test06\Test06.alex">
+      <Filter>Resource Files\Tests\Test06</Filter>
     </None>
   </ItemGroup>
 </Project>

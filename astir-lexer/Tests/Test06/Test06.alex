@@ -1,0 +1,17 @@
+// Test05 - repetition context mixing testing
+// - example input: abcd
+// - correct behaviour: T is recognized with
+//		- payloadA: abc
+//		- payloadB: d
+// - overwriting behaviour (incorrect, an example): T is recognized with
+//		- payloadA: abcd
+//		- payloadB: d
+
+finite automaton Test05 {
+	terminal production T {
+		raw payloadA;
+		raw payloadB;
+	} =
+		(.@append:payloadA)* .@capture:payloadB
+		;
+}

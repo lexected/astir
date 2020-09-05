@@ -199,14 +199,14 @@ NFA NFABuilder::visit(const LiteralRegex* regex) const {
 	return base;
 }
 
-NFA NFABuilder::visit(const ArbitraryLiteralRegex* regex) const {
+NFA NFABuilder::visit(const ArbitrarySymbolRegex* regex) const {
 	NFA base;
 
 	NFAActionRegister initial, final;
 	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
 	auto newState = base.addState();
-	base.addTransition(0, Transition(newState, std::make_shared<ArbitrarySymbolGroup>(initial)));
+	base.addTransition(0, Transition(newState, createArbitrarySymbolGroup()));
 	base.finalStates.insert(newState);
 	base.addFinalActions(final);
 
@@ -223,7 +223,7 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 	if (wasFoundInInputMachine) {
 		NFAActionRegister initial, final;
 		std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
-		base.addTransition(0, Transition(newBaseState, std::make_shared<ProductionSymbolGroup>(component, initial)));
+		base.addTransition(0, Transition(newBaseState, std::make_shared<ProductionSymbolGroup>(component->calculateProductionSymbols(), initial)));
 		base.addFinalActions(final);
 	} else {
 		const std::string payloadPath = component->isTypeForming() ? m_generationContextPath + "__" + regex->referenceName : "";
@@ -295,4 +295,12 @@ std::pair<NFAActionRegister, NFAActionRegister>  NFABuilder::computeActionRegist
 	}
 
 	return std::pair<NFAActionRegister, NFAActionRegister>(initial, final);
+}
+
+std::shared_ptr<SymbolGroup> NFABuilder::createArbitrarySymbolGroup() const {
+	if (m_contextMachine.on) {
+		return std::make_shared<ProductionSymbolGroup>(m_contextMachine.on->getRoots());
+	} else {
+		return std::make_shared<LiteralSymbolGroup>((CharType)0, (CharType)255);
+	}
 }

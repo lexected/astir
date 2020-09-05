@@ -209,6 +209,28 @@ std::list<const MachineComponent*> Machine::getTypeComponents() const {
 	return terminals;
 }
 
+bool Machine::hasPurelyTerminalRoots() const {
+	for (const auto& machineComponentPair : this->components) {
+		if (/* machineComponentPair.second->isRoot() && */!machineComponentPair.second->isTerminal()) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+std::list<const MachineComponent*> Machine::getRoots() const {
+	std::list<const MachineComponent*> terminalRoots;
+
+	for (const auto& machineComponentPair : this->components) {
+		if (machineComponentPair.second->isTerminal()) {
+			terminalRoots.push_back(machineComponentPair.second.get());
+		}
+	}
+
+	return terminalRoots;
+}
+
 void Machine::checkForDeclarationCategoryRecursion(std::list<std::string>& namesEncountered, const std::string& nameConsidered, const IFileLocalizable& occurence, bool mustBeACategory) const {
 	bool collision = std::find(namesEncountered.cbegin(), namesEncountered.cend(), nameConsidered) != namesEncountered.cend();
 	namesEncountered.push_back(nameConsidered);
@@ -273,6 +295,12 @@ std::shared_ptr<const ISyntacticEntity> FiniteAutomatonMachine::underlyingSyntac
 
 void FiniteAutomatonMachine::initialize() {
 	this->Machine::initialize();
+
+	if (this->on) {
+		if (!on->hasPurelyTerminalRoots()) {
+			throw SemanticAnalysisException("The finite automaton '" + this->name + "' declared at " + this->locationString() + "' references the machine '" + this->on->name + "' that does not have purely terminal roots - such a machine can not serve as input for a finite automaton, and '" + this->name + "' is no exception");
+		}
+	}
 
 	NFA base;
 	NFABuilder builder(*this, nullptr, "m_token");
@@ -417,6 +445,16 @@ const bool Category::isTerminal() const {
 	return false;
 }
 
+std::list<const MachineComponent*> Category::calculateProductionSymbols() const {
+	std::list<const MachineComponent*> ret;
+
+	for (const auto& referencePair : references) {
+		ret.merge(referencePair.second.component->calculateProductionSymbols());
+	}
+
+	return ret;
+}
+
 void Rule::initialize() {
 	if (initialized()) {
 		return;
@@ -456,6 +494,10 @@ bool Rule::entails(const std::string& name, std::list<const Category*>& path) co
 
 void Rule::verifyContextualValidity(const Machine& machine) const {
 	regex->checkActionUsage(machine, this);
+}
+
+std::list<const MachineComponent*> Rule::calculateProductionSymbols() const {
+	return std::list<const MachineComponent*>({ this });
 }
 
 const bool Pattern::isTypeForming() const {

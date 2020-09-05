@@ -183,7 +183,7 @@ NFA LiteralRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
-NFA ArbitraryLiteralRegex::accept(const NFABuilder& nfaBuilder) const {
+NFA ArbitrarySymbolRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 

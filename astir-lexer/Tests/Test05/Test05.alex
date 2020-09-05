@@ -1,17 +1,16 @@
-// Test05 - repetition context mixing testing
-// - example input: abcd
-// - correct behaviour: T is recognized with
-//		- payloadA: abc
-//		- payloadB: d
-// - overwriting behaviour (incorrect, an example): T is recognized with
-//		- payloadA: abcd
-//		- payloadB: d
+// Test06 - finite automaton on terminals
 
-finite automaton Test05 {
-	terminal production T {
-		raw payloadA;
-		raw payloadB;
-	} =
-		(.@append:payloadA)* .@capture:payloadB
+finite automaton PrimaryAutomaton {
+	terminal production WORD = ['a'-'z''A'-'Z']+;
+	terminal producttion WHITESPACE = [' ']+
+	terminal production PUNCTUATION = ['.' '!' '?']
+}
+
+finite automaton SecondaryAutomaton on PrimaryAutomaton {
+	nonterminal production Sentence {
+		PUNCTUATION type;
+		WORD list words;
+	} = 
+		(WORD@append:words WHITESPACE)* WORD@append:words PUNCTUATION@set:type
 		;
 }

@@ -534,7 +534,7 @@ std::unique_ptr<PrimitiveRegex> Parser::parsePrimitiveRegex(std::list<Token>::co
 		lr->literal = it->string;
 		ret = move(lr);
 	} else if (it->type == TokenType::OP_DOT) {
-		ret = make_unique<ArbitraryLiteralRegex>();
+		ret = make_unique<ArbitrarySymbolRegex>();
 	} /*else if (it->type == TokenType::OP_CARET) {
 		ret = make_unique<LineBeginRegex>();
 	}*/ else if (it->type == TokenType::OP_DOLLAR) {

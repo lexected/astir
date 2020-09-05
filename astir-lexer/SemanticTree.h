@@ -81,6 +81,8 @@ public:
 	std::list<const MachineComponent*> getTerminalComponents() const;
 	std::list<const MachineComponent*> getTerminalTypeComponents() const;
 	std::list<const MachineComponent*> getTypeComponents() const;
+	bool hasPurelyTerminalRoots() const;
+	std::list<const MachineComponent*> getRoots() const;
 
 	void checkForDeclarationCategoryRecursion(std::list<std::string>& namesEncountered, const std::string& nameConsidered, const IFileLocalizable& occurence, bool mustBeACategory = false) const;
 	const IFileLocalizable* findRecursiveReferenceThroughName(const std::string& referenceName, std::list<std::string>& namesEncountered, const std::string& targetName) const;
@@ -125,6 +127,8 @@ public:
 	virtual const bool isTerminal() const = 0;
 
 	virtual void verifyContextualValidity(const Machine& machine) const;
+
+	virtual std::list<const MachineComponent*> calculateProductionSymbols() const = 0;
 };
 
 struct CategoryReference {
@@ -153,6 +157,8 @@ public:
 
 	const bool isTypeForming() const override;
 	const bool isTerminal() const override;
+
+	std::list<const MachineComponent*> calculateProductionSymbols() const override;
 private:
 	std::shared_ptr<const CategoryStatement> m_categoryStatement;
 };
@@ -172,6 +178,8 @@ public:
 	bool entails(const std::string& name, std::list<const Category*>& path) const override;
 
 	void verifyContextualValidity(const Machine& machine) const override;
+
+	std::list<const MachineComponent*> calculateProductionSymbols() const override;
 private:
 	std::shared_ptr<const RuleStatement> m_ruleStatement;
 };

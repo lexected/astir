@@ -248,34 +248,33 @@ std::list<std::shared_ptr<SymbolGroup>> NFA::calculateTransitionSymbols(const st
     return ret;
 }
 
-void NFA::calculateDisjointLiteralSymbolGroups(std::list<LiteralSymbolGroup>& symbolGroups) {
+void NFA::calculateDisjointSymbolGroups(std::list<std::shared_ptr<SymbolGroup>>& symbolGroups) {
     auto it = symbolGroups.begin();
-    bool equalEmptyTransitionFound = false;
+    bool equalAndEquallyActionedTransitionFound = false;
     while(it != symbolGroups.end()) {
         auto iit = it;
         ++iit;
         for (; iit != symbolGroups.end(); ++iit) {
-            if (iit->equals(*it)) {
-                if(iit->actions.empty() && it->actions.empty()) {
-                    equalEmptyTransitionFound = true;
+            if ((*iit)->equals(it->get())) {
+                if((*iit)->actions == (*it)->actions) {
+                    equalAndEquallyActionedTransitionFound = true;
                 } else {
                     // in case of two equal transition conditions that only differ in actions associated with them, we leave the two be and
                     continue;
                 }
                 break;
-            } else if (!iit->disjoint(*it)) {
-                equalEmptyTransitionFound = false;
+            } else if (!(*iit)->disjoint(it->get())) {
+                equalAndEquallyActionedTransitionFound = false;
                 break;
             }
         }
 
         if (iit != symbolGroups.end()) {
-            if (equalEmptyTransitionFound) {
-                iit->actions += it->actions;
+            if (equalAndEquallyActionedTransitionFound) {
                 it = symbolGroups.erase(it);
             } else {
-                LiteralSymbolGroup::disjoin(symbolGroups, *it, *iit);
-                it = symbolGroups.erase(it);
+                auto newSymbolGroups = (*it)->disjoinFrom(*iit);
+                symbolGroups.merge(newSymbolGroups);
             }
         } else {
             ++it;
@@ -297,47 +296,6 @@ std::list<LiteralSymbolGroup> NFA::negateLiteralSymbolGroups(const std::list<Lit
     }
 
     return ret;
-}
-
-void NFA::calculateDisjointProductionSymbolGroups(std::list<ProductionSymbolGroup>& symbolGroups) {
-    auto it = symbolGroups.begin();
-    bool equalTransitionFound = false;
-    std::list<const Category*> categoryPath;
-    while (it != symbolGroups.end()) {
-        auto iit = symbolGroups.begin();
-        for (; iit != symbolGroups.end(); ++iit) {
-            if (iit == it) {
-                continue;
-            }
-
-            if (it->referencedComponent == iit->referencedComponent) {
-                equalTransitionFound = true;
-                break;
-            }
-
-            if (it->referencedComponent->entails(iit->referencedComponent->name, categoryPath)) {
-                break;
-            }
-        }
-
-        if (iit != symbolGroups.end()) {
-            if (!equalTransitionFound) {
-                const MachineComponent* prevComponent = nullptr;
-                for (const Category* cat : categoryPath) {
-                    for (auto pair : cat->references) {
-                        if (pair.second.component != prevComponent) {
-                            symbolGroups.emplace_back(pair.second.component, it->actions); // no need to worry about isFromFollows here
-                        }
-                    }
-                    prevComponent = cat;
-                }
-
-                categoryPath.clear();
-            }
-            iit->actions += it->actions;
-            it = symbolGroups.erase(it);
-        }
-    }
 }
 
 State NFA::findUnmarkedState(const std::deque<DFAState>& stateMap) const {
@@ -362,6 +320,7 @@ State NFA::findStateByNFAStateSet(const std::deque<DFAState>& stateMap, const st
     return index;
 }
 
+
 bool LiteralSymbolGroup::contains(const SymbolGroup* symbol) const {
     const LiteralSymbolGroup* ls = dynamic_cast<const LiteralSymbolGroup*>(symbol);
     if (ls == nullptr) {
@@ -374,45 +333,58 @@ bool LiteralSymbolGroup::contains(const SymbolGroup* symbol) const {
         ;
 }
 
-bool LiteralSymbolGroup::equals(const LiteralSymbolGroup& rhs) const {
-    return this->rangeStart == rhs.rangeStart && this->rangeEnd == rhs.rangeEnd;
+bool LiteralSymbolGroup::equals(const SymbolGroup* rhs) const {
+    const LiteralSymbolGroup* rhsCast = dynamic_cast<const LiteralSymbolGroup*>(rhs);
+    if (rhsCast == nullptr) {
+        return false;
+    } else {
+        return this->rangeStart == rhsCast->rangeStart && this->rangeEnd == rhsCast->rangeEnd;
+    }
 }
 
-bool LiteralSymbolGroup::disjoint(const LiteralSymbolGroup& rhs) const {
-    return this->rangeStart > rhs.rangeEnd || rhs.rangeStart > this->rangeEnd;
+bool LiteralSymbolGroup::disjoint(const SymbolGroup* rhs) const {
+    const LiteralSymbolGroup* rhsCast = dynamic_cast<const LiteralSymbolGroup*>(rhs);
+    if (rhsCast == nullptr) {
+        return true;
+    } else {
+        return this->rangeStart > rhsCast->rangeEnd || rhsCast->rangeStart > this->rangeEnd;
+    }
 }
 
-void LiteralSymbolGroup::disjoin(std::list<LiteralSymbolGroup>& symbolGroups, const LiteralSymbolGroup& lhs, const LiteralSymbolGroup& rhs) {
-    if (rhs.disjoint(lhs)) {
-        symbolGroups.push_back(lhs);
-        symbolGroups.push_back(rhs);
-    } else if(lhs.rangeEnd >= rhs.rangeStart) {
-        ComputationCharType mid_beg = std::max(lhs.rangeStart, rhs.rangeStart);
-        ComputationCharType mid_end = std::min(lhs.rangeEnd, rhs.rangeEnd);
+std::list<std::shared_ptr<SymbolGroup>> LiteralSymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhsUncast) {
+    if (this->disjoint(rhsUncast.get())) {
+        return std::list<std::shared_ptr<SymbolGroup>>({ rhsUncast });
+    }
+
+    std::list<std::shared_ptr<SymbolGroup>> ret;
+    const LiteralSymbolGroup* rhs = dynamic_cast<LiteralSymbolGroup*>(rhsUncast.get());
+    if (this->rangeEnd >= rhs->rangeStart) {
+        ComputationCharType mid_beg = std::max(this->rangeStart, rhs->rangeStart);
+        ComputationCharType mid_end = std::min(this->rangeEnd, rhs->rangeEnd);
         // thanks to the first condition we already have mid_beg <= mid_end
 
-        ComputationCharType bottom_beg = std::min(lhs.rangeStart, rhs.rangeStart);
+        ComputationCharType bottom_beg = std::min(this->rangeStart, rhs->rangeStart);
         ComputationCharType bottom_end = (short)mid_beg - 1;
 
-        ComputationCharType top_beg = std::min(lhs.rangeEnd, rhs.rangeEnd) + 1;
-        ComputationCharType top_end = std::max(lhs.rangeEnd, rhs.rangeEnd);
+        ComputationCharType top_beg = std::min(this->rangeEnd, rhs->rangeEnd) + 1;
+        ComputationCharType top_end = std::max(this->rangeEnd, rhs->rangeEnd);
 
         if (bottom_beg <= bottom_end) {
-            symbolGroups.emplace_back((CharType)bottom_beg, (CharType)bottom_end, bottom_beg == lhs.rangeStart ? lhs.actions : rhs.actions);
+            ret.push_back(std::make_shared<LiteralSymbolGroup>((CharType)bottom_beg, (CharType)bottom_end, bottom_beg == this->rangeStart ? this->actions : rhs->actions));
         }
 
-        if (lhs.actions.empty() && rhs.actions.empty()) {
-            symbolGroups.emplace_back((CharType)mid_beg, (CharType)mid_end, NFAActionRegister());
-        } else {
-            symbolGroups.emplace_back((CharType)mid_beg, (CharType)mid_end, lhs.actions);
-            symbolGroups.emplace_back((CharType)mid_beg, (CharType)mid_end, rhs.actions);
+        this->rangeStart = (CharType)mid_beg;
+        this->rangeEnd = (CharType)mid_end;
+        if (!this->actions.empty() || !rhs->actions.empty()) {
+            ret.push_back(std::make_shared<LiteralSymbolGroup>((CharType)mid_beg, (CharType)mid_end, rhs->actions));
         }
 
         if (top_beg <= top_end) {
-            symbolGroups.emplace_back((CharType)top_beg, (CharType)top_end, top_beg == lhs.rangeEnd ? rhs.actions : lhs .actions);
+            ret.push_back(std::make_shared<LiteralSymbolGroup>((CharType)top_beg, (CharType)top_end, top_beg == this->rangeEnd ? rhs->actions : this->actions));
         }
     }
 }
+
 
 bool ProductionSymbolGroup::contains(const SymbolGroup* symbol) const {
     const ProductionSymbolGroup* psg = dynamic_cast<const ProductionSymbolGroup*>(symbol);
@@ -421,11 +393,90 @@ bool ProductionSymbolGroup::contains(const SymbolGroup* symbol) const {
     }
 
     return
-        referencedComponent->entails(psg->referencedComponent->name)
-        && this->actions == symbol->actions
+        std::includes(this->referencedComponents.cbegin(), this->referencedComponents.cend(), psg->referencedComponents.cbegin(), psg->referencedComponents.cend())
         ;
 }
 
-bool EmptySymbolGroup::contains(const SymbolGroup* symbol) const {
-    return false;
+bool EmptySymbolGroup::contains(const SymbolGroup* rhs) const {
+    return dynamic_cast<const EmptySymbolGroup*>(rhs) != nullptr;
+}
+
+bool EmptySymbolGroup::equals(const SymbolGroup* rhs) const {
+    return dynamic_cast<const EmptySymbolGroup*>(rhs) != nullptr;
+}
+
+bool EmptySymbolGroup::disjoint(const SymbolGroup* rhs) const {
+    return dynamic_cast<const EmptySymbolGroup*>(rhs) == nullptr;
+}
+
+std::list<std::shared_ptr<SymbolGroup>> EmptySymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) {
+    if (dynamic_cast<EmptySymbolGroup*>(rhs.get()) == nullptr) {
+        return std::list<std::shared_ptr<SymbolGroup>>({ rhs });
+    } else {
+        return std::list<std::shared_ptr<SymbolGroup>>();
+    }
+}
+
+bool ProductionSymbolGroup::equals(const SymbolGroup* rhs) const {
+    const ProductionSymbolGroup* rhsCast = dynamic_cast<const ProductionSymbolGroup*>(rhs);
+    if (rhsCast == nullptr) {
+        return false;
+    } else {
+        return this->referencedComponents == rhsCast->referencedComponents;
+    }
+}
+
+bool ProductionSymbolGroup::disjoint(const SymbolGroup* rhs) const {
+    const ProductionSymbolGroup* rhsCast = dynamic_cast<const ProductionSymbolGroup*>(rhs);
+    if (rhsCast == nullptr) {
+        return true;
+    } else {
+        for (const auto referencedComponentPtr : referencedComponents) {
+            auto fit = std::find_if(rhsCast->referencedComponents.cbegin(), rhsCast->referencedComponents.cend(), [referencedComponentPtr](const MachineComponent* rhsComponentPtr) {
+                return referencedComponentPtr->name == rhsComponentPtr->name;
+                });
+            if (fit != rhsCast->referencedComponents.cend()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+}
+
+std::list<std::shared_ptr<SymbolGroup>> ProductionSymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhsUncast) {
+    const ProductionSymbolGroup* rhs = dynamic_cast<const ProductionSymbolGroup*>(rhsUncast.get());
+    if (rhs == nullptr) {
+        return std::list<std::shared_ptr<SymbolGroup>>({ rhsUncast });
+    }
+
+    std::list<const MachineComponent*> sharedComponents;
+    std::list<const MachineComponent*> excludedComponents;
+    for (auto it = referencedComponents.begin(); it != referencedComponents.end(); ) {
+        auto fit = std::find_if(rhs->referencedComponents.cbegin(), rhs->referencedComponents.cend(), [it](const MachineComponent* rhsComponentPtr) {
+            return (*it)->name == rhsComponentPtr->name;
+            });
+        if (fit != rhs->referencedComponents.cend()) {
+            sharedComponents.push_back(*fit);
+            it = referencedComponents.erase(it);
+        } else {
+            excludedComponents.push_back(*fit);
+            ++it;
+        }
+    }
+
+    if (sharedComponents.empty()) {
+        return std::list<std::shared_ptr<SymbolGroup>>({ rhsUncast });
+    } else {
+        std::list<std::shared_ptr<SymbolGroup>> ret;
+        if (this->actions == rhs->actions) {
+            ret.push_back(std::make_shared<ProductionSymbolGroup>(sharedComponents, this->actions));
+        } else {
+            ret.push_back(std::make_shared<ProductionSymbolGroup>(sharedComponents, this->actions));
+            ret.push_back(std::make_shared<ProductionSymbolGroup>(sharedComponents, rhs->actions));
+        }
+        ret.push_back(std::make_shared<ProductionSymbolGroup>(excludedComponents, rhs->actions));
+        
+        return ret;
+    }
 }

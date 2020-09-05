@@ -21,7 +21,10 @@ public:
 	// a necessary part of SymbolGroup I am afraid, the SymbolGroup is the literal payload for the action
 	NFAActionRegister actions;
 
-	virtual bool contains(const SymbolGroup* symbol) const = 0;
+	virtual bool contains(const SymbolGroup* rhs) const = 0;
+	virtual bool equals(const SymbolGroup* rhs) const = 0;
+	virtual bool disjoint(const SymbolGroup* rhs) const = 0;
+	virtual std::list<std::shared_ptr<SymbolGroup>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) = 0;
 
 protected:
 	SymbolGroup() = default;
@@ -36,7 +39,11 @@ public:
 	EmptySymbolGroup(const NFAActionRegister & actions)
 		: SymbolGroup(actions) { }
 
-	bool contains(const SymbolGroup* symbol) const override;
+	bool contains(const SymbolGroup* rhs) const override;
+	bool equals(const SymbolGroup* rhs) const override;
+	bool disjoint(const SymbolGroup* rhs) const override;
+	std::list<std::shared_ptr<SymbolGroup>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
+
 protected:
 };
 
@@ -49,31 +56,27 @@ struct LiteralSymbolGroup : public SymbolGroup {
 		: rangeStart(rangeStart), rangeEnd(rangeEnd), SymbolGroup(actions) { }
 	LiteralSymbolGroup(const LiteralSymbolGroup& lsg, const NFAActionRegister& actions)
 		: rangeStart(lsg.rangeStart), rangeEnd(lsg.rangeEnd), SymbolGroup(actions) { }
-
-	bool contains(const SymbolGroup* symbol) const override;
-	bool equals(const LiteralSymbolGroup& rhs) const;
-	bool disjoint(const LiteralSymbolGroup& lhs) const;
-	static void disjoin(std::list<LiteralSymbolGroup>& symbolGroups, const LiteralSymbolGroup& lhs, const LiteralSymbolGroup& rhs);
+	
+	bool contains(const SymbolGroup* rhs) const override;
+	bool equals(const SymbolGroup* rhs) const override;
+	bool disjoint(const SymbolGroup* rhs) const override;
+	std::list<std::shared_ptr<SymbolGroup>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
 
 	CharType rangeStart;
 	CharType rangeEnd;
 };
 
-struct ArbitrarySymbolGroup : public LiteralSymbolGroup {
-	ArbitrarySymbolGroup()
-		: LiteralSymbolGroup(0, (char)255) { }
-	ArbitrarySymbolGroup(const NFAActionRegister& actions)
-		: LiteralSymbolGroup(0, (char)255, actions) { }
-};
-
 struct ProductionSymbolGroup : public SymbolGroup {
-	const MachineComponent* referencedComponent;
-	ProductionSymbolGroup(const MachineComponent* referencedComponent)
-		: referencedComponent(referencedComponent) { }
-	ProductionSymbolGroup(const MachineComponent* referencedComponent, const NFAActionRegister& actions)
-		: referencedComponent(referencedComponent), SymbolGroup(actions) { }
+	std::list<const MachineComponent*> referencedComponents;
+	ProductionSymbolGroup(const std::list<const MachineComponent*>& referencedComponents)
+		: referencedComponents(referencedComponents) { }
+	ProductionSymbolGroup(const std::list<const MachineComponent*>& referencedComponents, const NFAActionRegister& actions)
+		: referencedComponents(referencedComponents), SymbolGroup(actions) { }
 
-	bool contains(const SymbolGroup* symbol) const override;
+	bool contains(const SymbolGroup* rhs) const override;
+	bool equals(const SymbolGroup* rhs) const override;
+	bool disjoint(const SymbolGroup* rhs) const override;
+	std::list<std::shared_ptr<SymbolGroup>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
 };
 
 struct Transition {
@@ -119,7 +122,10 @@ public:
 
 	NFA buildPseudoDFA() const;
 
+	static void calculateDisjointSymbolGroups(std::list<std::shared_ptr<SymbolGroup>>& symbolGroups);
+
 	static void calculateDisjointLiteralSymbolGroups(std::list<LiteralSymbolGroup>& symbolGroups);
+	static void calculateDisjointProductionSymbolGroups(std::list<ProductionSymbolGroup>& symbolGroups);
 	static std::list<LiteralSymbolGroup> negateLiteralSymbolGroups(const std::list<LiteralSymbolGroup>& symbolGroups);
 
 private:
@@ -139,7 +145,7 @@ private:
 	DFAState calculateEpsilonClosure(const std::set<State>& states) const;
 	std::set<State> calculateSymbolClosure(const std::set<State>& states, const SymbolGroup* symbolOnTransition) const;
 	std::list<std::shared_ptr<SymbolGroup>> calculateTransitionSymbols(const std::set<State>& states) const;
-	static void calculateDisjointProductionSymbolGroups(std::list<ProductionSymbolGroup>& symbolGroups);
+	
 
 	State findUnmarkedState(const std::deque<DFAState>& stateMap) const;
 	State findStateByNFAStateSet(const std::deque<DFAState>& stateMap, const std::set<State>& nfaSet) const;
