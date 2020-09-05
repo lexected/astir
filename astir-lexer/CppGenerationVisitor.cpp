@@ -242,14 +242,17 @@ void CppGenerationVisitor::generateAutomatonMechanicsMaps(const std::string& mac
 			
 			// handle the action register of transition actions
 			const NFAActionRegister& tnar = transition.condition->actions;
+			ActionRegisterId createdRegisterId;
 			if (tnar.size() > 0) {
-				ActionRegisterId registerId = ++m_actionRegistersUsed;
-				actionRegisterDeclarationStream << "void actionRegister" << registerId << "(size_t position, const std::string & input, const std::shared_ptr<RawStreamLocation>& location);" << std::endl;
-				actionRegisterDefinitionStream << generateActionRegisterDefinition(machineName, registerId, tnar, false);
+				createdRegisterId = ++m_actionRegistersUsed;
+				actionRegisterDeclarationStream << "void actionRegister" << createdRegisterId << "(size_t position, const std::string & input, const std::shared_ptr<RawStreamLocation>& location);" << std::endl;
+				actionRegisterDefinitionStream << generateActionRegisterDefinition(machineName, createdRegisterId, tnar, false);
+			} else {
+				createdRegisterId = 0;
+			}
 
-				for (auto it = transitionActionRegisterMapLine.begin() + symbolPtr->rangeStart; it <= transitionActionRegisterMapLine.begin() + symbolPtr->rangeEnd; ++it) {
-					it->push_back(registerId);
-				}
+			for (auto it = transitionActionRegisterMapLine.begin() + symbolPtr->rangeStart; it <= transitionActionRegisterMapLine.begin() + symbolPtr->rangeEnd; ++it) {
+				it->push_back(createdRegisterId);
 			}
 		}
 
@@ -267,7 +270,11 @@ void CppGenerationVisitor::generateAutomatonMechanicsMaps(const std::string& mac
 		for (const std::vector<ActionRegisterId>& actionMapEntryVector : transitionActionRegisterMapLine) {
 			transitionActionMapStream << "{ ";
 			for (auto it = actionMapEntryVector.crbegin(); it != actionMapEntryVector.crend(); ++it) {
-				transitionActionMapStream << "&actionRegister" << *it << ", ";
+				if(*it == (ActionRegisterId)0) {
+					transitionActionMapStream << "nullptr, ";
+				} else {
+					transitionActionMapStream << "&actionRegister" << *it << ", ";
+				}
 			}
 			transitionActionMapStream << "}, ";
 		}

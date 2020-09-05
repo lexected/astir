@@ -287,7 +287,9 @@ std::pair<NFAActionRegister, NFAActionRegister>  NFABuilder::computeActionRegist
 			final.emplace_back((NFAActionType)atp.type, m_generationContextPath, atp.target, payload);
 		}
 
-		if (atp.type == RegexActionType::Capture) {
+		if (atp.type == RegexActionType::Capture
+			|| atp.type == RegexActionType::Append
+			|| atp.type == RegexActionType::Prepend) {
 			initial.emplace_back(NFAActionType::InitiateCapture, m_generationContextPath, atp.target);
 		}
 	}

@@ -1,3 +1,10 @@
+// Test02 - testing for correctness of advanced lexing
+// - focus on
+//	- escape sequences
+//	- the difference between 'string' and "string"
+//	- presence of line comments, not affecting the internal location indicators (i.e. as if we were counting comments as `whitespace`)
+//	- presence of multiline comments, not affecting the internal location indicators
+
 finite automaton Test03 {
 	terminal production p1 { // end of line comment
 		flag/* a completely unnecessarycomment * 1 * / */ isShort;

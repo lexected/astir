@@ -1,3 +1,11 @@
+// Test02 - basic lexing, parsing, and type context generation testing
+// - example input: aa
+// - correct behaviour: p1 is recognized with 
+//	- isShort: false
+//	- isLong: true
+// - an example of incorrect behaviour: p3 is recognized, or p1 is recognized with
+//	- (isShort, isLong) in { (false, false), (true, false), (true, true) }
+
 finite automaton Test02 {
 	terminal production p1 {
 		flag isShort;

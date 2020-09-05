@@ -1,10 +1,10 @@
 // Test04 - alternation context mixing testing
 // - example input: abc
-// - correct behaviour:
+// - correct behaviour: T is recognized with
 //		- payloadA: b
 //		- payloadB: a
 //		- payloadC: c
-// - overwriting behaviour (incorrect, an example)
+// - overwriting behaviour (incorrect, an example): T is recognized with
 //		- payloadA: b
 //		- payloadB: b
 //		- payloadC: c

@@ -1,3 +1,8 @@
+// Test01 - basic lexing, parsing, and code generation testing
+// - example input: abbb
+// - correct behaviour: pattern p3 is recognized
+// - an example of incorrect behaviour (due to failing to branch properly): pattern p2 is recognized prematurely and the next recognition fails
+
 finite automaton Test01 {
 	terminal production p1 = "a";
 	terminal production p2 = "a" "b" "b";

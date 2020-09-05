@@ -126,9 +126,9 @@ namespace ${{MachineName}} {
 				actionStack.emplace_back(stateToGoToCorrespondingTransitionAction, currentPosition, currentLocation);
 			}
 
-			// register the state actions, but only if an actual changing transition occurs
+			// register the state actions
 			// this must happen after the registration of transition actions!
-			if(stateToGoTo != m_currentState && this->m_stateActions[stateToGoTo] != nullptr) {
+			if(this->m_stateActions[stateToGoTo] != nullptr) {
 				actionStack.emplace_back(this->m_stateActions[stateToGoTo], currentPosition, currentLocation);
 			}
 
