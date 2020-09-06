@@ -5,7 +5,7 @@
 #include "${{MachineName}}.h"
 
 namespace ${{MachineName}} {
-	std::shared_ptr<RelevantTerminal> ${{MachineName}}::apply(RelevantStream& rs) {
+	std::shared_ptr<OutputTerminal> ${{MachineName}}::apply(InputStream& rs) {
 		struct BranchingPoint {
 			size_t inputPosition;
 			size_t actionStackPosition;
@@ -33,7 +33,7 @@ namespace ${{MachineName}} {
 
 		const std::vector<State> emptyStateVector;
 		const std::vector<ActionMethodPointer> emptyActionVector;
-		std::shared_ptr<RelevantTerminal> tokenToReturn = nullptr;
+		std::shared_ptr<OutputTerminal> tokenToReturn = nullptr;
 		
 		State lastAcceptingState = (State)(-1);
 		size_t lastAcceptedInputPosition = 0;
@@ -50,12 +50,12 @@ namespace ${{MachineName}} {
 		}
 		
 		while (true) {
-			${{RelevantInputTerminalTypeName}} currentTerminal;
+			InputTerminalPtr currentTerminal;
 			auto currentPosition = rs.currentPosition();
 			auto currentLocation = rs.lastLocation();
 			bool readingOutcome = rs.get(currentTerminal);
-			const std::vector<State>& nextStates = !readingOutcome ? emptyStateVector : m_stateMap[m_currentState][currentTerminal.type];
-			const std::vector<ActionMethodPointer>& nextActions = !readingOutcome ? emptyActionVector : this->m_transitionActions[m_currentState][currentTerminal.type];
+			const std::vector<State>& nextStates = !readingOutcome ? emptyStateVector : m_stateMap[m_currentState][currentTerminal->type];
+			const std::vector<ActionMethodPointer>& nextActions = !readingOutcome ? emptyActionVector : this->m_transitionActions[m_currentState][currentTerminal->type];
 
 			State stateToGoTo;
 			ActionMethodPointer stateToGoToCorrespondingTransitionAction = nullptr;
@@ -80,7 +80,7 @@ namespace ${{MachineName}} {
 					}
 				} else {
 					if (lastAcceptingState == (State)(-1)) {
-						// in case of failure at this point, we are not in the first state and we have not reached any accepting state so far, so we will return nullptr. The users are then encouraged to make use of lastApplicationSuccessful() and RelevantStream location information to identify the issue
+						// in case of failure at this point, we are not in the first state and we have not reached any accepting state so far, so we will return nullptr. The users are then encouraged to make use of lastApplicationSuccessful() and InputStream location information to identify the issue
 						// the stream is left as we left it after the last read, it is up to user to try to rs.resetToPin() and try again if they want to
 						// further, rawSincePin() gives precisely the token that we failed to match
 
@@ -89,7 +89,7 @@ namespace ${{MachineName}} {
 					} else {
 						// backtrack input to where the lastAcceptingState was hit
 						rs.resetToPosition(lastAcceptedInputPosition);
-						std::deque<InputTerminal> completeInput = rs.bufferSincePin();
+						std::deque<InputTerminalPtr> completeInput = rs.bufferSincePin();
 
 						// execute all actions accepted with the state
 						for(const ActionPack& actionPackObject : lastAcceptedActionStack) {
@@ -146,8 +146,8 @@ namespace ${{MachineName}} {
 		return tokenToReturn;
 	}
 
-	std::list<std::shared_ptr<RelevantTerminal>> ${{MachineName}}::process(RelevantStream& rs) {
-		std::list<std::shared_ptr<RelevantTerminal>> ret;
+	std::list<std::shared_ptr<OutputTerminal>> ${{MachineName}}::process(InputStream& rs) {
+		std::list<std::shared_ptr<OutputTerminal>> ret;
 
 		while (lastApplicationSuccessful() && rs.good()) {
 			auto terminalPtr = apply(rs);

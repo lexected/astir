@@ -48,13 +48,13 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 
 			m_hasIncludedRawStreamFiles = true;
 		}
-		macros.emplace("ApplicableStreamHeader", "RawStream.h");
-		macros.emplace("RelevantInputTerminalTypeName", "RawTerminal");
-		macros.emplace("RelevantStreamTypeName", "RawStream");
+		macros.emplace("AppropriateStreamHeader", "RawStream.h");
+		macros.emplace("InputTerminalTypeName", "RawTerminal");
+		macros.emplace("InputStreamTypeName", "RawStream");
 	} else {
-		macros.emplace("ApplicableStreamHeader", "ProductionStream.h");
-		macros.emplace("RelevantInputTerminalTypeName", machine->on->name + "::RelevantTerminal");
-		macros.emplace("RelevantStreamTypeName", "ProductionStream<" + machine->on->name + "::RelevantTerminal>");
+		macros.emplace("AppropriateStreamHeader", "ProductionStream.h");
+		macros.emplace("InputTerminalTypeName", machine->on->name + "::OutputTerminal");
+		macros.emplace("InputStreamTypeName", "ProductionStream<" + machine->on->name + "::OutputTerminal>");
 	}
 	
 	//  - enumerate all the terminal types
@@ -64,8 +64,8 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 	for (auto componentPtr : terminalTypeComponents) {
 		ss << componentPtr->name << " = " << terminalTypeCount++ << "," << std::endl;
 	}
-	macros.emplace("TerminalTypesEnumerated", ss.str());
-	macros.emplace("TerminalTypeCount", std::to_string(terminalTypeCount));
+	macros.emplace("OutputTerminalTypesEnumerated", ss.str());
+	macros.emplace("OutputTerminalTypeCount", std::to_string(terminalTypeCount));
 
 	//  - generate type declarations
 	for (const auto& machineComponentPair : machine->components) {
@@ -119,7 +119,7 @@ void CppGenerationVisitor::visit(const MachineComponent* mc) {
 
 	m_output << "class " << mc->name << " : ";
 	if (mc->isTerminal()) {
-		m_output << "public RelevantTerminal";
+		m_output << "public OutputTerminal";
 	} else {
 		m_output << "public Production";
 	}
@@ -132,7 +132,7 @@ void CppGenerationVisitor::visit(const MachineComponent* mc) {
 	m_output << '\t' << mc->name << "(const std::shared_ptr<Location>& location)" << std::endl;
 	m_output << "\t\t: ";
 	if (mc->isTerminal()) {
-		m_output << "RelevantTerminal(RelevantTerminalType::" << mc->name << ", location)";
+		m_output << "OutputTerminal(OutputTerminalType::" << mc->name << ", location)";
 	} else {
 		m_output << "Production(location)";
 	}

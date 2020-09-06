@@ -128,7 +128,7 @@ std::string CppNFAGenerationHelper::generateActionRegisterDeclaration(ActionRegi
 
 	actionRegisterDeclarationStream
 		<< "void actionRegister" << registerId
-		<< "(size_t position, const std::deque<InputTerminal>& input, const std::shared_ptr<Location>& location);"
+		<< "(size_t position, const std::deque<InputTerminalPtr>& input, const std::shared_ptr<Location>& location);"
 		<< std::endl
 		;
 
@@ -137,7 +137,7 @@ std::string CppNFAGenerationHelper::generateActionRegisterDeclaration(ActionRegi
 
 std::string CppNFAGenerationHelper::generateActionRegisterDefinition(ActionRegisterId registerId, const NFAActionRegister& nar) const {
 	std::stringstream ss;
-	ss << "void " << m_machineName << "::" << "actionRegister" << registerId << "(size_t position, const std::deque<InputTerminal>& input, const std::shared_ptr<Location>& location) {" << std::endl;
+	ss << "void " << m_machineName << "::" << "actionRegister" << registerId << "(size_t position, const std::deque<InputTerminalPtr>& input, const std::shared_ptr<Location>& location) {" << std::endl;
 
 	for (const auto& action : nar) {
 		ss << generateActionOperation(action);
@@ -168,7 +168,7 @@ std::string CppNFAGenerationHelper::generateActionOperation(const NFAAction& na)
 			output << "\t\tm_captureStack.pop();" << std::endl;
 			output << "\t\tstd::stringstream ss;" << std::endl;
 			output << "\t\tfor(auto it = input.cbegin()+stackPos;it < input.cbegin()+position+1;++it) {" << std::endl;
-			output << "\t\t\tss << it->raw;" << std::endl;
+			output << "\t\t\tss << (*it)->raw;" << std::endl;
 			output << "\t\t}" << std::endl;
 			output << "\t\t" << na.contextPath << "->" << na.targetName << " = ss.str();" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
 			output << "\t}" << std::endl;
@@ -182,7 +182,7 @@ std::string CppNFAGenerationHelper::generateActionOperation(const NFAAction& na)
 			output << "\t\tm_captureStack.pop();" << std::endl;
 			output << "\t\tstd::stringstream ss;" << std::endl;
 			output << "\t\tfor(auto it = input.cbegin()+stackPos;it < input.cbegin()+position+1;++it) {" << std::endl;
-			output << "\t\t\tss << it->raw;" << std::endl;
+			output << "\t\t\tss << (*it)->raw;" << std::endl;
 			output << "\t\t}" << std::endl;
 			output << "\t\t" << na.contextPath << "->" << na.targetName << ".append(ss.str());" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
 			output << "\t}" << std::endl;
@@ -193,7 +193,7 @@ std::string CppNFAGenerationHelper::generateActionOperation(const NFAAction& na)
 			output << "\t\tm_captureStack.pop();" << std::endl;
 			output << "\t\tstd::stringstream ss;" << std::endl;
 			output << "\t\tfor(auto it = input.cbegin()+stackPos;it < input.cbegin()+position+1;++it) {" << std::endl;
-			output << "\t\t\tss << it->raw;" << std::endl;
+			output << "\t\t\tss << (*it)->raw;" << std::endl;
 			output << "\t\t}" << std::endl;
 			output << "\t\t" << na.contextPath << "->" << na.targetName << ".insert(0, ss.str());" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
 			output << "\t}" << std::endl;
@@ -209,7 +209,7 @@ std::string CppNFAGenerationHelper::generateActionOperation(const NFAAction& na)
 			output << "\t\tm_captureStack.pop();" << std::endl;
 			output << "\t\tstd::stringstream ss;" << std::endl;
 			output << "\t\tfor(auto it = input.cbegin()+stackPos;it < input.cbegin()+position+1;++it) {" << std::endl;
-			output << "\t\t\tss << it->raw;" << std::endl;
+			output << "\t\t\tss << (*it)->raw;" << std::endl;
 			output << "\t\t}" << std::endl;
 			output << "\t\t" << na.contextPath << "__" << na.targetName << "->raw = ss.str();" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
 			output << "\t}" << std::endl;

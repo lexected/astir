@@ -20,7 +20,7 @@ protected:
 	RawStream(std::istream& underlyingStream, const std::shared_ptr<Location>& startingStreamLocation)
 		: m_underlyingStream(underlyingStream), m_currentStreamLocation(startingStreamLocation), ProductionStream<RawTerminal>(startingStreamLocation) { }
 
-	bool streamGet(RawTerminal& c) override;
+	bool streamGet(std::shared_ptr<RawTerminal>& c) override;
 	bool streamGood() const override;
 
 private:

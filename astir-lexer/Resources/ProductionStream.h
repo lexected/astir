@@ -11,13 +11,14 @@ template <class ProductionType>
 class ProductionStream {
 	static_assert(std::is_base_of<Production, ProductionType>::value);
 public:
-	typedef ProductionType StreamElementType;
+	typedef ProductionType StreamElement;
+	typedef std::shared_ptr<StreamElement> StreamElementPtr;
 
-	bool get(ProductionType& c);
+	bool get(StreamElementPtr& c);
 	bool good() const;
 
 	void pin();
-	std::deque<ProductionType> bufferSincePin() const;
+	std::deque<StreamElementPtr> bufferSincePin() const;
 	void resetToPin();
 	void unpin();
 
@@ -30,37 +31,37 @@ protected:
 	ProductionStream(const std::shared_ptr<Location>& startingStreamLocation)
 		: m_buffer(), m_nextProductionToGive(0), m_pinLocation(startingStreamLocation), m_lastLocation(startingStreamLocation) { }
 
-	virtual bool streamGet(ProductionType& c) = 0;
+	virtual bool streamGet(StreamElementPtr& c) = 0;
 	virtual bool streamGood() const = 0;
 private:
 	size_t m_nextProductionToGive;
-	std::deque<ProductionType> m_buffer;
+	std::deque<std::shared_ptr<ProductionType>> m_buffer;
 
 	std::shared_ptr<Location> m_pinLocation;
 	std::shared_ptr<Location> m_lastLocation;
 };
 
 template <class ProductionType>
-class ListProductionStream {
+class ListProductionStream : public ProductionStream<ProductionType> {
 public:
-	ListProductionStream(const std::list<ProductionType>& inputProductionList)
+	ListProductionStream(const std::list<std::shared_ptr<ProductionType>>& inputProductionList)
 		: m_list(inputProductionList), m_iterator(inputProductionList.cbegin()) { }
 
 protected:
-	bool streamGet(ProductionType& c) override;
+	bool streamGet(std::shared_ptr<ProductionType>& c) override;
 	bool streamGood() const override;
 
 private:
-	const std::list<ProductionType>& m_list;
-	typename std::list<ProductionType>::const_iterator m_iterator;
+	const std::list<std::shared_ptr<ProductionType>>& m_list;
+	typename std::list<std::shared_ptr<ProductionType>>::const_iterator m_iterator;
 };
 
 template<class ProductionType>
-inline bool ProductionStream<ProductionType>::get(ProductionType& c) {
+inline bool ProductionStream<ProductionType>::get(StreamElementPtr& c) {
 	if (m_nextProductionToGive < m_buffer.size()) {
 		c = m_buffer[m_nextProductionToGive];
 		++m_nextProductionToGive;
-		m_lastLocation = c.location();
+		m_lastLocation = c->location();
 
 		return true;
 	} else {
@@ -69,7 +70,7 @@ inline bool ProductionStream<ProductionType>::get(ProductionType& c) {
 		if (ret) {
 			m_buffer.push_back(c);
 			++m_nextProductionToGive;
-			m_lastLocation = c.location();
+			m_lastLocation = c->location();
 		}
 
 		return ret;
@@ -92,8 +93,8 @@ inline void ProductionStream<ProductionType>::pin() {
 }
 
 template<class ProductionType>
-inline std::deque<ProductionType> ProductionStream<ProductionType>::bufferSincePin() const {
-	return std::deque<ProductionType>(m_buffer.cbegin(), m_buffer.cbegin() + m_nextProductionToGive);
+inline std::deque<std::shared_ptr<ProductionType>> ProductionStream<ProductionType>::bufferSincePin() const {
+	return std::deque<std::shared_ptr<ProductionType>>(m_buffer.cbegin(), m_buffer.cbegin() + m_nextProductionToGive);
 }
 
 template<class ProductionType>
@@ -118,11 +119,15 @@ template<class ProductionType>
 inline void ProductionStream<ProductionType>::resetToPosition(size_t newPosition) {
 	m_nextProductionToGive = newPosition;
 
-	m_lastLocation = m_buffer[newPosition].location();
+	if (newPosition > 0) {
+		m_lastLocation = m_buffer[newPosition-1]->location();
+	} else {
+		m_lastLocation = m_pinLocation;
+	}
 }
 
 template<class ProductionType>
-inline bool ListProductionStream<ProductionType>::streamGet(ProductionType& c) {
+inline bool ListProductionStream<ProductionType>::streamGet(std::shared_ptr<ProductionType>& c) {
 	if (m_iterator != m_list.cend()) {
 		c = *m_iterator;
 		++m_iterator;
