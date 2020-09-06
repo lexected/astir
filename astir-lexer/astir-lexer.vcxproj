@@ -154,7 +154,13 @@
     <ClCompile Include="NFA.cpp" />
     <ClCompile Include="Parser.cpp" />
     <ClCompile Include="Regex.cpp" />
-    <ClCompile Include="Resources\RawStream.cpp" />
+    <ClCompile Include="Resources\Location.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Resources\Production.cpp" />
+    <ClCompile Include="Resources\RawStream.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="Resources\SpecimenFiniteAutomaton.scpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -175,6 +181,9 @@
     <ClInclude Include="IFileLocalizable.h" />
     <ClInclude Include="IGenerationVisitable.h" />
     <ClInclude Include="INFABuildable.h" />
+    <ClInclude Include="Location.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="NFAAction.h" />
     <ClInclude Include="NFABuilder.h" />
     <ClInclude Include="ISemanticEntity.h" />
@@ -184,9 +193,20 @@
     <ClInclude Include="NFA.h" />
     <ClInclude Include="Parser.h" />
     <ClInclude Include="Regex.h" />
-    <ClInclude Include="Resources\RawStream.h" />
+    <ClInclude Include="Resources\Production.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Resources\ProductionStream.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Resources\RawStream.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="Resources\SpecimenFiniteAutomaton.sh">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Resources\Terminal.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="SemanticTree.h" />
     <ClInclude Include="SyntacticTree.h" />

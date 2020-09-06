@@ -126,7 +126,7 @@ std::string CppNFAGenerationHelper::generateActionRegisterDeclaration(ActionRegi
 
 	actionRegisterDeclarationStream
 		<< "void actionRegister" << registerId
-		<< "(size_t position, const std::string & input, const std::shared_ptr<RawStreamLocation>& location);"
+		<< "(size_t position, const std::string & input, const std::shared_ptr<Location>& location);"
 		<< std::endl
 		;
 
@@ -135,7 +135,7 @@ std::string CppNFAGenerationHelper::generateActionRegisterDeclaration(ActionRegi
 
 std::string CppNFAGenerationHelper::generateActionRegisterDefinition(ActionRegisterId registerId, const NFAActionRegister& nar) const {
 	std::stringstream ss;
-	ss << "void " << m_machineName << "::" << "actionRegister" << registerId << "(size_t position, const std::string& input, const std::shared_ptr<RawStreamLocation>& location) {" << std::endl;
+	ss << "void " << m_machineName << "::" << "actionRegister" << registerId << "(size_t position, const std::string& input, const std::shared_ptr<Location>& location) {" << std::endl;
 
 	for (const auto& action : nar) {
 		ss << generateActionOperation(action);

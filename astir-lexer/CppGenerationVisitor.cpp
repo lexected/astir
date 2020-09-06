@@ -101,7 +101,7 @@ void CppGenerationVisitor::visit(const MachineComponent* mc) {
 	m_output << "{" << std::endl;
 
 	m_output << "public:" << std::endl;
-	m_output << '\t' << mc->name << "(const std::shared_ptr<RawStreamLocation>& location)" << std::endl;
+	m_output << '\t' << mc->name << "(const std::shared_ptr<Location>& location)" << std::endl;
 	m_output << "\t\t: Production(location)";
 	if (mc->isTerminal()) {
 		m_output << ", Terminal(TerminalType::" << mc->name << ")";

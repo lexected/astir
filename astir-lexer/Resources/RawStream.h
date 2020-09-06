@@ -1,87 +1,28 @@
 #pragma once
 
 #include <istream>
-#include <deque>
-#include <memory>
-#include <string>
 
-class RawStreamLocation {
+#include "ProductionStream.h"
+#include "Terminal.h"
+
+class RawTerminal : public Terminal<char> {
 public:
-	virtual void note(char c) = 0;
-	virtual void advance() = 0;
-	virtual std::string toString() const = 0;
+	RawTerminal(char c, const std::shared_ptr<Location>& occurenceLocation)
+		: Terminal<char>(c, std::string({ c }), occurenceLocation) { }
+};
 
-	virtual std::shared_ptr<RawStreamLocation> clone() const = 0;
+class RawStream : public ProductionStream<RawTerminal> {
 protected:
-	RawStreamLocation() = default;
-};
+	RawStream(std::istream& underlyingStream, const std::shared_ptr<Location>& startingStreamLocation)
+		: m_underlyingStream(underlyingStream), m_currentStreamLocation(startingStreamLocation), ProductionStream<RawTerminal>(startingStreamLocation) { }
 
-class TextLocation : public RawStreamLocation {
-public:
-	unsigned long line;
-	unsigned long column;
-
-	TextLocation()
-		: line(1), column(0) { }
-
-	TextLocation(unsigned long line, unsigned long column)
-		: line(line), column(column) { }
-
-	void note(char c) override;
-	void advance() override;
-	std::string toString() const override;
-	std::shared_ptr<RawStreamLocation> clone() const override;
-};
-
-class TextFileLocation : public TextLocation {
-public:
-	std::string fileName;
-	TextFileLocation()
-		: TextLocation(0, 0), fileName() { }
-
-	TextFileLocation(const std::string& fileName, unsigned long line, unsigned long column)
-		: TextLocation(0, 0), fileName(fileName) { }
-
-	std::string toString() const override;
-	std::shared_ptr<RawStreamLocation> clone() const override;
-};
-
-class IRawStreamLocalizable {
-public:
-	virtual const std::shared_ptr<RawStreamLocation>& location() const = 0;
-	std::string locationString() const { return location()->toString(); }
-
-protected:
-	IRawStreamLocalizable() = default;
-	virtual ~IRawStreamLocalizable() = default;
-};
-
-class RawStream {
-public:
-	bool get(char& c);
-	bool good() const;
-
-	void pin();
-	std::string rawSincePin() const;
-	void resetToPin();
-	void unpin();
-
-	size_t currentPosition() const;
-	void resetToPosition(size_t newPosition);
-
-	const std::shared_ptr<RawStreamLocation>& pinLocation() const { return m_pinLocation; }
-	const std::shared_ptr<RawStreamLocation>& currentLocation() const { return m_currentStreamLocation; }
-protected:
-	RawStream(std::istream& underlyingStream, const std::shared_ptr<RawStreamLocation>& startingStreamLocation)
-		: m_underlyingStream(underlyingStream), m_buffer(), m_nextByteToGive(0), m_currentStreamLocation(startingStreamLocation), m_pinLocation(startingStreamLocation) { }
+	bool streamGet(RawTerminal& c) override;
+	bool streamGood() override;
 
 private:
 	std::istream& m_underlyingStream;
-	size_t m_nextByteToGive;
-	std::deque<char> m_buffer;
 
-	std::shared_ptr<RawStreamLocation> m_currentStreamLocation;
-	std::shared_ptr<RawStreamLocation> m_pinLocation;
+	std::shared_ptr<Location> m_currentStreamLocation;
 };
 
 class TextFileStream : public RawStream {

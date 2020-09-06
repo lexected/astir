@@ -69,9 +69,6 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Resources\RawStream.cpp">
-      <Filter>Resource Files\Resources</Filter>
-    </ClCompile>
     <ClCompile Include="CppGenerationVisitor.cpp">
       <Filter>Source Files\Generation</Filter>
     </ClCompile>
@@ -123,6 +120,15 @@
     <ClCompile Include="CppNFAGenerationHelper.cpp">
       <Filter>Source Files\Generation</Filter>
     </ClCompile>
+    <ClCompile Include="Resources\Location.cpp">
+      <Filter>Resource Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\RawStream.cpp">
+      <Filter>Resource Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\Production.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h">
@@ -133,9 +139,6 @@
     </ClInclude>
     <ClInclude Include="FileLocation.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Resources\RawStream.h">
-      <Filter>Resource Files\Resources</Filter>
     </ClInclude>
     <ClInclude Include="CppGenerationVisitor.h">
       <Filter>Header Files\Generation</Filter>
@@ -202,6 +205,21 @@
     </ClInclude>
     <ClInclude Include="CppNFAGenerationHelper.h">
       <Filter>Header Files\Generation</Filter>
+    </ClInclude>
+    <ClInclude Include="Location.h">
+      <Filter>Resource Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\ProductionStream.h">
+      <Filter>Resource Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Production.h">
+      <Filter>Resource Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Terminal.h">
+      <Filter>Resource Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\RawStream.h">
+      <Filter>Resource Files\Resources</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
