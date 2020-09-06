@@ -11,7 +11,8 @@ NFA NFABuilder::visit(const Category* category) const {
 	const std::string generationContextPathPrefix = parentContextPath + "__";
 	for (const auto referencePair : category->references) {
 		const std::string& newSubcontextName = referencePair.first;
-		NFA alternativeNfa = referencePair.second.component->accept(*this);
+		const INFABuildable* componentCastIntoBuildable = dynamic_cast<const INFABuildable*>(referencePair.second.component);
+		NFA alternativeNfa = componentCastIntoBuildable->accept(*this);
 
 		NFAActionRegister elevateContextActionRegister;
 		
@@ -147,9 +148,10 @@ NFA NFABuilder::visit(const AnyRegex* regex) const {
 	NFAActionRegister initial, final;
 	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
-	auto literalGroups = computeLiteralGroups(regex);
+	auto literalGroups = makeLiteralGroups(regex);
 	for (auto& literalSymbolGroup : literalGroups) {
-		base.addTransition(0, Transition(newState, std::make_shared<LiteralSymbolGroup>(literalSymbolGroup, initial)));
+		literalSymbolGroup->actions = initial;
+		base.addTransition(0, Transition(newState, literalSymbolGroup));
 	}
 
 	base.finalStates.insert(newState);
@@ -162,15 +164,16 @@ NFA NFABuilder::visit(const ExceptAnyRegex* regex) const {
 	NFA base;
 	auto newState = base.addState();
 
-	auto literalGroups = computeLiteralGroups(regex);
-	NFA::calculateDisjointLiteralSymbolGroups(literalGroups);
-	auto negatedGroups = NFA::negateLiteralSymbolGroups(literalGroups);
+	auto literalGroups = makeLiteralGroups(regex);
+	NFA::calculateDisjointSymbolGroups(literalGroups);
+	auto complementedGroups = NFA::makeComplementSymbolGroups(literalGroups);
 
 	NFAActionRegister initial, final;
 	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
-	for (auto& literalSymbolGroup : negatedGroups) {
-		base.addTransition(0, Transition(newState, std::make_shared<LiteralSymbolGroup>(literalSymbolGroup, initial)));
+	for (auto& symbolGroup : complementedGroups) {
+		symbolGroup->actions = initial;
+		base.addTransition(0, Transition(newState, symbolGroup));
 	}
 
 	base.finalStates.insert(newState);
@@ -206,7 +209,7 @@ NFA NFABuilder::visit(const ArbitrarySymbolRegex* regex) const {
 	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
 	auto newState = base.addState();
-	base.addTransition(0, Transition(newState, createArbitrarySymbolGroup()));
+	base.addTransition(0, Transition(newState, createArbitrarySymbolGroup(initial)));
 	base.finalStates.insert(newState);
 	base.addFinalActions(final);
 
@@ -219,7 +222,8 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 	base.finalStates.insert(newBaseState);
 
 	bool wasFoundInInputMachine;
-	auto component = this->m_contextMachine.findMachineComponent(regex->referenceName, &wasFoundInInputMachine);
+	const MachineComponent* component = this->m_contextMachine.findMachineComponent(regex->referenceName, &wasFoundInInputMachine);
+	const INFABuildable* componentCastIntoBuildable = dynamic_cast<const INFABuildable*>(component);
 	if (wasFoundInInputMachine) {
 		NFAActionRegister initial, final;
 		std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
@@ -231,7 +235,7 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 		std::tie(initial, final) = computeActionRegisterEntries(regex->actions, payloadPath);
 
 		NFABuilder contextualizedBuilder(m_contextMachine, component, m_generationContextPath);
-		base = component->accept(contextualizedBuilder);
+		base = componentCastIntoBuildable->accept(contextualizedBuilder);
 		base.addInitialTransitionActions(initial);
 		base.addFinalActions(final);
 	}
@@ -256,21 +260,21 @@ NFA NFABuilder::visit(const LineEndRegex* regex) const {
 	return base;
 }
 
-std::list<LiteralSymbolGroup> NFABuilder::computeLiteralGroups(const AnyRegex* regex) const {
-	std::list<LiteralSymbolGroup> literalGroup;
+std::list<std::shared_ptr<SymbolGroup>> NFABuilder::makeLiteralGroups(const AnyRegex* regex) const {
+	std::list<std::shared_ptr<SymbolGroup>> literalGroups;
 
 	for (const auto& literal : regex->literals) {
 		for (const auto& c : literal) {
-			literalGroup.emplace_back(c, c);
+			literalGroups.push_back(std::make_shared<LiteralSymbolGroup>(c, c));
 		}
 	}
 	for (const auto& range : regex->ranges) {
 		CharType beginning = (CharType)range.start;
 		CharType end = (CharType)range.end;
-		literalGroup.emplace_back(beginning, end);
+		literalGroups.push_back(std::make_shared<LiteralSymbolGroup>(beginning, end));
 	}
 
-	return literalGroup;
+	return literalGroups;
 }
 
 std::pair<NFAActionRegister, NFAActionRegister> NFABuilder::computeActionRegisterEntries(const std::list<RegexAction>& actions) const {
@@ -297,10 +301,10 @@ std::pair<NFAActionRegister, NFAActionRegister>  NFABuilder::computeActionRegist
 	return std::pair<NFAActionRegister, NFAActionRegister>(initial, final);
 }
 
-std::shared_ptr<SymbolGroup> NFABuilder::createArbitrarySymbolGroup() const {
+std::shared_ptr<SymbolGroup> NFABuilder::createArbitrarySymbolGroup(const NFAActionRegister& ar) const {
 	if (m_contextMachine.on) {
-		return std::make_shared<ProductionSymbolGroup>(m_contextMachine.on->getRoots());
+		return std::make_shared<ProductionSymbolGroup>(m_contextMachine.on->getRoots(), ar);
 	} else {
-		return std::make_shared<LiteralSymbolGroup>((CharType)0, (CharType)255);
+		return std::make_shared<LiteralSymbolGroup>((CharType)0, (CharType)255, ar);
 	}
 }

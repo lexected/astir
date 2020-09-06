@@ -216,36 +216,20 @@ std::set<State> NFA::calculateSymbolClosure(const std::set<State>& states, const
 }
 
 std::list<std::shared_ptr<SymbolGroup>> NFA::calculateTransitionSymbols(const std::set<State>& states) const {
-    std::list<ProductionSymbolGroup> productionGroupsUsed;
-    std::list<LiteralSymbolGroup> literalGroupsUsed;
+    std::list<std::shared_ptr<SymbolGroup>> symbolGroupsUsed;
     for (State state : states) {
         const auto& stateObject = this->states[state];
         for (const auto& transition : stateObject.transitions) {
-            auto lsg = std::dynamic_pointer_cast<LiteralSymbolGroup>(transition.condition);
-            if (lsg != nullptr) {
-                literalGroupsUsed.push_back(*lsg);
-                continue;
-            }
-
-            auto psg = std::dynamic_pointer_cast<ProductionSymbolGroup>(transition.condition);
-            if (psg != nullptr) {
-                productionGroupsUsed.push_back(*psg);
+            const EmptySymbolGroup* esg = dynamic_cast<const EmptySymbolGroup*>(transition.condition.get());
+            if(esg == nullptr) { // we ignore only the empty transitions which were (hopefully?) sorted out by the process of calculating epsilon closure
+                symbolGroupsUsed.push_back(transition.condition);
             }
         }
     }
 
-    calculateDisjointLiteralSymbolGroups(literalGroupsUsed);
-    calculateDisjointProductionSymbolGroups(productionGroupsUsed);
+    calculateDisjointSymbolGroups(symbolGroupsUsed);
 
-    std::list<std::shared_ptr<SymbolGroup>> ret;
-    for (const LiteralSymbolGroup& lsg : literalGroupsUsed) {
-        ret.push_back(std::make_shared<LiteralSymbolGroup>(lsg));
-    }
-    for (const ProductionSymbolGroup& psg : productionGroupsUsed) {
-        ret.push_back(std::make_shared<ProductionSymbolGroup>(psg));
-    }
-
-    return ret;
+    return symbolGroupsUsed;
 }
 
 void NFA::calculateDisjointSymbolGroups(std::list<std::shared_ptr<SymbolGroup>>& symbolGroups) {
@@ -282,6 +266,10 @@ void NFA::calculateDisjointSymbolGroups(std::list<std::shared_ptr<SymbolGroup>>&
     }
 }
 
+std::list<std::shared_ptr<LiteralSymbolGroup>> NFA::makeComplementSymbolGroups(const std::list<std::shared_ptr<SymbolGroup>>& symbolGroups) {
+    return std::list<std::shared_ptr<LiteralSymbolGroup>>();
+}
+/*
 std::list<LiteralSymbolGroup> NFA::negateLiteralSymbolGroups(const std::list<LiteralSymbolGroup>& symbolGroups) {
     std::list<LiteralSymbolGroup> ret;
     ComputationCharType lastEnd = 0;
@@ -297,6 +285,7 @@ std::list<LiteralSymbolGroup> NFA::negateLiteralSymbolGroups(const std::list<Lit
 
     return ret;
 }
+*/
 
 State NFA::findUnmarkedState(const std::deque<DFAState>& stateMap) const {
     size_t index;
@@ -383,6 +372,8 @@ std::list<std::shared_ptr<SymbolGroup>> LiteralSymbolGroup::disjoinFrom(const st
             ret.push_back(std::make_shared<LiteralSymbolGroup>((CharType)top_beg, (CharType)top_end, top_beg == this->rangeEnd ? rhs->actions : this->actions));
         }
     }
+
+    return ret;
 }
 
 

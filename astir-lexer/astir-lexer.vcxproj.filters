@@ -120,6 +120,9 @@
     <ClCompile Include="NFAAction.cpp">
       <Filter>Source Files\Semantic Analysis</Filter>
     </ClCompile>
+    <ClCompile Include="CppNFAGenerationHelper.cpp">
+      <Filter>Source Files\Generation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h">
@@ -196,6 +199,9 @@
     </ClInclude>
     <ClInclude Include="NFAAction.h">
       <Filter>Header Files\Semantic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="CppNFAGenerationHelper.h">
+      <Filter>Header Files\Generation</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

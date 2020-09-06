@@ -32,10 +32,10 @@ private:
 	const MachineComponent* m_contextComponent;
 	const std::string m_generationContextPath;
 
-	std::list<LiteralSymbolGroup> computeLiteralGroups(const AnyRegex* regex) const;
+	std::list<std::shared_ptr<SymbolGroup>> makeLiteralGroups(const AnyRegex* regex) const;
 	std::pair<NFAActionRegister, NFAActionRegister> computeActionRegisterEntries(const std::list<RegexAction>& actions) const;
 	std::pair<NFAActionRegister, NFAActionRegister> computeActionRegisterEntries(const std::list<RegexAction>& actions, const std::string& payload) const;
 
-	std::shared_ptr<SymbolGroup> createArbitrarySymbolGroup() const;
+	std::shared_ptr<SymbolGroup> createArbitrarySymbolGroup(const NFAActionRegister& actions) const;
 };
 

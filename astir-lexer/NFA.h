@@ -123,10 +123,7 @@ public:
 	NFA buildPseudoDFA() const;
 
 	static void calculateDisjointSymbolGroups(std::list<std::shared_ptr<SymbolGroup>>& symbolGroups);
-
-	static void calculateDisjointLiteralSymbolGroups(std::list<LiteralSymbolGroup>& symbolGroups);
-	static void calculateDisjointProductionSymbolGroups(std::list<ProductionSymbolGroup>& symbolGroups);
-	static std::list<LiteralSymbolGroup> negateLiteralSymbolGroups(const std::list<LiteralSymbolGroup>& symbolGroups);
+	static std::list<std::shared_ptr<LiteralSymbolGroup>> makeComplementSymbolGroups(const std::list<std::shared_ptr<SymbolGroup>>& symbolGroups);
 
 private:
 	void mergeInContexts(const NFA& rhs);

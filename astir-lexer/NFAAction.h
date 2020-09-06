@@ -3,8 +3,6 @@
 #include <string>
 #include <list>
 
-#include "IGenerationVisitable.h"
-
 enum class NFAActionType : unsigned char {
 	Flag = 1,
 	Unflag = 2,
@@ -29,7 +27,7 @@ enum class NFAActionType : unsigned char {
 };
 
 
-struct NFAAction : public IGenerationVisitable {
+struct NFAAction {
 	NFAActionType type;
 	std::string contextPath;
 	std::string targetName;
@@ -40,18 +38,14 @@ struct NFAAction : public IGenerationVisitable {
 	NFAAction(NFAActionType faAction, const std::string& contextPath, const std::string& targetName, const std::string& payload)
 		: type(faAction), contextPath(contextPath), targetName(targetName), payload(payload) { }
 
-	void accept(GenerationVisitor* visitor) const override;
-
 	bool operator==(const NFAAction& rhs) const;
 };
 
-class NFAActionRegister : public std::list<NFAAction>, public IGenerationVisitable {
+class NFAActionRegister : public std::list<NFAAction> {
 public:
 	NFAActionRegister() = default;
 
 	NFAActionRegister operator+(const NFAActionRegister& rhs) const;
 	const NFAActionRegister& operator+=(const NFAActionRegister& rhs);
 	bool operator==(const NFAActionRegister& rhs) const;
-
-	void accept(GenerationVisitor* visitor) const override;
 };

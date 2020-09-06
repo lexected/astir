@@ -106,7 +106,7 @@ private:
 	NFA m_nfa;
 };
 
-class MachineComponent : public ISemanticEntity, public IProductionReferencable, public INFABuildable {
+class MachineComponent : public ISemanticEntity, public IProductionReferencable, public INFABuildable, public IGenerationVisitable {
 public:
 	const std::string name;
 	std::list<const Category*> categories; // non-owning pointers for the categories
@@ -127,6 +127,7 @@ public:
 	virtual const bool isTerminal() const = 0;
 
 	virtual void verifyContextualValidity(const Machine& machine) const;
+	void accept(GenerationVisitor* visitor) const override;
 
 	virtual std::list<const MachineComponent*> calculateProductionSymbols() const = 0;
 };

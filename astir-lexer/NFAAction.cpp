@@ -2,19 +2,11 @@
 
 #include "GenerationVisitor.h"
 
-void NFAAction::accept(GenerationVisitor* visitor) const {
-	visitor->visit(this);
-}
-
 bool NFAAction::operator==(const NFAAction& rhs) const {
     return
         this->type == rhs.type && this->contextPath == rhs.contextPath
         && this->targetName == rhs.targetName && this->payload == rhs.payload
         ;
-}
-
-void NFAActionRegister::accept(GenerationVisitor* visitor) const {
-	visitor->visit(this);
 }
 
 NFAActionRegister NFAActionRegister::operator+(const NFAActionRegister& rhs) const {

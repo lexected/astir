@@ -307,7 +307,8 @@ void FiniteAutomatonMachine::initialize() {
 	for (const auto& componentPair : this->components) {
 		const MachineComponent* componentPtr = componentPair.second.get();
 		const std::string& newSubcontextName = componentPtr->name;
-		NFA alternativeNfa = componentPtr->accept(builder);
+		const INFABuildable* componentCastPtr = dynamic_cast<const INFABuildable*>(componentPtr);
+		NFA alternativeNfa = componentCastPtr->accept(builder);
 
 		NFAActionRegister elevateContextActionRegister;
 		if (componentPair.second->isTypeForming()) {
@@ -388,6 +389,10 @@ const Field* MachineComponent::findField(const std::string& name) const {
 }
 
 void MachineComponent::verifyContextualValidity(const Machine& machine) const { }
+
+void MachineComponent::accept(GenerationVisitor* visitor) const {
+	visitor->visit(this);
+}
 
 const IFileLocalizable* Category::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
 	auto nEit = std::find(namesEncountered.cbegin(), namesEncountered.cend(), targetName);
