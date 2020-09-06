@@ -33,7 +33,6 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 	std::string specimenFaCodeContents((std::istreambuf_iterator<char>(specimenFaCode)), (std::istreambuf_iterator<char>()));
 
 	const NFA& nfa = machine->getNFA();
-	CppNFAGenerationHelper cngh(machine->name, nfa);
 
 	// do constructive magic
 	std::map<std::string, std::string> macros;
@@ -51,21 +50,22 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 		macros.emplace("AppropriateStreamHeader", "RawStream.h");
 		macros.emplace("InputTerminalTypeName", "RawTerminal");
 		macros.emplace("InputStreamTypeName", "RawStream");
+		macros.emplace("DependencyHeaderInclude", "");
 	} else {
 		macros.emplace("AppropriateStreamHeader", "ProductionStream.h");
 		macros.emplace("InputTerminalTypeName", machine->on->name + "::OutputTerminal");
 		macros.emplace("InputStreamTypeName", "ProductionStream<" + machine->on->name + "::OutputTerminal>");
+		macros.emplace("DependencyHeaderInclude", "#include \"" + machine->on->name + ".h\"");
 	}
 	
-	//  - enumerate all the terminal types
-	auto terminalTypeComponents = machine->getTerminalTypeComponents();
+	//  - enumerate all the production roots
+	auto terminalRootProductions = machine->getTerminalRoots();
 	std::stringstream ss;
-	size_t terminalTypeCount = 1; // 0 is reserved for EOS
-	for (auto componentPtr : terminalTypeComponents) {
-		ss << componentPtr->name << " = " << terminalTypeCount++ << "," << std::endl;
+	for (auto productionPtr : terminalRootProductions) {
+		ss << productionPtr->name << " = " << productionPtr->typeIndex << "," << std::endl;
 	}
 	macros.emplace("OutputTerminalTypesEnumerated", ss.str());
-	macros.emplace("OutputTerminalTypeCount", std::to_string(terminalTypeCount));
+	macros.emplace("OutputTerminalTypeCount", std::to_string(machine->terminalProductionCount()));
 
 	//  - generate type declarations
 	for (const auto& machineComponentPair : machine->components) {
@@ -73,15 +73,20 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 	}
 	macros.emplace("TypeDeclarations", this->outputAndReset());
 
+	//	- set the type of out the output to the highest resolution possible
+	macros.emplace("OutputType", machine->hasPurelyTerminalRoots() ? "OutputTerminal" : "Production");
+
 	//  - set the DFA table parameter macros
 	macros.emplace("StateCount", std::to_string(machine->getNFA().states.size()));
+	size_t numberOfInputTerminals;
 	if (machine->on) {
-		size_t numberOfTerminalsComingInFromTheOnMachine = machine->on->terminalCount() + 1; //+1 comes from having EOS (TerminalTypeIndex = 0) there implicitly
-		macros.emplace("TransitionCount", std::to_string(numberOfTerminalsComingInFromTheOnMachine));
+		numberOfInputTerminals = machine->on->terminalProductionCount() + 1; //+1 comes from having EOS (TerminalTypeIndex = 0) there implicitly
 	} else {
-		macros.emplace("TransitionCount", "256");
+		numberOfInputTerminals = 256;
 	}
+	macros.emplace("TransitionSymbolCount", std::to_string(numberOfInputTerminals));
 
+	CppNFAGenerationHelper cngh(machine->name, nfa, numberOfInputTerminals);
 	//  - generate action context declarations
 	macros.emplace("ActionContextsDeclarations", cngh.generateContextDeclarations());
 
@@ -155,11 +160,11 @@ void CppGenerationVisitor::visit(const RawField* rawField) {
 }
 
 void CppGenerationVisitor::visit(const ItemField* itemField) {
-	m_output << "std::shared_ptr<" << itemField->type << "> " << itemField->name << ";" << std::endl;
+	m_output << "std::shared_ptr<" << itemField->machineOfTheType->name << "::" << itemField->type << "> " << itemField->name << ";" << std::endl;
 }
 
 void CppGenerationVisitor::visit(const ListField* listField) {
-	m_output << "std::list<std::shared_ptr<" << listField->type << ">> " << listField->name << ";" << std::endl;
+	m_output << "std::list<std::shared_ptr<" << listField->machineOfTheType->name << "::" << listField->type << ">> " << listField->name << ";" << std::endl;
 }
 
 void CppGenerationVisitor::resetOutput() {

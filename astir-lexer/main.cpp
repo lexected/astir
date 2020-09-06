@@ -6,7 +6,7 @@
 #include "CppGenerationVisitor.h"
 
 int main(int argc, char* argv[]) {
-	std::fstream inputFile("Tests/Test05/Test05.alex");
+	std::fstream inputFile("Tests/Test06/Test06.alex");
 
 	LexicalAnalyzer analyzer;
 	auto tokenList = analyzer.process(inputFile);
@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
 	auto semanticTree = syntacticTree->makeSemanticEntity(syntacticTree);
 	semanticTree->initialize();
 
-	CppGenerationVisitor generationVisitor("Tests/Test05/Output");
+	CppGenerationVisitor generationVisitor("Tests/Test06/Output");
 	generationVisitor.setup();
 	generationVisitor.visit(semanticTree.get());
 

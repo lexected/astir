@@ -26,17 +26,20 @@ enum class NFAActionType : unsigned char {
 	None = 255
 };
 
-
+struct Field;
 struct NFAAction {
 	NFAActionType type;
 	std::string contextPath;
 	std::string targetName;
 	std::string payload;
+	const Field* targetField;
 
 	NFAAction(NFAActionType faAction, const std::string& contextPath, const std::string& targetName)
-		: type(faAction), contextPath(contextPath), targetName(targetName), payload() { }
-	NFAAction(NFAActionType faAction, const std::string& contextPath, const std::string& targetName, const std::string& payload)
-		: type(faAction), contextPath(contextPath), targetName(targetName), payload(payload) { }
+		: NFAAction(faAction, contextPath, targetName, nullptr) { }
+	NFAAction(NFAActionType faAction, const std::string& contextPath, const std::string& targetName, const Field* targetField)
+		: NFAAction(faAction, contextPath, targetName, targetField, std::string()) { }
+	NFAAction(NFAActionType faAction, const std::string& contextPath, const std::string& targetName, const Field* targetField, const std::string& payload)
+		: type(faAction), contextPath(contextPath), targetName(targetName), targetField(targetField), payload(payload) { }
 
 	bool operator==(const NFAAction& rhs) const;
 };

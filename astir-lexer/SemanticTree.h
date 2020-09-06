@@ -63,6 +63,7 @@ private:
 
 using TerminalTypeIndex = size_t;
 
+class Machine;
 class MachineComponent;
 class Category;
 class Rule;
@@ -79,14 +80,15 @@ public:
 
 	void initialize() override;
 
-	MachineComponent* findMachineComponent(const std::string& name, bool* wasFoundInUnderlyingMachine = nullptr) const; // anyone calling this function shall not take up even a partial ownership of the component, normal pointer suffices
+	MachineComponent* findMachineComponent(const std::string& name, const Machine** sourceMachine = nullptr) const; // anyone calling this function shall not take up even a partial ownership of the component, normal pointer suffices
 	std::list<const MachineComponent*> getTerminalComponents() const;
 	std::list<const MachineComponent*> getTerminalTypeComponents() const;
 	std::list<const MachineComponent*> getTypeComponents() const;
 	bool hasPurelyTerminalRoots() const;
 	std::list<const MachineComponent*> getRoots() const;
 	std::list<const Production*> getProductionRoots() const;
-	TerminalTypeIndex terminalCount() const { return m_terminalCount; };
+	std::list<const Production*> getTerminalRoots() const;
+	TerminalTypeIndex terminalProductionCount() const { return m_terminalCount; };
 
 	void checkForDeclarationCategoryRecursion(std::list<std::string>& namesEncountered, const std::string& nameConsidered, const IFileLocalizable& occurence, bool mustBeACategory = false) const;
 	const IFileLocalizable* findRecursiveReferenceThroughName(const std::string& referenceName, std::list<std::string>& namesEncountered, const std::string& targetName) const;
@@ -125,7 +127,7 @@ public:
 
 	void initialize() override;
 	void checkFieldName(Machine& context, const Field* field) const;
-	void checkFieldDeclarations(Machine& context) const;
+	void checkAndTypeformFieldDeclarations(Machine& context) const;
 	const Field* findField(const std::string& name) const;
 
 	virtual bool entails(const std::string& name) const = 0;

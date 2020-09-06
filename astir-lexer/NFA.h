@@ -78,9 +78,9 @@ private:
 struct TerminalSymbolGroup : public SymbolGroup {
 	std::list<const Production*> referencedProductions;
 	TerminalSymbolGroup(const std::list<const Production*>& referencedProductions)
-		: referencedProductions(referencedProductions) { }
+		: referencedProductions(referencedProductions), m_symbolIndicesFlyweight(std::make_shared<std::list<SymbolIndex>>()) { }
 	TerminalSymbolGroup(const std::list<const Production*>& referencedProductions, const NFAActionRegister& actions)
-		: referencedProductions(referencedProductions), SymbolGroup(actions) { }
+		: referencedProductions(referencedProductions), SymbolGroup(actions), m_symbolIndicesFlyweight(std::make_shared<std::list<SymbolIndex>>()) { }
 
 	bool contains(const SymbolGroup* rhs) const override;
 	bool equals(const SymbolGroup* rhs) const override;

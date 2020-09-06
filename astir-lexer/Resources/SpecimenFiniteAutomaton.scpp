@@ -5,7 +5,7 @@
 #include "${{MachineName}}.h"
 
 namespace ${{MachineName}} {
-	std::shared_ptr<OutputTerminal> ${{MachineName}}::apply(InputStream& rs) {
+	std::shared_ptr<OutputProduction> ${{MachineName}}::apply(InputStream& rs) {
 		struct BranchingPoint {
 			size_t inputPosition;
 			size_t actionStackPosition;
@@ -33,7 +33,7 @@ namespace ${{MachineName}} {
 
 		const std::vector<State> emptyStateVector;
 		const std::vector<ActionMethodPointer> emptyActionVector;
-		std::shared_ptr<OutputTerminal> tokenToReturn = nullptr;
+		std::shared_ptr<OutputProduction> tokenToReturn = nullptr;
 		
 		State lastAcceptingState = (State)(-1);
 		size_t lastAcceptedInputPosition = 0;
@@ -54,8 +54,8 @@ namespace ${{MachineName}} {
 			auto currentPosition = rs.currentPosition();
 			auto currentLocation = rs.lastLocation();
 			bool readingOutcome = rs.get(currentTerminal);
-			const std::vector<State>& nextStates = !readingOutcome ? emptyStateVector : m_stateMap[m_currentState][currentTerminal->type];
-			const std::vector<ActionMethodPointer>& nextActions = !readingOutcome ? emptyActionVector : this->m_transitionActions[m_currentState][currentTerminal->type];
+			const std::vector<State>& nextStates = !readingOutcome ? emptyStateVector : m_stateMap[m_currentState][(size_t)currentTerminal->type];
+			const std::vector<ActionMethodPointer>& nextActions = !readingOutcome ? emptyActionVector : this->m_transitionActions[m_currentState][(size_t)currentTerminal->type];
 
 			State stateToGoTo;
 			ActionMethodPointer stateToGoToCorrespondingTransitionAction = nullptr;
@@ -146,8 +146,8 @@ namespace ${{MachineName}} {
 		return tokenToReturn;
 	}
 
-	std::list<std::shared_ptr<OutputTerminal>> ${{MachineName}}::process(InputStream& rs) {
-		std::list<std::shared_ptr<OutputTerminal>> ret;
+	std::list<std::shared_ptr<OutputProduction>> ${{MachineName}}::process(InputStream& rs) {
+		std::list<std::shared_ptr<OutputProduction>> ret;
 
 		while (lastApplicationSuccessful() && rs.good()) {
 			auto terminalPtr = apply(rs);
@@ -169,13 +169,13 @@ namespace ${{MachineName}} {
 		m_currentState = 0;
 	}
 
-	std::vector<State> ${{MachineName}}::m_stateMap[${{StateCount}}][${{TransitionCount}}] = {
+	std::vector<State> ${{MachineName}}::m_stateMap[${{StateCount}}][${{TransitionSymbolCount}}] = {
 		${{StateMapEnumerated}} 
 	};
 	bool ${{MachineName}}::m_stateFinality[${{StateCount}}] = { 
 		${{StateFinalityEnumerated}} 
 	};
-	std::vector<ActionMethodPointer> ${{MachineName}}::m_transitionActions[${{StateCount}}][${{TransitionCount}}] = {
+	std::vector<ActionMethodPointer> ${{MachineName}}::m_transitionActions[${{StateCount}}][${{TransitionSymbolCount}}] = {
 		${{TransitionActionMapEnumerated}}
 	};
 	ActionMethodPointer ${{MachineName}}::m_stateActions[${{StateCount}}] = {

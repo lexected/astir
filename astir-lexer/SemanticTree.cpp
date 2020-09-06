@@ -102,6 +102,8 @@ void Machine::initialize() {
 			if (!statementPtr->terminalitySpecified) {
 				const auto machineDefinitionAttributeIterator = machineDefinition->attributes.find(MachineFlag::ProductionsTerminalByDefault);
 				terminalityDecision = machineDefinitionAttributeIterator->second.value ? ++m_terminalCount : (TerminalTypeIndex)0;
+			} else {
+				terminalityDecision = statementPtr->terminality ? ++m_terminalCount : (TerminalTypeIndex)0;
 			}
 			rulePtr = std::make_shared<Production>(statementPtr, statementPtr->name, statementPtr->disjunction, terminalityDecision);
 		}
@@ -120,11 +122,11 @@ void Machine::initialize() {
 	for (const auto& componentPair : components) {
 		const MachineStatement* machineStatement = dynamic_cast<const MachineStatement*>(componentPair.second->underlyingSyntacticEntity().get());
 		for (const auto& categoryUsedName : machineStatement->categories) {
-			bool isFromUnderlyingMachine;
-			auto mc = findMachineComponent(categoryUsedName, &isFromUnderlyingMachine);
+			const Machine* mcm;
+			auto mc = findMachineComponent(categoryUsedName, &mcm);
 			Category* cat = dynamic_cast<Category*>(mc);
 			componentPair.second->categories.push_back(cat);
-			cat->references[componentPair.first] = CategoryReference(componentPair.second.get(), isFromUnderlyingMachine);
+			cat->references[componentPair.first] = CategoryReference(componentPair.second.get(), mcm->name != name);
 		}
 	}
 
@@ -135,7 +137,7 @@ void Machine::initialize() {
 
 	// now that the fields are initialized, we can proceed to checking that there are no name collisions and that all types used are valid
 	for (const auto& componentPair : components) {
-		componentPair.second->checkFieldDeclarations(*this);
+		componentPair.second->checkAndTypeformFieldDeclarations(*this);
 	}
 
 	// wasFoundInUnderlyingMachine the rule and category level we need to check that there is no disallowed recursion within the productions themselves
@@ -147,7 +149,7 @@ void Machine::initialize() {
 	}
 }
 
-MachineComponent* Machine::findMachineComponent(const std::string& name, bool* wasFoundInUnderlyingMachine) const {
+MachineComponent* Machine::findMachineComponent(const std::string& name, const Machine** sourceMachine) const {
 	MachineComponent* ret;
 	for (const auto& used : uses) {
 		if (ret = used->findMachineComponent(name)) {
@@ -155,17 +157,14 @@ MachineComponent* Machine::findMachineComponent(const std::string& name, bool* w
 		}
 	}
 	
-	if (this->on && (ret = this->on->findMachineComponent(name))) {
-		if (wasFoundInUnderlyingMachine) {
-			*wasFoundInUnderlyingMachine = true;
-		}
+	if (this->on && (ret = this->on->findMachineComponent(name, sourceMachine))) {
 		return ret;
 	}
 
 	auto it = components.find(name);
 	if (it != components.cend()) {
-		if (wasFoundInUnderlyingMachine) {
-			*wasFoundInUnderlyingMachine = false;
+		if (sourceMachine) {
+			*sourceMachine = this;
 		}
 		return it->second.get();
 	}
@@ -234,7 +233,21 @@ std::list<const Production*> Machine::getProductionRoots() const {
 
 	for (const auto& machineComponentPair : this->components) {
 		// TODO differentiate between roots and non-roots
-		productionRoots.merge(machineComponentPair.second->calculateInstandingProductions());
+		productionRoots.merge(machineComponentPair.second->calculateInstandingProductions()); //WTF? I can't remember why this is here... maybe because of categories? Sort it out in your head!!
+	}
+
+	return productionRoots;
+}
+
+std::list<const Production*> Machine::getTerminalRoots() const {
+	std::list<const Production*> productionRoots;
+
+	for (const auto& machineComponentPair : this->components) {
+		if(machineComponentPair.second->isTerminal()) {
+			// TODO differentiate between roots and non-roots
+			productionRoots.merge(machineComponentPair.second->calculateInstandingProductions()); // the inside call is not strictly needed, but it does help to avoid the dynamic cast in a virtual-method way
+			// with merge and move constructor it should also be fairly efficient...
+		}
 	}
 
 	return productionRoots;
@@ -366,14 +379,17 @@ void MachineComponent::checkFieldName(Machine& context, const Field* field) cons
 	}
 }
 
-void MachineComponent::checkFieldDeclarations(Machine& context) const {
+void MachineComponent::checkAndTypeformFieldDeclarations(Machine& context) const {
 	for (const auto& field : fields) {
-		const VariablyTypedField* vtf = dynamic_cast<const VariablyTypedField*>(field.get());
+		VariablyTypedField* vtf = dynamic_cast<VariablyTypedField*>(field.get());
 		if (vtf) {
-			MachineComponent* mc = context.findMachineComponent(vtf->type);
+			const Machine* mcm;
+			MachineComponent* mc = context.findMachineComponent(vtf->type, &mcm);
 			if (!mc) {
 				throw SemanticAnalysisException("The variably typed field '" + vtf->name + "' references type '" + vtf->type + "' at " + field->locationString() + ", but no such type (i.e. a category or production rule) could be found in the present context of the machine '" + context.name + "'");
 			}
+
+			vtf->machineOfTheType = mcm;
 		}
 
 		checkFieldName(context, field.get());
@@ -507,7 +523,7 @@ bool Rule::entails(const std::string& name, std::list<const Category*>& path) co
 }
 
 void Rule::verifyContextualValidity(const Machine& machine) const {
-	regex->checkActionUsage(machine, this);
+	regex->checkAndTypeformActionUsage(machine, this);
 }
 
 const bool Pattern::isTypeForming() const {
@@ -535,7 +551,7 @@ const bool Production::isTypeForming() const {
 }
 
 const bool Production::isTerminal() const {
-	return typeIndex == 0;
+	return typeIndex != 0;
 }
 
 NFA Production::accept(const NFABuilder& nfaBuilder) const {

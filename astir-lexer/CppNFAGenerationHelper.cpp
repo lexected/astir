@@ -1,4 +1,5 @@
 #include "CppNFAGenerationHelper.h"
+#include "Field.h"
 
 #include <sstream>
 
@@ -18,10 +19,10 @@ void CppNFAGenerationHelper::generateMechanicsMaps(std::string& stateMap, std::s
 		const auto& stateObject = m_fa.states[state];
 
 		// a single line of the state transition map, (State)-1 by default
-		std::vector<std::vector<State>> transitionStateMapLine(256, std::vector<State>());
+		std::vector<std::vector<State>> transitionStateMapLine(m_inputTerminalCount, std::vector<State>());
 
 		// a single line of transition action-register map, 0 (to be nullptr) by default
-		std::vector<std::vector<ActionRegisterId>> transitionActionRegisterMapLine(256, std::vector<ActionRegisterId>());
+		std::vector<std::vector<ActionRegisterId>> transitionActionRegisterMapLine(m_inputTerminalCount, std::vector<ActionRegisterId>());
 
 		// handle the action register of state actions
 		const NFAActionRegister& snar = stateObject.actions;
@@ -148,7 +149,15 @@ std::string CppNFAGenerationHelper::generateActionRegisterDefinition(ActionRegis
 	return ss.str();
 }
 
+#include "SemanticTree.h"
 std::string CppNFAGenerationHelper::generateActionOperation(const NFAAction& na) const {
+	const std::string payloadOrInput = na.payload.empty() ? "input[position]" : na.payload;
+	const VariablyTypedField* vtf = dynamic_cast<const VariablyTypedField*>(na.targetField);
+	std::string dynamicCastType;
+	if (vtf) {
+		dynamicCastType = vtf->machineOfTheType->name + "::" + vtf->type;
+	}
+
 	std::stringstream output;
 	output << '\t';
 	switch (na.type) {
@@ -218,13 +227,13 @@ std::string CppNFAGenerationHelper::generateActionOperation(const NFAAction& na)
 			output << na.contextPath << " = " << na.contextPath << "__" << na.targetName << ';' << std::endl;
 			break;
 		case NFAActionType::Set:
-			output << na.contextPath << "->" << na.targetName << " = " << na.payload << ';' << std::endl;
+			output << na.contextPath << "->" << na.targetName << " = std::dynamic_pointer_cast<" << dynamicCastType << ">(" << payloadOrInput << ");" << std::endl;
 			break;
 		case NFAActionType::Unset:
 			output << na.contextPath << "->" << na.targetName << " = nullptr;" << std::endl;
 			break;
 		case NFAActionType::Push:
-			output << na.contextPath << "->" << na.targetName << ".push_back(" << na.payload << ");" << std::endl;
+			output << na.contextPath << "->" << na.targetName << ".push_back(std::dynamic_pointer_cast<" << dynamicCastType << ">(" << payloadOrInput << "));" << std::endl;
 			break;
 		case NFAActionType::Pop:
 			output << na.contextPath << "->" << na.targetName << ".pop_back();" << std::endl;

@@ -221,15 +221,10 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 	const State newBaseState = base.addState();
 	base.finalStates.insert(newBaseState);
 
-	bool wasFoundInInputMachine;
-	const MachineComponent* component = this->m_contextMachine.findMachineComponent(regex->referenceName, &wasFoundInInputMachine);
+	const Machine* componentMachine;
+	const MachineComponent* component = this->m_contextMachine.findMachineComponent(regex->referenceName, &componentMachine);
 	const INFABuildable* componentCastIntoBuildable = dynamic_cast<const INFABuildable*>(component);
-	if (wasFoundInInputMachine) {
-		NFAActionRegister initial, final;
-		std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
-		base.addTransition(0, Transition(newBaseState, std::make_shared<TerminalSymbolGroup>(component->calculateInstandingProductions(), initial)));
-		base.addFinalActions(final);
-	} else {
+	if (componentMachine->name == m_contextMachine.name) {
 		const std::string payloadPath = component->isTypeForming() ? m_generationContextPath + "__" + regex->referenceName : "";
 		NFAActionRegister initial, final;
 		std::tie(initial, final) = computeActionRegisterEntries(regex->actions, payloadPath);
@@ -237,6 +232,11 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 		NFABuilder contextualizedBuilder(m_contextMachine, component, m_generationContextPath);
 		base = componentCastIntoBuildable->accept(contextualizedBuilder);
 		base.addInitialTransitionActions(initial);
+		base.addFinalActions(final);
+	} else {
+		NFAActionRegister initial, final;
+		std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
+		base.addTransition(0, Transition(newBaseState, std::make_shared<TerminalSymbolGroup>(component->calculateInstandingProductions(), initial)));
 		base.addFinalActions(final);
 	}
 
@@ -286,9 +286,9 @@ std::pair<NFAActionRegister, NFAActionRegister>  NFABuilder::computeActionRegist
 
 	for (const RegexAction& atp : actions) {
 		if (payload.empty()) {
-			final.emplace_back((NFAActionType)atp.type, m_generationContextPath, atp.target);
+			final.emplace_back((NFAActionType)atp.type, m_generationContextPath, atp.target, atp.targetField);
 		} else {
-			final.emplace_back((NFAActionType)atp.type, m_generationContextPath, atp.target, payload);
+			final.emplace_back((NFAActionType)atp.type, m_generationContextPath, atp.target, atp.targetField, payload);
 		}
 
 		if (atp.type == RegexActionType::Capture
