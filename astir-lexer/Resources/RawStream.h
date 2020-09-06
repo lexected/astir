@@ -7,6 +7,10 @@
 
 class RawTerminal : public Terminal<char> {
 public:
+	RawTerminal()
+		: Terminal<char>('\0', nullptr) { }
+	//^ something distinguishably invalid, should never be referred to in practice if not initialized in a valid fashion
+
 	RawTerminal(char c, const std::shared_ptr<Location>& occurenceLocation)
 		: Terminal<char>(c, std::string({ c }), occurenceLocation) { }
 };
@@ -17,7 +21,7 @@ protected:
 		: m_underlyingStream(underlyingStream), m_currentStreamLocation(startingStreamLocation), ProductionStream<RawTerminal>(startingStreamLocation) { }
 
 	bool streamGet(RawTerminal& c) override;
-	bool streamGood() override;
+	bool streamGood() const override;
 
 private:
 	std::istream& m_underlyingStream;

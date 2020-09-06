@@ -31,7 +31,7 @@ protected:
 		: m_buffer(), m_nextProductionToGive(0), m_pinLocation(startingStreamLocation), m_lastLocation(startingStreamLocation) { }
 
 	virtual bool streamGet(ProductionType& c) = 0;
-	virtual bool streamGood() = 0;
+	virtual bool streamGood() const = 0;
 private:
 	size_t m_nextProductionToGive;
 	std::deque<ProductionType> m_buffer;
@@ -48,7 +48,7 @@ public:
 
 protected:
 	bool streamGet(ProductionType& c) override;
-	bool streamGood() override;
+	bool streamGood() const override;
 
 private:
 	const std::list<ProductionType>& m_list;
@@ -134,6 +134,6 @@ inline bool ListProductionStream<ProductionType>::streamGet(ProductionType& c) {
 }
 
 template<class ProductionType>
-inline bool ListProductionStream<ProductionType>::streamGood() {
+inline bool ListProductionStream<ProductionType>::streamGood() const {
 	return m_iterator != m_list.cend();
 }

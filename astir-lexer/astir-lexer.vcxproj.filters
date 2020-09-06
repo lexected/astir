@@ -126,9 +126,6 @@
     <ClCompile Include="Resources\RawStream.cpp">
       <Filter>Resource Files\Resources</Filter>
     </ClCompile>
-    <ClCompile Include="Resources\Production.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h">

@@ -11,8 +11,10 @@
 
 class Machine;
 class MachineComponent;
+class Production;
 
 using State = size_t;
+using SymbolIndex = size_t;
 
 struct SymbolGroup {
 public:
@@ -25,6 +27,8 @@ public:
 	virtual bool equals(const SymbolGroup* rhs) const = 0;
 	virtual bool disjoint(const SymbolGroup* rhs) const = 0;
 	virtual std::list<std::shared_ptr<SymbolGroup>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) = 0;
+
+	virtual std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const = 0;
 
 protected:
 	SymbolGroup() = default;
@@ -44,18 +48,19 @@ public:
 	bool disjoint(const SymbolGroup* rhs) const override;
 	std::list<std::shared_ptr<SymbolGroup>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
 
+	std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const override;
 protected:
 };
 
 struct LiteralSymbolGroup : public SymbolGroup {
 	LiteralSymbolGroup()
-		: rangeStart(0), rangeEnd(0) { }
+		: LiteralSymbolGroup(0, 0) { }
 	LiteralSymbolGroup(CharType rangeStart, CharType rangeEnd)
-		: rangeStart(rangeStart), rangeEnd(rangeEnd) { }
+		: rangeStart(rangeStart), rangeEnd(rangeEnd), m_symbolIndicesFlyweight(std::make_shared<std::list<SymbolIndex>>()) { }
 	LiteralSymbolGroup(CharType rangeStart, CharType rangeEnd, const NFAActionRegister& actions)
-		: rangeStart(rangeStart), rangeEnd(rangeEnd), SymbolGroup(actions) { }
+		: rangeStart(rangeStart), rangeEnd(rangeEnd), SymbolGroup(actions), m_symbolIndicesFlyweight(std::make_shared<std::list<SymbolIndex>>()) { }
 	LiteralSymbolGroup(const LiteralSymbolGroup& lsg, const NFAActionRegister& actions)
-		: rangeStart(lsg.rangeStart), rangeEnd(lsg.rangeEnd), SymbolGroup(actions) { }
+		: LiteralSymbolGroup(lsg.rangeStart, lsg.rangeEnd, actions) { }
 	
 	bool contains(const SymbolGroup* rhs) const override;
 	bool equals(const SymbolGroup* rhs) const override;
@@ -64,19 +69,27 @@ struct LiteralSymbolGroup : public SymbolGroup {
 
 	CharType rangeStart;
 	CharType rangeEnd;
+
+	std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const override;
+private:
+	std::shared_ptr<std::list<SymbolIndex>> m_symbolIndicesFlyweight;
 };
 
-struct ProductionSymbolGroup : public SymbolGroup {
-	std::list<const MachineComponent*> referencedComponents;
-	ProductionSymbolGroup(const std::list<const MachineComponent*>& referencedComponents)
-		: referencedComponents(referencedComponents) { }
-	ProductionSymbolGroup(const std::list<const MachineComponent*>& referencedComponents, const NFAActionRegister& actions)
-		: referencedComponents(referencedComponents), SymbolGroup(actions) { }
+struct TerminalSymbolGroup : public SymbolGroup {
+	std::list<const Production*> referencedProductions;
+	TerminalSymbolGroup(const std::list<const Production*>& referencedProductions)
+		: referencedProductions(referencedProductions) { }
+	TerminalSymbolGroup(const std::list<const Production*>& referencedProductions, const NFAActionRegister& actions)
+		: referencedProductions(referencedProductions), SymbolGroup(actions) { }
 
 	bool contains(const SymbolGroup* rhs) const override;
 	bool equals(const SymbolGroup* rhs) const override;
 	bool disjoint(const SymbolGroup* rhs) const override;
 	std::list<std::shared_ptr<SymbolGroup>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
+
+	std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const override;
+private:
+	std::shared_ptr<std::list<SymbolIndex>> m_symbolIndicesFlyweight;
 };
 
 struct Transition {

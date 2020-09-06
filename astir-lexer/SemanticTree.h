@@ -61,6 +61,8 @@ private:
 	std::shared_ptr<const SyntacticTree> m_syntacticTree;
 };
 
+using TerminalTypeIndex = size_t;
+
 class MachineComponent;
 class Category;
 class Rule;
@@ -73,7 +75,7 @@ public:
 	std::map<std::string, std::shared_ptr<MachineComponent>> components;
 
 	Machine(const std::string& name)
-		: name(name) { }
+		: name(name), m_terminalCount((TerminalTypeIndex)0) { }
 
 	void initialize() override;
 
@@ -83,10 +85,15 @@ public:
 	std::list<const MachineComponent*> getTypeComponents() const;
 	bool hasPurelyTerminalRoots() const;
 	std::list<const MachineComponent*> getRoots() const;
+	std::list<const Production*> getProductionRoots() const;
+	TerminalTypeIndex terminalCount() const { return m_terminalCount; };
 
 	void checkForDeclarationCategoryRecursion(std::list<std::string>& namesEncountered, const std::string& nameConsidered, const IFileLocalizable& occurence, bool mustBeACategory = false) const;
 	const IFileLocalizable* findRecursiveReferenceThroughName(const std::string& referenceName, std::list<std::string>& namesEncountered, const std::string& targetName) const;
 	virtual void checkForComponentRecursion() const = 0;
+
+private:
+	TerminalTypeIndex m_terminalCount;
 };
 
 class FiniteAutomatonMachine : public Machine {
@@ -106,6 +113,7 @@ private:
 	NFA m_nfa;
 };
 
+class Production;
 class MachineComponent : public ISemanticEntity, public IProductionReferencable, public INFABuildable, public IGenerationVisitable {
 public:
 	const std::string name;
@@ -129,7 +137,7 @@ public:
 	virtual void verifyContextualValidity(const Machine& machine) const;
 	void accept(GenerationVisitor* visitor) const override;
 
-	virtual std::list<const MachineComponent*> calculateProductionSymbols() const = 0;
+	virtual std::list<const Production*> calculateInstandingProductions() const = 0;
 };
 
 struct CategoryReference {
@@ -159,7 +167,7 @@ public:
 	const bool isTypeForming() const override;
 	const bool isTerminal() const override;
 
-	std::list<const MachineComponent*> calculateProductionSymbols() const override;
+	std::list<const Production*> calculateInstandingProductions() const override;
 private:
 	std::shared_ptr<const CategoryStatement> m_categoryStatement;
 };
@@ -180,7 +188,6 @@ public:
 
 	void verifyContextualValidity(const Machine& machine) const override;
 
-	std::list<const MachineComponent*> calculateProductionSymbols() const override;
 private:
 	std::shared_ptr<const RuleStatement> m_ruleStatement;
 };
@@ -194,21 +201,25 @@ public:
 	const bool isTerminal() const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+
+	std::list<const Production*> calculateInstandingProductions() const override;
 private:
 	std::shared_ptr<const RuleStatement> m_ruleStatement;
 };
 
 class Production : public Rule {
 public:
-	bool terminal;
+	TerminalTypeIndex typeIndex;
 
-	Production(const std::shared_ptr<const RuleStatement>& ruleStatement, const std::string& name, std::shared_ptr<DisjunctiveRegex>& regex, bool terminal)
-		: Rule(ruleStatement, name, regex), terminal(terminal) { }
+	Production(const std::shared_ptr<const RuleStatement>& ruleStatement, const std::string& name, std::shared_ptr<DisjunctiveRegex>& regex, TerminalTypeIndex typeIndex)
+		: Rule(ruleStatement, name, regex), typeIndex(typeIndex) { }
 
 	const bool isTypeForming() const override;
 	const bool isTerminal() const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+
+	std::list<const Production*> calculateInstandingProductions() const override;
 private:
 	std::shared_ptr<const RuleStatement> m_ruleStatement;
 };

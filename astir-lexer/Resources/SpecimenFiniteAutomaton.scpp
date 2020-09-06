@@ -1,13 +1,11 @@
 #pragma once
 
+#include <sstream>
+
 #include "${{MachineName}}.h"
 
 namespace ${{MachineName}} {
-	const std::shared_ptr<Location>& Production::location() const {
-		return m_location;
-	}
-
-	std::shared_ptr<Terminal> ${{MachineName}}::apply(RelevantStream& rs) {
+	std::shared_ptr<RelevantTerminal> ${{MachineName}}::apply(RelevantStream& rs) {
 		struct BranchingPoint {
 			size_t inputPosition;
 			size_t actionStackPosition;
@@ -35,7 +33,7 @@ namespace ${{MachineName}} {
 
 		const std::vector<State> emptyStateVector;
 		const std::vector<ActionMethodPointer> emptyActionVector;
-		std::shared_ptr<Terminal> tokenToReturn = nullptr;
+		std::shared_ptr<RelevantTerminal> tokenToReturn = nullptr;
 		
 		State lastAcceptingState = (State)(-1);
 		size_t lastAcceptedInputPosition = 0;
@@ -52,7 +50,7 @@ namespace ${{MachineName}} {
 		}
 		
 		while (true) {
-			RelevantTerminal currentTerminal;
+			${{RelevantInputTerminalTypeName}} currentTerminal;
 			auto currentPosition = rs.currentPosition();
 			auto currentLocation = rs.lastLocation();
 			bool readingOutcome = rs.get(currentTerminal);
@@ -91,11 +89,11 @@ namespace ${{MachineName}} {
 					} else {
 						// backtrack input to where the lastAcceptingState was hit
 						rs.resetToPosition(lastAcceptedInputPosition);
-						std::string completeRaw = rs.rawSincePin();
+						std::deque<InputTerminal> completeInput = rs.bufferSincePin();
 
 						// execute all actions accepted with the state
 						for(const ActionPack& actionPackObject : lastAcceptedActionStack) {
-							(this->*actionPackObject.action)(actionPackObject.position, completeRaw, actionPackObject.location);
+							(this->*actionPackObject.action)(actionPackObject.position, completeInput, actionPackObject.location);
 						}
 
 						// plan to return the built token
@@ -148,8 +146,8 @@ namespace ${{MachineName}} {
 		return tokenToReturn;
 	}
 
-	std::list<std::shared_ptr<Terminal>> ${{MachineName}}::process(RelevantStream& rs) {
-		std::list<std::shared_ptr<Terminal>> ret;
+	std::list<std::shared_ptr<RelevantTerminal>> ${{MachineName}}::process(RelevantStream& rs) {
+		std::list<std::shared_ptr<RelevantTerminal>> ret;
 
 		while (lastApplicationSuccessful() && rs.good()) {
 			auto terminalPtr = apply(rs);

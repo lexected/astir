@@ -21,7 +21,7 @@ public:
 	Production(const ILocalizable& underlyingEntity)
 		: m_location(underlyingEntity.location()) { }
 
-	const std::shared_ptr<Location>& location() const override;
+	const std::shared_ptr<Location>& location() const override { return m_location; }
 private:
 	std::shared_ptr<Location> m_location;
 };

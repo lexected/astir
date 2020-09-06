@@ -16,7 +16,7 @@ void CppGenerationVisitor::setup() const {
 	std::filesystem::copy_file("Resources/Location.cpp", m_folderPath / "Location.cpp", std::filesystem::copy_options::overwrite_existing);
 	std::filesystem::copy_file("Resources/Production.h", m_folderPath / "Production.h", std::filesystem::copy_options::overwrite_existing);
 	std::filesystem::copy_file("Resources/Terminal.h", m_folderPath / "Terminal.h", std::filesystem::copy_options::overwrite_existing);
-	std::filesystem::copy_file("Resources/ProductionStream.cpp", m_folderPath / "ProductionStream.cpp", std::filesystem::copy_options::overwrite_existing);
+	std::filesystem::copy_file("Resources/ProductionStream.h", m_folderPath / "ProductionStream.h", std::filesystem::copy_options::overwrite_existing);
 }
 
 void CppGenerationVisitor::visit(const SemanticTree* tree) {
@@ -49,9 +49,11 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 			m_hasIncludedRawStreamFiles = true;
 		}
 		macros.emplace("ApplicableStreamHeader", "RawStream.h");
+		macros.emplace("RelevantInputTerminalTypeName", "RawTerminal");
 		macros.emplace("RelevantStreamTypeName", "RawStream");
 	} else {
 		macros.emplace("ApplicableStreamHeader", "ProductionStream.h");
+		macros.emplace("RelevantInputTerminalTypeName", machine->on->name + "::RelevantTerminal");
 		macros.emplace("RelevantStreamTypeName", "ProductionStream<" + machine->on->name + "::RelevantTerminal>");
 	}
 	
@@ -74,7 +76,7 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 	//  - set the DFA table parameter macros
 	macros.emplace("StateCount", std::to_string(machine->getNFA().states.size()));
 	if (machine->on) {
-		size_t numberOfTerminalsComingInFromTheOnMachine = machine->on->getTerminalTypeComponents().size() + 1; //+1 comes from having EOS there implicitly
+		size_t numberOfTerminalsComingInFromTheOnMachine = machine->on->terminalCount() + 1; //+1 comes from having EOS (TerminalTypeIndex = 0) there implicitly
 		macros.emplace("TransitionCount", std::to_string(numberOfTerminalsComingInFromTheOnMachine));
 	} else {
 		macros.emplace("TransitionCount", "256");

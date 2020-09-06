@@ -98,10 +98,10 @@ void Machine::initialize() {
 
 			rulePtr = std::make_shared<Pattern>(statementPtr, statementPtr->name, statementPtr->disjunction);
 		} else if (typeDecision == RuleStatementType::Production) {
-			bool terminalityDecision;
+			TerminalTypeIndex terminalityDecision = (TerminalTypeIndex)0;
 			if (!statementPtr->terminalitySpecified) {
 				const auto machineDefinitionAttributeIterator = machineDefinition->attributes.find(MachineFlag::ProductionsTerminalByDefault);
-				terminalityDecision = machineDefinitionAttributeIterator->second.value;
+				terminalityDecision = machineDefinitionAttributeIterator->second.value ? ++m_terminalCount : (TerminalTypeIndex)0;
 			}
 			rulePtr = std::make_shared<Production>(statementPtr, statementPtr->name, statementPtr->disjunction, terminalityDecision);
 		}
@@ -223,12 +223,21 @@ std::list<const MachineComponent*> Machine::getRoots() const {
 	std::list<const MachineComponent*> terminalRoots;
 
 	for (const auto& machineComponentPair : this->components) {
-		if (machineComponentPair.second->isTerminal()) {
-			terminalRoots.push_back(machineComponentPair.second.get());
-		}
+		terminalRoots.push_back(machineComponentPair.second.get());
 	}
 
 	return terminalRoots;
+}
+
+std::list<const Production*> Machine::getProductionRoots() const {
+	std::list<const Production*> productionRoots;
+
+	for (const auto& machineComponentPair : this->components) {
+		// TODO differentiate between roots and non-roots
+		productionRoots.merge(machineComponentPair.second->calculateInstandingProductions());
+	}
+
+	return productionRoots;
 }
 
 void Machine::checkForDeclarationCategoryRecursion(std::list<std::string>& namesEncountered, const std::string& nameConsidered, const IFileLocalizable& occurence, bool mustBeACategory) const {
@@ -450,11 +459,11 @@ const bool Category::isTerminal() const {
 	return false;
 }
 
-std::list<const MachineComponent*> Category::calculateProductionSymbols() const {
-	std::list<const MachineComponent*> ret;
+std::list<const Production*> Category::calculateInstandingProductions() const {
+	std::list<const Production*> ret;
 
 	for (const auto& referencePair : references) {
-		ret.merge(referencePair.second.component->calculateProductionSymbols());
+		ret.merge(referencePair.second.component->calculateInstandingProductions());
 	}
 
 	return ret;
@@ -501,10 +510,6 @@ void Rule::verifyContextualValidity(const Machine& machine) const {
 	regex->checkActionUsage(machine, this);
 }
 
-std::list<const MachineComponent*> Rule::calculateProductionSymbols() const {
-	return std::list<const MachineComponent*>({ this });
-}
-
 const bool Pattern::isTypeForming() const {
 	return false;
 }
@@ -517,14 +522,26 @@ NFA Pattern::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
+std::list<const Production*> Pattern::calculateInstandingProductions() const {
+	throw SemanticAnalysisException("Pattern '" + name + "' asked to calculateInstandingProductions() despite being a pattern - has the semantic check for terminal-purity of input machines failed?", *this);
+
+	// the following no-op would work just fine...
+	// but I want an exception to break in case I've done something stupid on the semantic check level
+	return std::list<const Production*>();
+}
+
 const bool Production::isTypeForming() const {
 	return true;
 }
 
 const bool Production::isTerminal() const {
-	return terminal;
+	return typeIndex == 0;
 }
 
 NFA Production::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
+}
+
+std::list<const Production*> Production::calculateInstandingProductions() const {
+	return std::list<const Production*>({ this });
 }

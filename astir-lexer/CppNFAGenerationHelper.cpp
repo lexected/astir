@@ -34,9 +34,10 @@ void CppNFAGenerationHelper::generateMechanicsMaps(std::string& stateMap, std::s
 		}
 
 		for (const auto& transition : stateObject.transitions) {
-			auto symbolPtr = std::dynamic_pointer_cast<LiteralSymbolGroup>(transition.condition);
-			for (auto it = transitionStateMapLine.begin() + symbolPtr->rangeStart; it <= transitionStateMapLine.begin() + symbolPtr->rangeEnd; ++it) {
-				it->push_back(transition.target);
+			const auto conditionSymbolIndices = transition.condition->retrieveSymbolIndices();
+			for (SymbolIndex symbolIndex : *conditionSymbolIndices) {
+				auto offsetMapLine = transitionStateMapLine.begin() + symbolIndex;
+				offsetMapLine->push_back(transition.target);
 			}
 
 			// handle the action register of transition actions
@@ -50,8 +51,9 @@ void CppNFAGenerationHelper::generateMechanicsMaps(std::string& stateMap, std::s
 				createdRegisterId = 0;
 			}
 
-			for (auto it = transitionActionRegisterMapLine.begin() + symbolPtr->rangeStart; it <= transitionActionRegisterMapLine.begin() + symbolPtr->rangeEnd; ++it) {
-				it->push_back(createdRegisterId);
+			for (SymbolIndex symbolIndex : *conditionSymbolIndices) {
+				auto offsetMapLine = transitionActionRegisterMapLine.begin() + symbolIndex;
+				offsetMapLine->push_back(createdRegisterId);
 			}
 		}
 
@@ -126,7 +128,7 @@ std::string CppNFAGenerationHelper::generateActionRegisterDeclaration(ActionRegi
 
 	actionRegisterDeclarationStream
 		<< "void actionRegister" << registerId
-		<< "(size_t position, const std::string & input, const std::shared_ptr<Location>& location);"
+		<< "(size_t position, const std::deque<InputTerminal>& input, const std::shared_ptr<Location>& location);"
 		<< std::endl
 		;
 
@@ -135,7 +137,7 @@ std::string CppNFAGenerationHelper::generateActionRegisterDeclaration(ActionRegi
 
 std::string CppNFAGenerationHelper::generateActionRegisterDefinition(ActionRegisterId registerId, const NFAActionRegister& nar) const {
 	std::stringstream ss;
-	ss << "void " << m_machineName << "::" << "actionRegister" << registerId << "(size_t position, const std::string& input, const std::shared_ptr<Location>& location) {" << std::endl;
+	ss << "void " << m_machineName << "::" << "actionRegister" << registerId << "(size_t position, const std::deque<InputTerminal>& input, const std::shared_ptr<Location>& location) {" << std::endl;
 
 	for (const auto& action : nar) {
 		ss << generateActionOperation(action);
@@ -164,7 +166,11 @@ std::string CppNFAGenerationHelper::generateActionOperation(const NFAAction& na)
 			output << "{" << std::endl;
 			output << "\t\tauto stackPos = m_captureStack.top();" << std::endl;
 			output << "\t\tm_captureStack.pop();" << std::endl;
-			output << "\t\t" << na.contextPath << "->" << na.targetName << " = std::string(input, stackPos, position-stackPos+1);" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
+			output << "\t\tstd::stringstream ss;" << std::endl;
+			output << "\t\tfor(auto it = input.cbegin()+stackPos;it < input.cbegin()+position+1;++it) {" << std::endl;
+			output << "\t\t\tss << it->raw;" << std::endl;
+			output << "\t\t}" << std::endl;
+			output << "\t\t" << na.contextPath << "->" << na.targetName << " = ss.str();" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
 			output << "\t}" << std::endl;
 			break;
 		case NFAActionType::Empty:
@@ -174,14 +180,22 @@ std::string CppNFAGenerationHelper::generateActionOperation(const NFAAction& na)
 			output << "{" << std::endl;
 			output << "\t\tauto stackPos = m_captureStack.top();" << std::endl;
 			output << "\t\tm_captureStack.pop();" << std::endl;
-			output << "\t\t" << na.contextPath << "->" << na.targetName << ".append(input, stackPos, position-stackPos+1);" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
+			output << "\t\tstd::stringstream ss;" << std::endl;
+			output << "\t\tfor(auto it = input.cbegin()+stackPos;it < input.cbegin()+position+1;++it) {" << std::endl;
+			output << "\t\t\tss << it->raw;" << std::endl;
+			output << "\t\t}" << std::endl;
+			output << "\t\t" << na.contextPath << "->" << na.targetName << ".append(ss.str());" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
 			output << "\t}" << std::endl;
 			break;
 		case NFAActionType::Prepend:
 			output << "{" << std::endl;
 			output << "\t\tauto stackPos = m_captureStack.top();" << std::endl;
 			output << "\t\tm_captureStack.pop();" << std::endl;
-			output << "\t\t" << na.contextPath << "->" << na.targetName << ".insert(0, input, stackPos, position-stackPos+1);" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
+			output << "\t\tstd::stringstream ss;" << std::endl;
+			output << "\t\tfor(auto it = input.cbegin()+stackPos;it < input.cbegin()+position+1;++it) {" << std::endl;
+			output << "\t\t\tss << it->raw;" << std::endl;
+			output << "\t\t}" << std::endl;
+			output << "\t\t" << na.contextPath << "->" << na.targetName << ".insert(0, ss.str());" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
 			output << "\t}" << std::endl;
 			break;
 
@@ -193,7 +207,11 @@ std::string CppNFAGenerationHelper::generateActionOperation(const NFAAction& na)
 			output << "{" << std::endl;
 			output << "\t\tauto stackPos = m_captureStack.top();" << std::endl;
 			output << "\t\tm_captureStack.pop();" << std::endl;
-			output << "\t\t" << na.contextPath << "__" << na.targetName << "->raw = std::string(input, stackPos, position-stackPos+1);" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
+			output << "\t\tstd::stringstream ss;" << std::endl;
+			output << "\t\tfor(auto it = input.cbegin()+stackPos;it < input.cbegin()+position+1;++it) {" << std::endl;
+			output << "\t\t\tss << it->raw;" << std::endl;
+			output << "\t\t}" << std::endl;
+			output << "\t\t" << na.contextPath << "__" << na.targetName << "->raw = ss.str();" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
 			output << "\t}" << std::endl;
 			break;
 		case NFAActionType::ElevateContext:

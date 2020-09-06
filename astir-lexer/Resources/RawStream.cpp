@@ -14,6 +14,6 @@ bool RawStream::streamGet(RawTerminal& c) {
     return ret;
 }
 
-bool RawStream::streamGood() {
+bool RawStream::streamGood() const {
     return m_underlyingStream.good();
 }

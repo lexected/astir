@@ -227,7 +227,7 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 	if (wasFoundInInputMachine) {
 		NFAActionRegister initial, final;
 		std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
-		base.addTransition(0, Transition(newBaseState, std::make_shared<ProductionSymbolGroup>(component->calculateProductionSymbols(), initial)));
+		base.addTransition(0, Transition(newBaseState, std::make_shared<TerminalSymbolGroup>(component->calculateInstandingProductions(), initial)));
 		base.addFinalActions(final);
 	} else {
 		const std::string payloadPath = component->isTypeForming() ? m_generationContextPath + "__" + regex->referenceName : "";
@@ -303,7 +303,7 @@ std::pair<NFAActionRegister, NFAActionRegister>  NFABuilder::computeActionRegist
 
 std::shared_ptr<SymbolGroup> NFABuilder::createArbitrarySymbolGroup(const NFAActionRegister& ar) const {
 	if (m_contextMachine.on) {
-		return std::make_shared<ProductionSymbolGroup>(m_contextMachine.on->getRoots(), ar);
+		return std::make_shared<TerminalSymbolGroup>(m_contextMachine.on->getProductionRoots(), ar);
 	} else {
 		return std::make_shared<LiteralSymbolGroup>((CharType)0, (CharType)255, ar);
 	}

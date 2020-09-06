@@ -376,15 +376,25 @@ std::list<std::shared_ptr<SymbolGroup>> LiteralSymbolGroup::disjoinFrom(const st
     return ret;
 }
 
+std::shared_ptr<std::list<SymbolIndex>> LiteralSymbolGroup::retrieveSymbolIndices() const {
+    if (m_symbolIndicesFlyweight->empty()) {
+        for (ComputationCharType it = rangeStart; it <= (ComputationCharType)rangeEnd; ++it) {
+            m_symbolIndicesFlyweight->push_back(it);
+        }
+    }
+    
+    return m_symbolIndicesFlyweight;
+}
 
-bool ProductionSymbolGroup::contains(const SymbolGroup* symbol) const {
-    const ProductionSymbolGroup* psg = dynamic_cast<const ProductionSymbolGroup*>(symbol);
+
+bool TerminalSymbolGroup::contains(const SymbolGroup* symbol) const {
+    const TerminalSymbolGroup* psg = dynamic_cast<const TerminalSymbolGroup*>(symbol);
     if (psg == nullptr) {
         return false;
     }
 
     return
-        std::includes(this->referencedComponents.cbegin(), this->referencedComponents.cend(), psg->referencedComponents.cbegin(), psg->referencedComponents.cend())
+        std::includes(this->referencedProductions.cbegin(), this->referencedProductions.cend(), psg->referencedProductions.cbegin(), psg->referencedProductions.cend())
         ;
 }
 
@@ -408,25 +418,29 @@ std::list<std::shared_ptr<SymbolGroup>> EmptySymbolGroup::disjoinFrom(const std:
     }
 }
 
-bool ProductionSymbolGroup::equals(const SymbolGroup* rhs) const {
-    const ProductionSymbolGroup* rhsCast = dynamic_cast<const ProductionSymbolGroup*>(rhs);
+std::shared_ptr<std::list<SymbolIndex>> EmptySymbolGroup::retrieveSymbolIndices() const {
+    return std::shared_ptr<std::list<SymbolIndex>>();
+}
+
+bool TerminalSymbolGroup::equals(const SymbolGroup* rhs) const {
+    const TerminalSymbolGroup* rhsCast = dynamic_cast<const TerminalSymbolGroup*>(rhs);
     if (rhsCast == nullptr) {
         return false;
     } else {
-        return this->referencedComponents == rhsCast->referencedComponents;
+        return this->referencedProductions == rhsCast->referencedProductions;
     }
 }
 
-bool ProductionSymbolGroup::disjoint(const SymbolGroup* rhs) const {
-    const ProductionSymbolGroup* rhsCast = dynamic_cast<const ProductionSymbolGroup*>(rhs);
+bool TerminalSymbolGroup::disjoint(const SymbolGroup* rhs) const {
+    const TerminalSymbolGroup* rhsCast = dynamic_cast<const TerminalSymbolGroup*>(rhs);
     if (rhsCast == nullptr) {
         return true;
     } else {
-        for (const auto referencedComponentPtr : referencedComponents) {
-            auto fit = std::find_if(rhsCast->referencedComponents.cbegin(), rhsCast->referencedComponents.cend(), [referencedComponentPtr](const MachineComponent* rhsComponentPtr) {
+        for (const auto referencedComponentPtr : referencedProductions) {
+            auto fit = std::find_if(rhsCast->referencedProductions.cbegin(), rhsCast->referencedProductions.cend(), [referencedComponentPtr](const MachineComponent* rhsComponentPtr) {
                 return referencedComponentPtr->name == rhsComponentPtr->name;
                 });
-            if (fit != rhsCast->referencedComponents.cend()) {
+            if (fit != rhsCast->referencedProductions.cend()) {
                 return false;
             }
         }
@@ -435,21 +449,21 @@ bool ProductionSymbolGroup::disjoint(const SymbolGroup* rhs) const {
     }
 }
 
-std::list<std::shared_ptr<SymbolGroup>> ProductionSymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhsUncast) {
-    const ProductionSymbolGroup* rhs = dynamic_cast<const ProductionSymbolGroup*>(rhsUncast.get());
+std::list<std::shared_ptr<SymbolGroup>> TerminalSymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhsUncast) {
+    const TerminalSymbolGroup* rhs = dynamic_cast<const TerminalSymbolGroup*>(rhsUncast.get());
     if (rhs == nullptr) {
         return std::list<std::shared_ptr<SymbolGroup>>({ rhsUncast });
     }
 
-    std::list<const MachineComponent*> sharedComponents;
-    std::list<const MachineComponent*> excludedComponents;
-    for (auto it = referencedComponents.begin(); it != referencedComponents.end(); ) {
-        auto fit = std::find_if(rhs->referencedComponents.cbegin(), rhs->referencedComponents.cend(), [it](const MachineComponent* rhsComponentPtr) {
+    std::list<const Production*> sharedComponents;
+    std::list<const Production*> excludedComponents;
+    for (auto it = referencedProductions.begin(); it != referencedProductions.end(); ) {
+        auto fit = std::find_if(rhs->referencedProductions.cbegin(), rhs->referencedProductions.cend(), [it](const Production* rhsComponentPtr) {
             return (*it)->name == rhsComponentPtr->name;
             });
-        if (fit != rhs->referencedComponents.cend()) {
+        if (fit != rhs->referencedProductions.cend()) {
             sharedComponents.push_back(*fit);
-            it = referencedComponents.erase(it);
+            it = referencedProductions.erase(it);
         } else {
             excludedComponents.push_back(*fit);
             ++it;
@@ -461,13 +475,23 @@ std::list<std::shared_ptr<SymbolGroup>> ProductionSymbolGroup::disjoinFrom(const
     } else {
         std::list<std::shared_ptr<SymbolGroup>> ret;
         if (this->actions == rhs->actions) {
-            ret.push_back(std::make_shared<ProductionSymbolGroup>(sharedComponents, this->actions));
+            ret.push_back(std::make_shared<TerminalSymbolGroup>(sharedComponents, this->actions));
         } else {
-            ret.push_back(std::make_shared<ProductionSymbolGroup>(sharedComponents, this->actions));
-            ret.push_back(std::make_shared<ProductionSymbolGroup>(sharedComponents, rhs->actions));
+            ret.push_back(std::make_shared<TerminalSymbolGroup>(sharedComponents, this->actions));
+            ret.push_back(std::make_shared<TerminalSymbolGroup>(sharedComponents, rhs->actions));
         }
-        ret.push_back(std::make_shared<ProductionSymbolGroup>(excludedComponents, rhs->actions));
+        ret.push_back(std::make_shared<TerminalSymbolGroup>(excludedComponents, rhs->actions));
         
         return ret;
     }
+}
+
+std::shared_ptr<std::list<SymbolIndex>> TerminalSymbolGroup::retrieveSymbolIndices() const {
+    if (m_symbolIndicesFlyweight->empty()) {
+        for (const Production* referencedComponentPtr : referencedProductions) {
+            m_symbolIndicesFlyweight->push_back(referencedComponentPtr->typeIndex);
+        }
+    }
+
+    return m_symbolIndicesFlyweight;
 }
