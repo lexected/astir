@@ -3,11 +3,11 @@
 #include "${{MachineName}}.h"
 
 namespace ${{MachineName}} {
-	const std::shared_ptr<RawStreamLocation>& Production::location() const {
+	const std::shared_ptr<Location>& Production::location() const {
 		return m_location;
 	}
 
-	std::shared_ptr<Terminal> ${{MachineName}}::apply(RawStream& rs) {
+	std::shared_ptr<Terminal> ${{MachineName}}::apply(RelevantStream& rs) {
 		struct BranchingPoint {
 			size_t inputPosition;
 			size_t actionStackPosition;
@@ -25,11 +25,11 @@ namespace ${{MachineName}} {
 		struct ActionPack {
 			ActionMethodPointer action;
 			size_t position;
-			std::shared_ptr<RawStreamLocation> location;
+			std::shared_ptr<Location> location;
 
 			ActionPack()
 				: action(nullptr), position((size_t)-1), location(nullptr) { }
-			ActionPack(ActionMethodPointer action, size_t position, const std::shared_ptr<RawStreamLocation>& location)
+			ActionPack(ActionMethodPointer action, size_t position, const std::shared_ptr<Location>& location)
 				: action(action), position(position), location(location) { }
 		};
 
@@ -48,16 +48,16 @@ namespace ${{MachineName}} {
 
 		// register the actions associated with state 0 if there are any
 		if(this->m_stateActions[0] != nullptr) {
-			actionStack.emplace_back(this->m_stateActions[0], rs.currentPosition(), rs.currentLocation());
+			actionStack.emplace_back(this->m_stateActions[0], rs.currentPosition(), rs.lastLocation());
 		}
 		
 		while (true) {
-			char currentCharacter;
+			RelevantTerminal currentTerminal;
 			auto currentPosition = rs.currentPosition();
-			auto currentLocation = rs.currentLocation();
-			bool readingOutcome = rs.get(currentCharacter);
-			const std::vector<State>& nextStates = !readingOutcome ? emptyStateVector : m_stateMap[m_currentState][currentCharacter];
-			const std::vector<ActionMethodPointer>& nextActions = !readingOutcome ? emptyActionVector : this->m_transitionActions[m_currentState][currentCharacter];
+			auto currentLocation = rs.lastLocation();
+			bool readingOutcome = rs.get(currentTerminal);
+			const std::vector<State>& nextStates = !readingOutcome ? emptyStateVector : m_stateMap[m_currentState][currentTerminal.type];
+			const std::vector<ActionMethodPointer>& nextActions = !readingOutcome ? emptyActionVector : this->m_transitionActions[m_currentState][currentTerminal.type];
 
 			State stateToGoTo;
 			ActionMethodPointer stateToGoToCorrespondingTransitionAction = nullptr;
@@ -67,8 +67,8 @@ namespace ${{MachineName}} {
 					// simulate reading of the character at which we branched again
 					currentPosition = lastBp.inputPosition;
 					rs.resetToPosition(lastBp.inputPosition);
-					currentLocation = rs.currentLocation();
-					readingOutcome = rs.get(currentCharacter);
+					currentLocation = rs.lastLocation();
+					readingOutcome = rs.get(currentTerminal);
 					
 					stateToGoTo = lastBp.remainingStates.back();
 					lastBp.remainingStates.pop_back();
@@ -82,7 +82,7 @@ namespace ${{MachineName}} {
 					}
 				} else {
 					if (lastAcceptingState == (State)(-1)) {
-						// in case of failure at this point, we are not in the first state and we have not reached any accepting state so far, so we will return nullptr. The users are then encouraged to make use of lastApplicationSuccessful() and RawStream location information to identify the issue
+						// in case of failure at this point, we are not in the first state and we have not reached any accepting state so far, so we will return nullptr. The users are then encouraged to make use of lastApplicationSuccessful() and RelevantStream location information to identify the issue
 						// the stream is left as we left it after the last read, it is up to user to try to rs.resetToPin() and try again if they want to
 						// further, rawSincePin() gives precisely the token that we failed to match
 
@@ -148,7 +148,7 @@ namespace ${{MachineName}} {
 		return tokenToReturn;
 	}
 
-	std::list<std::shared_ptr<Terminal>> ${{MachineName}}::process(RawStream& rs) {
+	std::list<std::shared_ptr<Terminal>> ${{MachineName}}::process(RelevantStream& rs) {
 		std::list<std::shared_ptr<Terminal>> ret;
 
 		while (lastApplicationSuccessful() && rs.good()) {

@@ -8,7 +8,7 @@
 class CppGenerationVisitor : public GenerationVisitor {
 public:
 	CppGenerationVisitor(const std::string& folderPath)
-		: GenerationVisitor(folderPath) { }
+		: GenerationVisitor(folderPath), m_hasIncludedRawStreamFiles(false) { }
 
 	void setup() const override;
 
@@ -25,5 +25,7 @@ private:
 	std::stringstream m_output;
 	void resetOutput();
 	std::string outputAndReset();
+
+	bool m_hasIncludedRawStreamFiles;
 };
 

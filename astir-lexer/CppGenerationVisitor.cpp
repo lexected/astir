@@ -12,8 +12,11 @@ void CppGenerationVisitor::setup() const {
 	if(!std::filesystem::is_directory(m_folderPath)) {
 		std::filesystem::create_directory(m_folderPath);
 	}
-	std::filesystem::copy_file("Resources/RawStream.h", m_folderPath / "RawStream.h", std::filesystem::copy_options::overwrite_existing);
-	std::filesystem::copy_file("Resources/RawStream.cpp", m_folderPath / "RawStream.cpp", std::filesystem::copy_options::overwrite_existing);
+	std::filesystem::copy_file("Resources/Location.h", m_folderPath / "Location.h", std::filesystem::copy_options::overwrite_existing);
+	std::filesystem::copy_file("Resources/Location.cpp", m_folderPath / "Location.cpp", std::filesystem::copy_options::overwrite_existing);
+	std::filesystem::copy_file("Resources/Production.h", m_folderPath / "Production.h", std::filesystem::copy_options::overwrite_existing);
+	std::filesystem::copy_file("Resources/Terminal.h", m_folderPath / "Terminal.h", std::filesystem::copy_options::overwrite_existing);
+	std::filesystem::copy_file("Resources/ProductionStream.cpp", m_folderPath / "ProductionStream.cpp", std::filesystem::copy_options::overwrite_existing);
 }
 
 void CppGenerationVisitor::visit(const SemanticTree* tree) {
@@ -37,14 +40,30 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 	// in particular, we need to
 	//  - register all the name macros
 	macros.emplace("MachineName", machine->name);
+	//	- choose appropriate input stream type
+	if (!machine->on) {
+		if(!m_hasIncludedRawStreamFiles) {
+			std::filesystem::copy_file("Resources/RawStream.h", m_folderPath / "RawStream.h", std::filesystem::copy_options::overwrite_existing);
+			std::filesystem::copy_file("Resources/RawStream.cpp", m_folderPath / "RawStream.cpp", std::filesystem::copy_options::overwrite_existing);
+
+			m_hasIncludedRawStreamFiles = true;
+		}
+		macros.emplace("ApplicableStreamHeader", "RawStream.h");
+		macros.emplace("RelevantStreamTypeName", "RawStream");
+	} else {
+		macros.emplace("ApplicableStreamHeader", "ProductionStream.h");
+		macros.emplace("RelevantStreamTypeName", "ProductionStream<" + machine->on->name + "::RelevantTerminal>");
+	}
 	
 	//  - enumerate all the terminal types
 	auto terminalTypeComponents = machine->getTerminalTypeComponents();
 	std::stringstream ss;
+	size_t terminalTypeCount = 1; // 0 is reserved for EOS
 	for (auto componentPtr : terminalTypeComponents) {
-		ss << componentPtr->name << "," << std::endl;
+		ss << componentPtr->name << " = " << terminalTypeCount++ << "," << std::endl;
 	}
 	macros.emplace("TerminalTypesEnumerated", ss.str());
+	macros.emplace("TerminalTypeCount", std::to_string(terminalTypeCount));
 
 	//  - generate type declarations
 	for (const auto& machineComponentPair : machine->components) {
@@ -54,7 +73,12 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 
 	//  - set the DFA table parameter macros
 	macros.emplace("StateCount", std::to_string(machine->getNFA().states.size()));
-	macros.emplace("TransitionCount", "256");
+	if (machine->on) {
+		size_t numberOfTerminalsComingInFromTheOnMachine = machine->on->getTerminalTypeComponents().size() + 1; //+1 comes from having EOS there implicitly
+		macros.emplace("TransitionCount", std::to_string(numberOfTerminalsComingInFromTheOnMachine));
+	} else {
+		macros.emplace("TransitionCount", "256");
+	}
 
 	//  - generate action context declarations
 	macros.emplace("ActionContextsDeclarations", cngh.generateContextDeclarations());
@@ -91,20 +115,24 @@ void CppGenerationVisitor::visit(const MachineComponent* mc) {
 		return;
 	}
 
-	m_output << "class " << mc->name << " : public Production";
+	m_output << "class " << mc->name << " : ";
 	if (mc->isTerminal()) {
-		m_output << ", public Terminal";
+		m_output << "public RelevantTerminal";
+	} else {
+		m_output << "public Production";
 	}
 	for (auto catPtr : mc->categories) {
 		m_output << ", public " << catPtr->name;
 	}
-	m_output << "{" << std::endl;
+	m_output << " {" << std::endl;
 
 	m_output << "public:" << std::endl;
 	m_output << '\t' << mc->name << "(const std::shared_ptr<Location>& location)" << std::endl;
-	m_output << "\t\t: Production(location)";
+	m_output << "\t\t: ";
 	if (mc->isTerminal()) {
-		m_output << ", Terminal(TerminalType::" << mc->name << ")";
+		m_output << "RelevantTerminal(RelevantTerminalType::" << mc->name << ", location)";
+	} else {
+		m_output << "Production(location)";
 	}
 	m_output << " { }" << std::endl;
 	m_output << '\t' << std::endl;

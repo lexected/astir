@@ -12,7 +12,7 @@ public:
 
 protected:
 	Terminal(TerminalTypeType type, const std::shared_ptr<Location>& occurenceLocation)
-		: type(type), raw(nullptr), Production(occurenceLocation) { }
+		: type(type), raw(), Production(occurenceLocation) { }
 	Terminal(TerminalTypeType type, const std::string& raw, const std::shared_ptr<Location>& occurenceLocation)
 		: type(type), raw(raw), Production(occurenceLocation) { }
 };
