@@ -13,49 +13,98 @@ NFA::NFA()
     states.emplace_back();
 }
 
-void NFA::operator|=(const NFA& rhs) {
-    State stateIndexShift = this->states.size();
-    auto stateCopy = rhs.states;
-    for (auto& state : stateCopy) {
-        for (auto& transition : state.transitions) {
+void NFA::orNFA(const NFA& rhs, bool preventSymbolClosureOptimisation) {
+    State stateIndexShift = this->states.size() - 1; //-1 as we are skipping the rhs 0th state
+
+    // first, transform the state indices of the states referenced as targets of rhs transitions
+    auto rhsStateCopy = rhs.states;
+    auto scit = rhsStateCopy.begin();
+    // handle the 0th state
+    for (auto& transition : scit->transitions) {
+        transition.target += stateIndexShift;
+        transition.doNotOptimizeTargetIntoSymbolClosure = preventSymbolClosureOptimisation;
+    }
+    ++scit;
+    // handle all other states
+    for (; scit != rhsStateCopy.end(); ++scit) {
+        for (auto& transition : scit->transitions) {
             transition.target += stateIndexShift;
         }
     }
 
+    // merge the 0th rhs state into the this->0th state
+    scit = rhsStateCopy.begin();
+    auto& this0thState = this->states[0];
+    this0thState.actions += scit->actions;
+    this0thState.transitions.insert(this0thState.transitions.cend(), scit->transitions.cbegin(), scit->transitions.cend());
+    ++scit;
+
+    // add all the other rhs states to this->states
+    this->states.insert(this->states.cend(), scit, rhsStateCopy.end());
+
+    // handle the translation of finality of states
     std::set<State> finalStatesCopy;
     for (const auto& finalState : rhs.finalStates) {
-        finalStatesCopy.insert(stateIndexShift+finalState);
+        if (finalState == 0) {
+            finalStatesCopy.insert(0);
+        } else {
+            finalStatesCopy.insert(stateIndexShift + finalState);
+        }
     }
-
-    states.insert(states.end(), stateCopy.begin(), stateCopy.end());
     finalStates.insert(finalStatesCopy.begin(), finalStatesCopy.end());
 
-    addEmptyTransition(0, stateIndexShift);
-
+    // finally, merge in contexts registered in the rhs NFA
     mergeInContexts(rhs);
 }
 
-void NFA::operator&=(const NFA& rhs) {
-    State rhsStartState = this->states.size();
-    auto stateCopy = rhs.states;
-    for (auto& state : stateCopy) {
-        for (auto& transition : state.transitions) {
-            transition.target += rhsStartState;
+void NFA::andNFA(const NFA& rhs, bool preventSymbolClosureOptimisation) {
+    State stateIndexShift = this->states.size() - 1; //-1 as we are skipping the rhs 0th state
+
+    // first, transform the state indices of the states referenced as targets of rhs transitions
+    auto rhsStateCopy = rhs.states;
+    auto scit = rhsStateCopy.begin();
+    // handle the 0th state
+    for (auto& transition : scit->transitions) {
+        transition.target += stateIndexShift;
+        transition.doNotOptimizeTargetIntoSymbolClosure = preventSymbolClosureOptimisation;
+    }
+    ++scit;
+    // handle all other states
+    for (; scit != rhsStateCopy.end(); ++scit) {
+        for (auto& transition : scit->transitions) {
+            transition.target += stateIndexShift;
         }
     }
 
-    std::set<State> finalStatesCopy;
+    // merge the 0th rhs state into every final state
+    for (const State finalState : finalStates) {
+        auto& finalStateObject = this->states[finalState];
+        scit = rhsStateCopy.begin();
+        finalStateObject.actions += scit->actions;
+        finalStateObject.transitions.insert(finalStateObject.transitions.cend(), scit->transitions.cbegin(), scit->transitions.cend());
+    }
+    ++scit;
+
+    // add all the other rhs states to this->states
+    this->states.insert(this->states.cend(), scit, rhsStateCopy.end());
+
+    // build the set of new final states and set it to be such
+    std::set<State> rhsFinalStatesCopy;
     for (const auto& finalState : rhs.finalStates) {
-        finalStatesCopy.insert(rhsStartState + finalState);
+        rhsFinalStatesCopy.insert(stateIndexShift + finalState);
     }
+    this->finalStates = rhsFinalStatesCopy;
 
-    states.insert(states.end(), stateCopy.begin(), stateCopy.end());
-    for (const auto& finalState : this->finalStates) {
-        addEmptyTransition(finalState, rhsStartState);
-    }
-    this->finalStates = finalStatesCopy;
-
+    // finally, merge in contexts registered in the rhs NFA
     mergeInContexts(rhs);
+}
+
+void NFA::operator|=(const NFA& rhs) {
+    this->orNFA(rhs, false);
+}
+
+void NFA::operator&=(const NFA& rhs) {
+    this->andNFA(rhs, false);
 }
 
 State NFA::addState() {
@@ -74,7 +123,7 @@ Transition& NFA::addEmptyTransition(State state, State target) {
 }
 
 Transition& NFA::addEmptyTransition(State state, State target, const NFAActionRegister& ar) {
-    addTransition(state, Transition(target, std::make_shared<EmptySymbolGroup>(ar)));
+    addTransition(state, Transition(target, std::make_shared<EmptySymbolGroup>(), ar));
     return states[state].transitions.back();
 }
 
@@ -83,6 +132,10 @@ State NFA::concentrateFinalStates() {
 }
 
 State NFA::concentrateFinalStates(const NFAActionRegister& actions) {
+    if (finalStates.size() == 1 && actions.empty()) {
+        return *finalStates.cbegin();
+    }
+
     auto newFinalState = addState();
     for (auto finalState : finalStates) {
         addEmptyTransition(finalState, newFinalState, actions);
@@ -94,6 +147,10 @@ State NFA::concentrateFinalStates(const NFAActionRegister& actions) {
 }
 
 void NFA::addFinalActions(const NFAActionRegister& actions) {
+    if (actions.empty()) {
+        return;
+    }
+
     std::set<State> newFinalStates;
     for (State fs : finalStates) {
         State newState = addState();
@@ -104,9 +161,16 @@ void NFA::addFinalActions(const NFAActionRegister& actions) {
     finalStates = newFinalStates;
 }
 
-void NFA::addInitialTransitionActions(const NFAActionRegister& actions) {
+void NFA::addInitialActions(const NFAActionRegister& actions) {
     for (Transition& transition : this->states[0].transitions) {
-        transition.condition->actions += actions;
+        transition.actions += actions;
+    }
+
+    // now this may sound like cheating but I promise you it is not
+    // in fact, it makes perfect sense - in the specific case when we might be done before we ever consume anything,
+    // we want to make sure that the initial actions are performed
+    if (this->finalStates.contains(0)) {
+        this->states[0].actions += actions;
     }
 }
 
@@ -143,9 +207,10 @@ NFA NFA::buildPseudoDFA() const {
         auto& stateObject = stateMap[unmarkedStateDfaState];
         stateObject.marked = true;
 
-        auto transitionSymbolPtrs = calculateTransitionSymbols(stateObject.nfaStates);
-        for (const auto& transitionSymbolPtr : transitionSymbolPtrs) {
-            auto advancedStateSet = calculateSymbolClosure(stateObject.nfaStates, transitionSymbolPtr.get());
+        auto transitions = calculateTransitions(stateObject.nfaStates);
+        auto symbolClosures = calculateSymbolClosures(transitions);
+        for (const auto& symbolClosure : symbolClosures) {
+            const auto& advancedStateSet = symbolClosure.states;
             auto epsilonClosureDFAState = calculateEpsilonClosure(advancedStateSet);
             State theCorrespondingDFAStateIndex = findStateByNFAStateSet(stateMap, epsilonClosureDFAState.nfaStates);
             if (theCorrespondingDFAStateIndex == base.states.size()) {
@@ -160,7 +225,7 @@ NFA NFA::buildPseudoDFA() const {
                 }
             }
 
-            base.addTransition(unmarkedStateDfaState, Transition(theCorrespondingDFAStateIndex, transitionSymbolPtr));
+            base.addTransition(unmarkedStateDfaState, Transition(theCorrespondingDFAStateIndex, symbolClosure.symbols, symbolClosure.actions));
         }
     }
 
@@ -189,7 +254,7 @@ NFA::DFAState NFA::calculateEpsilonClosure(const std::set<State>& states) const 
                 continue;
             }
 
-            accumulatedActions += esg->actions;
+            accumulatedActions += transition.actions;
 
             std::pair<std::set<State>::iterator, bool> insertionOutcome = ret.insert(transition.target);
             if (insertionOutcome.second) {
@@ -201,65 +266,65 @@ NFA::DFAState NFA::calculateEpsilonClosure(const std::set<State>& states) const 
     return NFA::DFAState(ret, accumulatedActions);
 }
 
-std::set<State> NFA::calculateSymbolClosure(const std::set<State>& states, const SymbolGroup* symbolOnTransition) const {
-    std::set<State> reachableStates;
-    for(const auto& state : states) {
-        const auto& stateObject = this->states[state];
-        for (const auto& transition : stateObject.transitions) {
-            if (transition.condition->contains(symbolOnTransition)) {
-                reachableStates.insert(transition.target);
+std::list<NFA::SymbolClosure> NFA::calculateSymbolClosures(const std::list<Transition>& transitions) const {
+    std::list<NFA::SymbolClosure> generalClosures;
+    std::list<NFA::SymbolClosure> individualClosures;
+    for(const auto& transition : transitions) {
+        const EmptySymbolGroup* esg = dynamic_cast<const EmptySymbolGroup*>(transition.condition.get());
+        if (esg != nullptr) {
+            continue;
+        }
+
+        if (transition.doNotOptimizeTargetIntoSymbolClosure || !transition.actions.empty() /* this is vital! */) {
+            individualClosures.emplace_back(transition.condition, std::set<State> { transition.target }, transition.actions);
+        } else {
+            auto fit = std::find_if(generalClosures.begin(), generalClosures.end(), [&transition](const SymbolClosure& sc) {
+                return sc.symbols->equals(transition.condition.get());
+            });
+
+            if (fit == generalClosures.end()) {
+                generalClosures.emplace_back(transition.condition, std::set<State> { transition.target }, transition.actions);
+            } else {
+                fit->states.insert(transition.target);
+                fit->actions += transition.actions;
             }
         }
     }
 
-    return reachableStates;
+    individualClosures.insert(individualClosures.end(), generalClosures.cbegin(), generalClosures.cend());
+
+    return individualClosures;
 }
 
-std::list<std::shared_ptr<SymbolGroup>> NFA::calculateTransitionSymbols(const std::set<State>& states) const {
-    std::list<std::shared_ptr<SymbolGroup>> symbolGroupsUsed;
+std::list<Transition> NFA::calculateTransitions(const std::set<State>& states) const {
+    std::list<Transition> transitionsUsed;
     for (State state : states) {
         const auto& stateObject = this->states[state];
-        for (const auto& transition : stateObject.transitions) {
-            const EmptySymbolGroup* esg = dynamic_cast<const EmptySymbolGroup*>(transition.condition.get());
-            if(esg == nullptr) { // we ignore only the empty transitions which were (hopefully?) sorted out by the process of calculating epsilon closure
-                symbolGroupsUsed.push_back(transition.condition);
-            }
-        }
+        transitionsUsed.insert(transitionsUsed.end(), stateObject.transitions.cbegin(), stateObject.transitions.cend());
     }
 
-    calculateDisjointSymbolGroups(symbolGroupsUsed);
+    calculateDisjointTransitions(transitionsUsed);
 
-    return symbolGroupsUsed;
+    return transitionsUsed;
 }
 
-void NFA::calculateDisjointSymbolGroups(std::list<std::shared_ptr<SymbolGroup>>& symbolGroups) {
-    auto it = symbolGroups.begin();
-    bool equalAndEquallyActionedTransitionFound = false;
-    while(it != symbolGroups.end()) {
+void NFA::calculateDisjointTransitions(std::list<Transition>& transitions) {
+    auto it = transitions.begin();
+    while(it != transitions.end()) {
         auto iit = it;
         ++iit;
-        for (; iit != symbolGroups.end(); ++iit) {
-            if ((*iit)->equals(it->get())) {
-                if((*iit)->actions == (*it)->actions) {
-                    equalAndEquallyActionedTransitionFound = true;
-                } else {
-                    // in case of two equal transition conditions that only differ in actions associated with them, we leave the two be and
-                    continue;
-                }
+        for (; iit != transitions.end(); ++iit) {
+            if (iit->equals(*it)) {
                 break;
-            } else if (!(*iit)->disjoint(it->get())) {
-                equalAndEquallyActionedTransitionFound = false;
-                break;
+            } else if (!iit->alignedSymbolWise(*it)) {
+                auto newTransitions = it->disjoinFrom(*iit);
+                transitions.insert(transitions.end(), newTransitions.cbegin(), newTransitions.cend());
             }
         }
 
-        if (iit != symbolGroups.end()) {
-            if (equalAndEquallyActionedTransitionFound) {
-                it = symbolGroups.erase(it);
-            } else {
-                auto newSymbolGroups = (*it)->disjoinFrom(*iit);
-                symbolGroups.merge(newSymbolGroups);
-            }
+        if (iit != transitions.end()) {
+            iit->actions += it->actions;
+            it = transitions.erase(it);
         } else {
             ++it;
         }
@@ -270,10 +335,10 @@ std::list<std::shared_ptr<LiteralSymbolGroup>> NFA::makeComplementSymbolGroups(c
     return std::list<std::shared_ptr<LiteralSymbolGroup>>();
 }
 /*
-std::list<LiteralSymbolGroup> NFA::negateLiteralSymbolGroups(const std::list<LiteralSymbolGroup>& symbolGroups) {
+std::list<LiteralSymbolGroup> NFA::negateLiteralSymbolGroups(const std::list<LiteralSymbolGroup>& transitions) {
     std::list<LiteralSymbolGroup> ret;
     ComputationCharType lastEnd = 0;
-    for (const auto lsg : symbolGroups) { 
+    for (const auto lsg : transitions) { 
         if (lsg.rangeStart > lastEnd+1) {
             ret.emplace_back(lastEnd+1, lsg.rangeStart - 1);
         }
@@ -309,19 +374,6 @@ State NFA::findStateByNFAStateSet(const std::deque<DFAState>& stateMap, const st
     return index;
 }
 
-
-bool LiteralSymbolGroup::contains(const SymbolGroup* symbol) const {
-    const LiteralSymbolGroup* ls = dynamic_cast<const LiteralSymbolGroup*>(symbol);
-    if (ls == nullptr) {
-        return false;
-    }
-
-    return 
-        this->rangeStart <= ls->rangeStart && this->rangeEnd >= ls->rangeEnd
-        && this->actions == symbol->actions
-        ;
-}
-
 bool LiteralSymbolGroup::equals(const SymbolGroup* rhs) const {
     const LiteralSymbolGroup* rhsCast = dynamic_cast<const LiteralSymbolGroup*>(rhs);
     if (rhsCast == nullptr) {
@@ -340,12 +392,14 @@ bool LiteralSymbolGroup::disjoint(const SymbolGroup* rhs) const {
     }
 }
 
-std::list<std::shared_ptr<SymbolGroup>> LiteralSymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhsUncast) {
-    if (this->disjoint(rhsUncast.get())) {
-        return std::list<std::shared_ptr<SymbolGroup>>({ rhsUncast });
+std::list<std::pair<std::shared_ptr<SymbolGroup>, bool >> LiteralSymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhsUncast) {
+    if (rhsUncast->equals(this)) {
+        return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>();
+    } else if (this->disjoint(rhsUncast.get())) {
+        return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool >>({ { rhsUncast, true } });
     }
 
-    std::list<std::shared_ptr<SymbolGroup>> ret;
+    std::list<std::pair<std::shared_ptr<SymbolGroup>, bool >> ret;
     const LiteralSymbolGroup* rhs = dynamic_cast<LiteralSymbolGroup*>(rhsUncast.get());
     if (this->rangeEnd >= rhs->rangeStart) {
         ComputationCharType mid_beg = std::max(this->rangeStart, rhs->rangeStart);
@@ -359,17 +413,15 @@ std::list<std::shared_ptr<SymbolGroup>> LiteralSymbolGroup::disjoinFrom(const st
         ComputationCharType top_end = std::max(this->rangeEnd, rhs->rangeEnd);
 
         if (bottom_beg <= bottom_end) {
-            ret.push_back(std::make_shared<LiteralSymbolGroup>((CharType)bottom_beg, (CharType)bottom_end, bottom_beg == this->rangeStart ? this->actions : rhs->actions));
+            ret.emplace_back(std::make_shared<LiteralSymbolGroup>((CharType)bottom_beg, (CharType)bottom_end), bottom_beg != this->rangeStart);
         }
 
         this->rangeStart = (CharType)mid_beg;
         this->rangeEnd = (CharType)mid_end;
-        if (!this->actions.empty() || !rhs->actions.empty()) {
-            ret.push_back(std::make_shared<LiteralSymbolGroup>((CharType)mid_beg, (CharType)mid_end, rhs->actions));
-        }
+        ret.emplace_back(std::make_shared<LiteralSymbolGroup>((CharType)mid_beg, (CharType)mid_end), true);
 
         if (top_beg <= top_end) {
-            ret.push_back(std::make_shared<LiteralSymbolGroup>((CharType)top_beg, (CharType)top_end, top_beg == this->rangeEnd ? rhs->actions : this->actions));
+            ret.emplace_back(std::make_shared<LiteralSymbolGroup>((CharType)top_beg, (CharType)top_end), top_beg == this->rangeEnd);
         }
     }
 
@@ -386,22 +438,6 @@ std::shared_ptr<std::list<SymbolIndex>> LiteralSymbolGroup::retrieveSymbolIndice
     return m_symbolIndicesFlyweight;
 }
 
-
-bool TerminalSymbolGroup::contains(const SymbolGroup* symbol) const {
-    const TerminalSymbolGroup* psg = dynamic_cast<const TerminalSymbolGroup*>(symbol);
-    if (psg == nullptr) {
-        return false;
-    }
-
-    return
-        std::includes(this->referencedProductions.cbegin(), this->referencedProductions.cend(), psg->referencedProductions.cbegin(), psg->referencedProductions.cend())
-        ;
-}
-
-bool EmptySymbolGroup::contains(const SymbolGroup* rhs) const {
-    return dynamic_cast<const EmptySymbolGroup*>(rhs) != nullptr;
-}
-
 bool EmptySymbolGroup::equals(const SymbolGroup* rhs) const {
     return dynamic_cast<const EmptySymbolGroup*>(rhs) != nullptr;
 }
@@ -410,11 +446,15 @@ bool EmptySymbolGroup::disjoint(const SymbolGroup* rhs) const {
     return dynamic_cast<const EmptySymbolGroup*>(rhs) == nullptr;
 }
 
-std::list<std::shared_ptr<SymbolGroup>> EmptySymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) {
+std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> EmptySymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) {
+    if (rhs->equals(this)) {
+        return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>();
+    }
+
     if (dynamic_cast<EmptySymbolGroup*>(rhs.get()) == nullptr) {
-        return std::list<std::shared_ptr<SymbolGroup>>({ rhs });
+        return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool >>({ { rhs, true } });
     } else {
-        return std::list<std::shared_ptr<SymbolGroup>>();
+        return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>();
     }
 }
 
@@ -449,10 +489,14 @@ bool TerminalSymbolGroup::disjoint(const SymbolGroup* rhs) const {
     }
 }
 
-std::list<std::shared_ptr<SymbolGroup>> TerminalSymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhsUncast) {
+std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> TerminalSymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhsUncast) {
+    if (rhsUncast->equals(this)) {
+        return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>();
+    }
+
     const TerminalSymbolGroup* rhs = dynamic_cast<const TerminalSymbolGroup*>(rhsUncast.get());
     if (rhs == nullptr) {
-        return std::list<std::shared_ptr<SymbolGroup>>({ rhsUncast });
+        return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhsUncast, true } });
     }
 
     std::list<const Production*> sharedComponents;
@@ -471,16 +515,12 @@ std::list<std::shared_ptr<SymbolGroup>> TerminalSymbolGroup::disjoinFrom(const s
     }
 
     if (sharedComponents.empty()) {
-        return std::list<std::shared_ptr<SymbolGroup>>({ rhsUncast });
+        return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhsUncast, true } });
     } else {
-        std::list<std::shared_ptr<SymbolGroup>> ret;
-        if (this->actions == rhs->actions) {
-            ret.push_back(std::make_shared<TerminalSymbolGroup>(sharedComponents, this->actions));
-        } else {
-            ret.push_back(std::make_shared<TerminalSymbolGroup>(sharedComponents, this->actions));
-            ret.push_back(std::make_shared<TerminalSymbolGroup>(sharedComponents, rhs->actions));
-        }
-        ret.push_back(std::make_shared<TerminalSymbolGroup>(excludedComponents, rhs->actions));
+        std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> ret;
+        ret.emplace_back(std::make_shared<TerminalSymbolGroup>(sharedComponents), false);
+        ret.emplace_back(std::make_shared<TerminalSymbolGroup>(sharedComponents), true);
+        ret.emplace_back(std::make_shared<TerminalSymbolGroup>(excludedComponents), true);
         
         return ret;
     }
@@ -494,4 +534,30 @@ std::shared_ptr<std::list<SymbolIndex>> TerminalSymbolGroup::retrieveSymbolIndic
     }
 
     return m_symbolIndicesFlyweight;
+}
+
+bool Transition::equals(const Transition& rhs) const {
+    if (doNotOptimizeTargetIntoSymbolClosure) {
+        return false;
+    }
+
+    return target == rhs.target && condition->equals(rhs.condition.get());
+    // there is no reference to actions here - if both the conditions amd targets are identical, we can optimize by merging the register files
+}
+
+bool Transition::alignedSymbolWise(const Transition& rhs) const {
+    return condition->disjoint(rhs.condition.get()) || rhs.condition->equals(this->condition.get());
+}
+
+std::list<Transition> Transition::disjoinFrom(const Transition& rhs) {
+    std::list<Transition> transitions;
+
+    auto newSymbolGroupPairs = this->condition->disjoinFrom(rhs.condition);
+    for (const auto& nsgPair : newSymbolGroupPairs) {
+        Transition t(nsgPair.second ? rhs : *this);
+        t.condition = nsgPair.first;
+        transitions.emplace_back(std::move(t));
+    }
+
+    return transitions;
 }

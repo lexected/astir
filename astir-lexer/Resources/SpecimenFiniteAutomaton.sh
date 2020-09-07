@@ -6,7 +6,6 @@
 #include <memory>
 #include <stack>
 #include <vector>
-#include <functional>
 
 #include "${{AppropriateStreamHeader}}"
 ${{DependencyHeaderInclude}}

@@ -36,6 +36,6 @@ private:
 	std::pair<NFAActionRegister, NFAActionRegister> computeActionRegisterEntries(const std::list<RegexAction>& actions) const;
 	std::pair<NFAActionRegister, NFAActionRegister> computeActionRegisterEntries(const std::list<RegexAction>& actions, const std::string& payload) const;
 
-	std::shared_ptr<SymbolGroup> createArbitrarySymbolGroup(const NFAActionRegister& actions) const;
+	std::shared_ptr<SymbolGroup> createArbitrarySymbolGroup() const;
 };
 

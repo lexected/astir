@@ -20,33 +20,24 @@ struct SymbolGroup {
 public:
 	virtual ~SymbolGroup() = default;
 
-	// a necessary part of SymbolGroup I am afraid, the SymbolGroup is the literal payload for the action
-	NFAActionRegister actions;
-
-	virtual bool contains(const SymbolGroup* rhs) const = 0;
 	virtual bool equals(const SymbolGroup* rhs) const = 0;
 	virtual bool disjoint(const SymbolGroup* rhs) const = 0;
-	virtual std::list<std::shared_ptr<SymbolGroup>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) = 0;
+	virtual std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) = 0;
 
 	virtual std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const = 0;
 
 protected:
 	SymbolGroup() = default;
-	SymbolGroup(const NFAActionRegister& actions)
-		: actions(actions) { }
 };
 
 struct EmptySymbolGroup : public SymbolGroup {
 public:
 	EmptySymbolGroup()
 		: SymbolGroup() { }
-	EmptySymbolGroup(const NFAActionRegister & actions)
-		: SymbolGroup(actions) { }
 
-	bool contains(const SymbolGroup* rhs) const override;
 	bool equals(const SymbolGroup* rhs) const override;
 	bool disjoint(const SymbolGroup* rhs) const override;
-	std::list<std::shared_ptr<SymbolGroup>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
+	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
 
 	std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const override;
 protected:
@@ -56,16 +47,13 @@ struct LiteralSymbolGroup : public SymbolGroup {
 	LiteralSymbolGroup()
 		: LiteralSymbolGroup(0, 0) { }
 	LiteralSymbolGroup(CharType rangeStart, CharType rangeEnd)
-		: rangeStart(rangeStart), rangeEnd(rangeEnd), m_symbolIndicesFlyweight(std::make_shared<std::list<SymbolIndex>>()) { }
-	LiteralSymbolGroup(CharType rangeStart, CharType rangeEnd, const NFAActionRegister& actions)
-		: rangeStart(rangeStart), rangeEnd(rangeEnd), SymbolGroup(actions), m_symbolIndicesFlyweight(std::make_shared<std::list<SymbolIndex>>()) { }
-	LiteralSymbolGroup(const LiteralSymbolGroup& lsg, const NFAActionRegister& actions)
-		: LiteralSymbolGroup(lsg.rangeStart, lsg.rangeEnd, actions) { }
+		: SymbolGroup(), rangeStart(rangeStart), rangeEnd(rangeEnd), m_symbolIndicesFlyweight(std::make_shared<std::list<SymbolIndex>>()) { }
+	LiteralSymbolGroup(const LiteralSymbolGroup& lsg)
+		: LiteralSymbolGroup(lsg.rangeStart, lsg.rangeEnd) { }
 	
-	bool contains(const SymbolGroup* rhs) const override;
 	bool equals(const SymbolGroup* rhs) const override;
 	bool disjoint(const SymbolGroup* rhs) const override;
-	std::list<std::shared_ptr<SymbolGroup>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
+	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
 
 	CharType rangeStart;
 	CharType rangeEnd;
@@ -78,14 +66,11 @@ private:
 struct TerminalSymbolGroup : public SymbolGroup {
 	std::list<const Production*> referencedProductions;
 	TerminalSymbolGroup(const std::list<const Production*>& referencedProductions)
-		: referencedProductions(referencedProductions), m_symbolIndicesFlyweight(std::make_shared<std::list<SymbolIndex>>()) { }
-	TerminalSymbolGroup(const std::list<const Production*>& referencedProductions, const NFAActionRegister& actions)
-		: referencedProductions(referencedProductions), SymbolGroup(actions), m_symbolIndicesFlyweight(std::make_shared<std::list<SymbolIndex>>()) { }
+		: SymbolGroup(), referencedProductions(referencedProductions), m_symbolIndicesFlyweight(std::make_shared<std::list<SymbolIndex>>()) { }
 
-	bool contains(const SymbolGroup* rhs) const override;
 	bool equals(const SymbolGroup* rhs) const override;
 	bool disjoint(const SymbolGroup* rhs) const override;
-	std::list<std::shared_ptr<SymbolGroup>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
+	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
 
 	std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const override;
 private:
@@ -93,13 +78,21 @@ private:
 };
 
 struct Transition {
-	std::shared_ptr<SymbolGroup> condition;
 	State target;
+	NFAActionRegister actions;
+	std::shared_ptr<SymbolGroup> condition;
+	bool doNotOptimizeTargetIntoSymbolClosure;
 
 	Transition(State target)
-		: target(target), condition(nullptr) { }
+		: target(target), condition(nullptr), doNotOptimizeTargetIntoSymbolClosure(false) { }
+	Transition(State target, const std::shared_ptr<SymbolGroup>& condition, const NFAActionRegister& actions, bool doNotOptimizeTargetIntoSymbolClosure = false)
+		: target(target), condition(condition), actions(actions), doNotOptimizeTargetIntoSymbolClosure(doNotOptimizeTargetIntoSymbolClosure) { }
 	Transition(State target, const std::shared_ptr<SymbolGroup>& condition)
-		: target(target), condition(condition) { }
+		: Transition(target, condition, NFAActionRegister()) { }
+
+	bool equals(const Transition& rhs) const;
+	bool alignedSymbolWise(const Transition& rhs) const;
+	std::list<Transition> disjoinFrom(const Transition& rhs);
 };
 
 using TransitionList = std::list<Transition>;
@@ -119,6 +112,8 @@ public:
 
 	NFA();
 
+	void orNFA(const NFA& rhs, bool preventSymbolClosureOptimisation);
+	void andNFA(const NFA& rhs, bool preventSymbolClosureOptimisation);
 	void operator|=(const NFA& rhs);
 	void operator&=(const NFA& rhs);
 
@@ -129,13 +124,13 @@ public:
 	void registerContext(const std::string& parentContextName, const std::string& name);
 
 	void addFinalActions(const NFAActionRegister& actions);
-	void addInitialTransitionActions(const NFAActionRegister& actions);
+	void addInitialActions(const NFAActionRegister& actions);
 	State concentrateFinalStates();
 	State concentrateFinalStates(const NFAActionRegister& actions);
 
 	NFA buildPseudoDFA() const;
 
-	static void calculateDisjointSymbolGroups(std::list<std::shared_ptr<SymbolGroup>>& symbolGroups);
+	static void calculateDisjointTransitions(std::list<Transition>& symbolGroups);
 	static std::list<std::shared_ptr<LiteralSymbolGroup>> makeComplementSymbolGroups(const std::list<std::shared_ptr<SymbolGroup>>& symbolGroups);
 
 private:
@@ -152,9 +147,22 @@ private:
 			: nfaStates(nfaStates), marked(false), actions(actions) { }
 	};
 
+	struct SymbolClosure {
+		std::shared_ptr<SymbolGroup> symbols;
+		std::set<State> states;
+		NFAActionRegister actions;
+
+		SymbolClosure()
+			: symbols(nullptr) { }
+		SymbolClosure(const std::shared_ptr<SymbolGroup>& symbols, const std::set<State>& states)
+			: symbols(symbols), states(states) { }
+		SymbolClosure(const std::shared_ptr<SymbolGroup>& symbols, const std::set<State>& states, const NFAActionRegister& actions)
+			: symbols(symbols), states(states), actions(actions) { }
+	};
+
 	DFAState calculateEpsilonClosure(const std::set<State>& states) const;
-	std::set<State> calculateSymbolClosure(const std::set<State>& states, const SymbolGroup* symbolOnTransition) const;
-	std::list<std::shared_ptr<SymbolGroup>> calculateTransitionSymbols(const std::set<State>& states) const;
+	std::list<NFA::SymbolClosure> calculateSymbolClosures(const std::list<Transition>& transitions) const;
+	std::list<Transition> calculateTransitions(const std::set<State>& states) const;
 	
 
 	State findUnmarkedState(const std::deque<DFAState>& stateMap) const;

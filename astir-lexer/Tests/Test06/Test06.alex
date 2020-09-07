@@ -2,7 +2,7 @@
 
 finite automaton PrimaryAutomaton {
 	terminal production WORD = ['a'-'z''A'-'Z']+;
-	terminal production WHITESPACE = [' ']+;
+	terminal production WHITESPACE = ' '* ' '; 
 	terminal production PUNCTUATION = ['.' '!' '?'];
 }
 

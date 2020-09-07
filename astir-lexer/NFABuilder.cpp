@@ -2,6 +2,7 @@
 #include "Exception.h"
 
 #include <stack>
+#include <algorithm>
 
 #include "SemanticTree.h"
 
@@ -35,7 +36,7 @@ NFA NFABuilder::visit(const Category* category) const {
 	// add a transition from the first state to the second one, actioned by context creation
 	NFAActionRegister createContextActionRegister;
 	createContextActionRegister.emplace_back(NFAActionType::CreateContext, m_generationContextPath, category->name);
-	alternationPoint.addInitialTransitionActions(createContextActionRegister);
+	alternationPoint.addInitialActions(createContextActionRegister);
 	alternationPoint.registerContext(m_generationContextPath, category->name);
 
 	return alternationPoint;
@@ -60,7 +61,7 @@ NFA NFABuilder::visit(const Production* rule) const {
 	// add context creation actions
 	NFAActionRegister createContextActionRegister;
 	createContextActionRegister.emplace_back(NFAActionType::CreateContext, m_generationContextPath, rule->name);
-	regexNfa.addInitialTransitionActions(createContextActionRegister);
+	regexNfa.addInitialActions(createContextActionRegister);
 	regexNfa.registerContext(m_generationContextPath, rule->name);
 
 	// return the contexted result
@@ -90,49 +91,68 @@ NFA NFABuilder::visit(const RepetitiveRegex* regex) const {
 		throw Exception("Can not create a machine for a regex with minimum of infinitely many repetitions");
 	}
 
-	NFA theMachine = regex->regex->accept(*this);
-
 	NFA base;
-	base.finalStates.insert(0);
-	for (unsigned long i = 0; i < regex->minRepetitions; ++i) {
-		base &= theMachine;
+	if (regex->minRepetitions == 0) {
+		/*
+		OLD BEHAVIOUR ASSUMING OLD addInitialActions() BEHAVIOUR
+		const State newState = base.addState();
+		base.addEmptyTransition(0, newState);
+		base.finalStates.insert(newState);
+		*/
+		base.finalStates.insert(0);
 	}
 
+	NFA atomMachine = regex->regex->accept(*this);
+	if (regex->minRepetitions <= 1 && regex->maxRepetitions > 0) {
+		base.orNFA(atomMachine, true);
+	}
+
+	NFA theLongBranch;
+	theLongBranch.finalStates.insert(0);
 	if (regex->maxRepetitions == regex->INFINITE_REPETITIONS) {
-		auto theVeryFinalState = theMachine.addState();
-		for (const auto& finalState : theMachine.finalStates) {
-			theMachine.addEmptyTransition(finalState, 0);
-			theMachine.addEmptyTransition(finalState, theVeryFinalState);
+		if(regex->minRepetitions <= 2) {
+			// must be!
+			NFA doubleAtom(atomMachine);
+			doubleAtom &= atomMachine;
+
+			base.orNFA(doubleAtom, true);
 		}
-		theMachine.finalStates = { theVeryFinalState };
 
-		NFA theMachineSTAR;
-		theMachineSTAR.finalStates.insert(0);
-		theMachineSTAR &= theMachine;
-		++theVeryFinalState;
-		theMachineSTAR.addEmptyTransition(0, theVeryFinalState);
-
-		base &= theMachineSTAR;
-	} else {
-		theMachine.concentrateFinalStates();
-		auto lastBaseFinalState = base.concentrateFinalStates();
-
-		std::stack<State> interimConcentratedFinalStates({ lastBaseFinalState });
-		for (unsigned long i = regex->minRepetitions; i < regex->maxRepetitions; ++i) {
-			base &= theMachine;
-			auto interimFinalState = *base.finalStates.begin();
-			interimConcentratedFinalStates.push(interimFinalState);
+		unsigned long howManyToPrefix = std::max((unsigned long)2, regex->minRepetitions) - 1;
+		for(unsigned long it = 0; it < howManyToPrefix;++it) {
+			theLongBranch &= atomMachine;
 		}
-		auto theVeryFinalState = interimConcentratedFinalStates.top();
-		interimConcentratedFinalStates.pop();
-		while (!interimConcentratedFinalStates.empty()) {
-			auto stateToConnect = interimConcentratedFinalStates.top();
-			interimConcentratedFinalStates.pop();
-
-			base.addEmptyTransition(stateToConnect, theVeryFinalState);
+		const State startLoopBodyFinalState = theLongBranch.concentrateFinalStates();
+		theLongBranch &= atomMachine;
+		const State endLoopBodyFinalState = theLongBranch.concentrateFinalStates();
+		theLongBranch.addEmptyTransition(endLoopBodyFinalState, startLoopBodyFinalState);
+		theLongBranch.andNFA(atomMachine, true); // MUST BE TRUE
+	} else if (regex->maxRepetitions >= 2) {
+		unsigned long howManyToPrefix = std::max((unsigned long)2, regex->minRepetitions) - 1;
+		for (unsigned long it = 0; it < howManyToPrefix; ++it) {
+			theLongBranch &= atomMachine;
 		}
+
+		std::stack<State> interimFinalStates;
+		interimFinalStates.push(theLongBranch.concentrateFinalStates());
+
+		for (auto it = regex->minRepetitions; it < regex->maxRepetitions;++it) {
+			theLongBranch &= atomMachine;
+			interimFinalStates.push(theLongBranch.concentrateFinalStates());
+		}
+		const State endOfOptionalityState = interimFinalStates.top();
+		interimFinalStates.pop();
+
+		while (!interimFinalStates.empty()) {
+			const State interimState = interimFinalStates.top();
+			theLongBranch.addEmptyTransition(interimState, endOfOptionalityState);
+			interimFinalStates.pop();
+		}
+
+		theLongBranch.andNFA(atomMachine, true); // MUST BE TRUE
 	}
 
+	base.orNFA(theLongBranch, true);
 	return base;
 }
 
@@ -150,8 +170,7 @@ NFA NFABuilder::visit(const AnyRegex* regex) const {
 
 	auto literalGroups = makeLiteralGroups(regex);
 	for (auto& literalSymbolGroup : literalGroups) {
-		literalSymbolGroup->actions = initial;
-		base.addTransition(0, Transition(newState, literalSymbolGroup));
+		base.addTransition(0, Transition(newState, literalSymbolGroup, initial));
 	}
 
 	base.finalStates.insert(newState);
@@ -165,15 +184,13 @@ NFA NFABuilder::visit(const ExceptAnyRegex* regex) const {
 	auto newState = base.addState();
 
 	auto literalGroups = makeLiteralGroups(regex);
-	NFA::calculateDisjointSymbolGroups(literalGroups);
 	auto complementedGroups = NFA::makeComplementSymbolGroups(literalGroups);
 
 	NFAActionRegister initial, final;
 	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
 	for (auto& symbolGroup : complementedGroups) {
-		symbolGroup->actions = initial;
-		base.addTransition(0, Transition(newState, symbolGroup));
+		base.addTransition(0, Transition(newState, symbolGroup, initial));
 	}
 
 	base.finalStates.insert(newState);
@@ -191,7 +208,7 @@ NFA NFABuilder::visit(const LiteralRegex* regex) const {
 	State prevState = 0;
 	for(CharType c : regex->literal) {
 		State newState = base.addState();
-		base.addTransition(prevState, Transition(newState, std::make_shared<LiteralSymbolGroup>(c, c, initial)));
+		base.addTransition(prevState, Transition(newState, std::make_shared<LiteralSymbolGroup>(c, c), initial));
 
 		prevState = newState;
 	}
@@ -209,7 +226,7 @@ NFA NFABuilder::visit(const ArbitrarySymbolRegex* regex) const {
 	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
 	auto newState = base.addState();
-	base.addTransition(0, Transition(newState, createArbitrarySymbolGroup(initial)));
+	base.addTransition(0, Transition(newState, createArbitrarySymbolGroup(), initial));
 	base.finalStates.insert(newState);
 	base.addFinalActions(final);
 
@@ -231,12 +248,12 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 
 		NFABuilder contextualizedBuilder(m_contextMachine, component, m_generationContextPath);
 		base = componentCastIntoBuildable->accept(contextualizedBuilder);
-		base.addInitialTransitionActions(initial);
+		base.addInitialActions(initial);
 		base.addFinalActions(final);
 	} else {
 		NFAActionRegister initial, final;
 		std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
-		base.addTransition(0, Transition(newBaseState, std::make_shared<TerminalSymbolGroup>(component->calculateInstandingProductions(), initial)));
+		base.addTransition(0, Transition(newBaseState, std::make_shared<TerminalSymbolGroup>(component->calculateInstandingProductions()), initial));
 		base.addFinalActions(final);
 	}
 
@@ -250,12 +267,12 @@ NFA NFABuilder::visit(const LineEndRegex* regex) const {
 	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
 	auto lineFeedState = base.addState();
-	base.addTransition(0, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n', final)));
+	base.addTransition(0, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n'), final));
 	base.finalStates.insert(lineFeedState);
 	auto carriageReturnState = base.addState();
 	base.addTransition(0, Transition(carriageReturnState, std::make_shared<LiteralSymbolGroup>('\r', '\r')));
-	base.addTransition(carriageReturnState, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n', final)));
-	base.addInitialTransitionActions(initial);
+	base.addTransition(carriageReturnState, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n'), final));
+	base.addInitialActions(initial);
 
 	return base;
 }
@@ -301,10 +318,10 @@ std::pair<NFAActionRegister, NFAActionRegister>  NFABuilder::computeActionRegist
 	return std::pair<NFAActionRegister, NFAActionRegister>(initial, final);
 }
 
-std::shared_ptr<SymbolGroup> NFABuilder::createArbitrarySymbolGroup(const NFAActionRegister& ar) const {
+std::shared_ptr<SymbolGroup> NFABuilder::createArbitrarySymbolGroup() const {
 	if (m_contextMachine.on) {
-		return std::make_shared<TerminalSymbolGroup>(m_contextMachine.on->getProductionRoots(), ar);
+		return std::make_shared<TerminalSymbolGroup>(m_contextMachine.on->getProductionRoots());
 	} else {
-		return std::make_shared<LiteralSymbolGroup>((CharType)0, (CharType)255, ar);
+		return std::make_shared<LiteralSymbolGroup>((CharType)0, (CharType)255);
 	}
 }

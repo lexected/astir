@@ -42,7 +42,7 @@ void CppNFAGenerationHelper::generateMechanicsMaps(std::string& stateMap, std::s
 			}
 
 			// handle the action register of transition actions
-			const NFAActionRegister& tnar = transition.condition->actions;
+			const NFAActionRegister& tnar = transition.actions;
 			ActionRegisterId createdRegisterId;
 			if (tnar.size() > 0) {
 				createdRegisterId = ++actionRegistersUsed;

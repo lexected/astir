@@ -316,6 +316,10 @@ std::shared_ptr<const ISyntacticEntity> FiniteAutomatonMachine::underlyingSyntac
 }
 
 void FiniteAutomatonMachine::initialize() {
+	if (initialized()) { // really necessary
+		return;
+	}
+
 	this->Machine::initialize();
 
 	if (this->on) {
