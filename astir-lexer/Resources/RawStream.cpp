@@ -7,8 +7,7 @@ bool RawStream::streamGet(std::shared_ptr<RawTerminal>& c) {
 
     if (ret) {
         m_currentStreamLocation->note(payload);
-        c = std::make_shared<RawTerminal>(payload, m_currentStreamLocation);
-        m_currentStreamLocation->note(payload);
+        c = std::make_shared<RawTerminal>(payload, m_currentStreamLocation->clone());
     }
 
     return ret;

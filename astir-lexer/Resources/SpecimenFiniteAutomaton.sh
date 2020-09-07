@@ -33,7 +33,9 @@ namespace ${{MachineName}} {
 	};
 
 	typedef ${{MachineName}}Terminal OutputTerminal;
+	typedef std::shared_ptr<OutputTerminal> OutputTerminalPtr;
 	typedef ${{OutputType}} OutputProduction;
+	typedef std::shared_ptr<OutputProduction> OutputProductionPtr;
 
 	class EOS : public OutputTerminal {
 	public:

@@ -203,9 +203,6 @@
     <ClInclude Include="CppNFAGenerationHelper.h">
       <Filter>Header Files\Generation</Filter>
     </ClInclude>
-    <ClInclude Include="Location.h">
-      <Filter>Resource Files\Resources</Filter>
-    </ClInclude>
     <ClInclude Include="Resources\ProductionStream.h">
       <Filter>Resource Files\Resources</Filter>
     </ClInclude>
@@ -216,6 +213,9 @@
       <Filter>Resource Files\Resources</Filter>
     </ClInclude>
     <ClInclude Include="Resources\RawStream.h">
+      <Filter>Resource Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Location.h">
       <Filter>Resource Files\Resources</Filter>
     </ClInclude>
   </ItemGroup>

@@ -27,3 +27,19 @@ std::string TextFileLocation::toString() const {
 std::shared_ptr<Location> TextFileLocation::clone() const {
     return std::make_shared<TextFileLocation>(*this);
 }
+
+void InvalidLocation::note(char c) {
+    throw std::exception();
+}
+
+void InvalidLocation::advance() {
+    throw std::exception();
+}
+
+std::string InvalidLocation::toString() const {
+    throw std::exception();
+}
+
+std::shared_ptr<Location> InvalidLocation::clone() const {
+    throw std::exception();
+}

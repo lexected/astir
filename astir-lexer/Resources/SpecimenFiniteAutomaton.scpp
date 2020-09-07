@@ -101,6 +101,9 @@ namespace ${{MachineName}} {
 
 						// pin the input stream forward
 						rs.pin(); // that is, at lastAcceptedPosition, not at the position at which we entered this else clause
+
+						// the following is essential for correct readings of lastApplicationSuccessful
+						m_currentState = lastAcceptingState;
 						
 						// break out of this loop and proceed
 						break;
@@ -149,12 +152,12 @@ namespace ${{MachineName}} {
 	std::list<std::shared_ptr<OutputProduction>> ${{MachineName}}::process(InputStream& rs) {
 		std::list<std::shared_ptr<OutputProduction>> ret;
 
-		while (lastApplicationSuccessful() && rs.good()) {
+		do {
 			auto terminalPtr = apply(rs);
 			if (terminalPtr) {
 				ret.push_back(terminalPtr);
 			}
-		}
+		} while (lastApplicationSuccessful() && rs.good());
 
 		if (lastApplicationSuccessful()) {
 			auto eosLocationPtr = rs.pinLocation()->clone();

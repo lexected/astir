@@ -10,8 +10,20 @@ public:
 	virtual std::string toString() const = 0;
 
 	virtual std::shared_ptr<Location> clone() const = 0;
+
 protected:
 	Location() = default;
+};
+
+class InvalidLocation : public Location {
+public:
+	void note(char c) override;
+	void advance() override;
+	std::string toString() const override;
+
+	std::shared_ptr<Location> clone() const override;
+
+	InvalidLocation() = default;
 };
 
 class TextLocation : public Location {

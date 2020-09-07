@@ -45,7 +45,8 @@ template <class ProductionType>
 class ListProductionStream : public ProductionStream<ProductionType> {
 public:
 	ListProductionStream(const std::list<std::shared_ptr<ProductionType>>& inputProductionList)
-		: m_list(inputProductionList), m_iterator(inputProductionList.cbegin()) { }
+		: ProductionStream<ProductionType>(inputProductionList.empty() ? std::make_shared<InvalidLocation>() : inputProductionList.front()->location()),
+		m_list(inputProductionList), m_iterator(m_list.cbegin()) { }
 
 protected:
 	bool streamGet(std::shared_ptr<ProductionType>& c) override;
