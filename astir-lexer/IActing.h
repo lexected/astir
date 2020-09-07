@@ -5,7 +5,7 @@ class MachineComponent;
 struct Field;
 class IActing {
 public:
-	virtual void checkActionUsage(const Machine& machine, const MachineComponent* context) const { };
+	virtual void checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) { };
 
 protected:
 	IActing() = default;

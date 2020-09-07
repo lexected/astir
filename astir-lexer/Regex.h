@@ -29,7 +29,7 @@ struct RepetitiveRegex : public RootRegex {
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
-	void checkActionUsage(const Machine& machine, const MachineComponent* context) const override;
+	void checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) override;
 };
 
 struct PrimitiveRegex;
@@ -41,7 +41,7 @@ struct LookaheadRegex : public RootRegex {
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
-	void checkActionUsage(const Machine& machine, const MachineComponent* context) const override;
+	void checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) override;
 };
 
 enum class RegexActionType : unsigned char {
@@ -64,10 +64,12 @@ enum class RegexActionType : unsigned char {
 struct RegexAction : public ISyntacticEntity {
 	RegexActionType type = RegexActionType::None;
 	std::string target;
+	const Field* targetField;
 
-	RegexAction() = default;
-	RegexAction(RegexActionType type, const std::string target)
-		: type(type), target(target) { }
+	RegexAction()
+		: targetField(nullptr) { }
+	RegexAction(RegexActionType type, std::string target)
+		: type(type), target(target), targetField(nullptr) { }
 };
 struct AtomicRegex : public RootRegex { };
 
@@ -79,7 +81,7 @@ struct DisjunctiveRegex : public AtomicRegex {
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
-	void checkActionUsage(const Machine& machine, const MachineComponent* context) const override;
+	void checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) override;
 };
 
 struct RootRegex;
@@ -90,13 +92,13 @@ struct ConjunctiveRegex : public Regex {
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
-	void checkActionUsage(const Machine& machine, const MachineComponent* context) const override;
+	void checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) override;
 };
 
 struct PrimitiveRegex : public AtomicRegex {
 	std::list<RegexAction> actions;
 
-	void checkActionUsage(const Machine& machine, const MachineComponent* context) const override;
+	void checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) override;
 	virtual std::string computeItemType(const Machine& machine, const MachineComponent* context) const;
 };
 
@@ -132,7 +134,7 @@ struct ReferenceRegex : public PrimitiveRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 };
 
-struct ArbitraryLiteralRegex : public PrimitiveRegex {
+struct ArbitrarySymbolRegex : public PrimitiveRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 };
 

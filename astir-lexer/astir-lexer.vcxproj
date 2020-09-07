@@ -141,6 +141,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CppGenerationVisitor.cpp" />
+    <ClCompile Include="CppNFAGenerationHelper.cpp" />
     <ClCompile Include="Field.cpp" />
     <ClCompile Include="GenerationException.cpp" />
     <ClCompile Include="GenerationHelper.cpp" />
@@ -153,7 +154,12 @@
     <ClCompile Include="NFA.cpp" />
     <ClCompile Include="Parser.cpp" />
     <ClCompile Include="Regex.cpp" />
-    <ClCompile Include="Resources\RawStream.cpp" />
+    <ClCompile Include="Resources\Location.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Resources\RawStream.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="Resources\SpecimenFiniteAutomaton.scpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -163,6 +169,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CppGenerationVisitor.h" />
+    <ClInclude Include="CppNFAGenerationHelper.h" />
     <ClInclude Include="Exception.h" />
     <ClInclude Include="Field.h" />
     <ClInclude Include="FileLocation.h" />
@@ -182,9 +189,21 @@
     <ClInclude Include="NFA.h" />
     <ClInclude Include="Parser.h" />
     <ClInclude Include="Regex.h" />
-    <ClInclude Include="Resources\RawStream.h" />
+    <ClInclude Include="Resources\Location.h" />
+    <ClInclude Include="Resources\Production.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Resources\ProductionStream.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Resources\RawStream.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="Resources\SpecimenFiniteAutomaton.sh">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Resources\Terminal.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="SemanticTree.h" />
     <ClInclude Include="SyntacticTree.h" />
@@ -197,6 +216,7 @@
     <None Include="Tests\Test03\Test03.alex" />
     <None Include="Tests\Test04\Test04.alex" />
     <None Include="Tests\Test05\Test05.alex" />
+    <None Include="Tests\Test06\Test06.alex" />
     <None Include="Tests\Uncategorized\C99Tokenizer.alex" />
     <None Include="Tests\Uncategorized\ExampleParser.apar" />
     <None Include="Tests\Uncategorized\ExampleTokenizer.alex" />

@@ -1,0 +1,16 @@
+// Test06 - finite automaton on terminals
+
+finite automaton PrimaryAutomaton {
+	terminal production WORD = ['a'-'z''A'-'Z']+;
+	terminal production WHITESPACE = ' '* ' '; 
+	terminal production PUNCTUATION = ['.' '!' '?'];
+}
+
+finite automaton SecondaryAutomaton on PrimaryAutomaton {
+	nonterminal production Sentence {
+		PUNCTUATION type;
+		WORD list words;
+	} = 
+		(WORD@push:words WHITESPACE)* WORD@push:words PUNCTUATION@set:type
+		;
+}

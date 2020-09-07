@@ -12,8 +12,8 @@ NFA RepetitiveRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
-void RepetitiveRegex::checkActionUsage(const Machine& machine, const MachineComponent* context) const {
-	regex->checkActionUsage(machine, context);
+void RepetitiveRegex::checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) {
+	regex->checkAndTypeformActionUsage(machine, context);
 }
 
 const IFileLocalizable* LookaheadRegex::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
@@ -29,24 +29,25 @@ NFA LookaheadRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
-void LookaheadRegex::checkActionUsage(const Machine& machine, const MachineComponent* context) const {
-	match->checkActionUsage(machine, context);
-	// lookahead->checkActionUsage(context); NO NEED!!!
+void LookaheadRegex::checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) {
+	match->checkAndTypeformActionUsage(machine, context);
+	// lookahead->checkAndTypeformActionUsage(context); NO NEED!!!
 }
 
-void PrimitiveRegex::checkActionUsage(const Machine& machine, const MachineComponent* context) const {
-	for (const auto& actionTargetPair : actions) {
-		const Field* fieldPtr = context->findField(actionTargetPair.target);
+void PrimitiveRegex::checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) {
+	for (auto& action : actions) {
+		const Field* fieldPtr = context->findField(action.target);
+		action.targetField = fieldPtr;
 		if (fieldPtr == nullptr) {
-			throw SemanticAnalysisException("The action at '" + actionTargetPair.locationString() + "' refers to target '" + actionTargetPair.target + "' that is not recognized as a field in the context of the rule '" + context->name + "' with definition at '" + context->locationString());
+			throw SemanticAnalysisException("The action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not recognized as a field in the context of the rule '" + context->name + "' with definition at '" + context->locationString());
 		}
 
-		switch (actionTargetPair.type) {
+		switch (action.type) {
 			case RegexActionType::Flag:
 			case RegexActionType::Unflag: {
 				const FlagField* ffPtr = dynamic_cast<const FlagField*>(fieldPtr);
 				if (ffPtr == nullptr) {
-					throw SemanticAnalysisException("The action at '" + actionTargetPair.locationString() + "' refers to target '" + actionTargetPair.target + "' that is not a 'flag' field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
+					throw SemanticAnalysisException("The action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not a 'flag' field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
 				}
 				break;
 			}
@@ -57,7 +58,7 @@ void PrimitiveRegex::checkActionUsage(const Machine& machine, const MachineCompo
 			case RegexActionType::Prepend: {
 				const RawField* rfPtr = dynamic_cast<const RawField*>(fieldPtr);
 				if (rfPtr == nullptr) {
-					throw SemanticAnalysisException("The action at '" + actionTargetPair.locationString() + "' refers to target '" + actionTargetPair.target + "' that is not an 'raw' field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
+					throw SemanticAnalysisException("The action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not an 'raw' field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
 				}
 				break;
 			}
@@ -65,18 +66,18 @@ void PrimitiveRegex::checkActionUsage(const Machine& machine, const MachineCompo
 			case RegexActionType::Set: {
 				const VariablyTypedField* svtf = dynamic_cast<const VariablyTypedField*>(fieldPtr);
 				if (svtf == nullptr) {
-					throw SemanticAnalysisException("The typed action at '" + actionTargetPair.locationString() + "' refers to target '" + actionTargetPair.target + "' that is not a typed field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
+					throw SemanticAnalysisException("The typed action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not a typed field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
 				}
 
 				const std::string sitemType = computeItemType(machine, context);
 				if (sitemType != svtf->type) {
-					throw SemanticAnalysisException("The typed action at '" + actionTargetPair.locationString() + "' refers to target '" + actionTargetPair.target + "' of type '" + svtf->type + "' with payload of type '" + sitemType + "' -- in '" + context->name + "' (see its definition at " + context->locationString() + ")");
+					throw SemanticAnalysisException("The typed action at '" + action.locationString() + "' refers to target '" + action.target + "' of type '" + svtf->type + "' with payload of type '" + sitemType + "' -- in '" + context->name + "' (see its definition at " + context->locationString() + ")");
 				}
 			}
 			case RegexActionType::Unset: {
 				const ItemField* ifPtr = dynamic_cast<const ItemField*>(fieldPtr);
 				if (ifPtr == nullptr) {
-					throw SemanticAnalysisException("The action at '" + actionTargetPair.locationString() + "' refers to target '" + actionTargetPair.target + "' that is not an 'item' field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
+					throw SemanticAnalysisException("The action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not an 'item' field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
 				}
 				break;
 			}
@@ -84,24 +85,24 @@ void PrimitiveRegex::checkActionUsage(const Machine& machine, const MachineCompo
 			case RegexActionType::Push: {
 				const VariablyTypedField* pvtf = dynamic_cast<const VariablyTypedField*>(fieldPtr);
 				if (pvtf == nullptr) {
-					throw SemanticAnalysisException("The typed action at '" + actionTargetPair.locationString() + "' refers to target '" + actionTargetPair.target + "' that is not a typed field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
+					throw SemanticAnalysisException("The typed action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not a typed field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
 				}
 				const std::string pitemType = computeItemType(machine, context);
 				if (pitemType != pvtf->type) {
-					throw SemanticAnalysisException("The typed action at '" + actionTargetPair.locationString() + "' refers to target '" + actionTargetPair.target + "' of type '" + pvtf->type + "' with payload of type '" + pitemType + "' -- in '" + context->name + "' (see its definition at " + context->locationString() + ")");
+					throw SemanticAnalysisException("The typed action at '" + action.locationString() + "' refers to target '" + action.target + "' of type '" + pvtf->type + "' with payload of type '" + pitemType + "' -- in '" + context->name + "' (see its definition at " + context->locationString() + ")");
 				}
 			}
 			case RegexActionType::Pop:
 			case RegexActionType::Clear: {
 				const ListField* lf = dynamic_cast<const ListField*>(fieldPtr);
 				if (lf == nullptr) {
-					throw SemanticAnalysisException("The action at '" + actionTargetPair.locationString() + "' refers to target '" + actionTargetPair.target + "' that is not a 'list' field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
+					throw SemanticAnalysisException("The action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not a 'list' field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
 				}
 				break;
 			}
 			case RegexActionType::None:
 				// ehh, should never happen ... 
-				throw SemanticAnalysisException("The action at '" + actionTargetPair.locationString() + "' refers to target '" + actionTargetPair.target + "' that is not 'none-able' '" + context->name + "' (see its definition at '" + context->locationString() + ")");
+				throw SemanticAnalysisException("The action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not 'none-able' '" + context->name + "' (see its definition at '" + context->locationString() + ")");
 				break;
 		}
 	}
@@ -126,9 +127,9 @@ NFA DisjunctiveRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
-void DisjunctiveRegex::checkActionUsage(const Machine& machine, const MachineComponent* context) const {
+void DisjunctiveRegex::checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) {
 	for (const auto& conjunction : disjunction) {
-		conjunction->checkActionUsage(machine, context);
+		conjunction->checkAndTypeformActionUsage(machine, context);
 	}
 }
 
@@ -147,9 +148,9 @@ NFA ConjunctiveRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
-void ConjunctiveRegex::checkActionUsage(const Machine& machine, const MachineComponent* context) const {
+void ConjunctiveRegex::checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) {
 	for (const auto& rootRegex : conjunction) {
-		rootRegex->checkActionUsage(machine, context);
+		rootRegex->checkAndTypeformActionUsage(machine, context);
 	}
 }
 
@@ -183,7 +184,7 @@ NFA LiteralRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
-NFA ArbitraryLiteralRegex::accept(const NFABuilder& nfaBuilder) const {
+NFA ArbitrarySymbolRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 

@@ -15,8 +15,13 @@ struct RawField : public Field {
 	void accept(GenerationVisitor* visitor) const override;
 };
 
+class Machine;
 struct VariablyTypedField : public Field {
 	std::string type;
+	const Machine* machineOfTheType;
+
+	VariablyTypedField()
+		: type(), machineOfTheType(nullptr) { }
 };
 
 struct ItemField : public VariablyTypedField {

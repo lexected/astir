@@ -5,14 +5,18 @@
 #include <sstream>
 
 #include "GenerationHelper.h"
+#include "CppNFAGenerationHelper.h"
 
 void CppGenerationVisitor::setup() const {
 	// TODO: improve error handling here... what if m_folderPath is actually a file?? throw an exception
 	if(!std::filesystem::is_directory(m_folderPath)) {
 		std::filesystem::create_directory(m_folderPath);
 	}
-	std::filesystem::copy_file("Resources/RawStream.h", m_folderPath / "RawStream.h", std::filesystem::copy_options::overwrite_existing);
-	std::filesystem::copy_file("Resources/RawStream.cpp", m_folderPath / "RawStream.cpp", std::filesystem::copy_options::overwrite_existing);
+	std::filesystem::copy_file("Resources/Location.h", m_folderPath / "Location.h", std::filesystem::copy_options::overwrite_existing);
+	std::filesystem::copy_file("Resources/Location.cpp", m_folderPath / "Location.cpp", std::filesystem::copy_options::overwrite_existing);
+	std::filesystem::copy_file("Resources/Production.h", m_folderPath / "Production.h", std::filesystem::copy_options::overwrite_existing);
+	std::filesystem::copy_file("Resources/Terminal.h", m_folderPath / "Terminal.h", std::filesystem::copy_options::overwrite_existing);
+	std::filesystem::copy_file("Resources/ProductionStream.h", m_folderPath / "ProductionStream.h", std::filesystem::copy_options::overwrite_existing);
 }
 
 void CppGenerationVisitor::visit(const SemanticTree* tree) {
@@ -28,31 +32,63 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 	std::ifstream specimenFaCode("Resources/SpecimenFiniteAutomaton.scpp");
 	std::string specimenFaCodeContents((std::istreambuf_iterator<char>(specimenFaCode)), (std::istreambuf_iterator<char>()));
 
+	const NFA& nfa = machine->getNFA();
+
 	// do constructive magic
 	std::map<std::string, std::string> macros;
 	// in particular, we need to
 	//  - register all the name macros
 	macros.emplace("MachineName", machine->name);
-	
-	//  - enumerate all the terminal types
-	auto terminalTypeComponents = machine->getTerminalTypeComponents();
-	std::stringstream ss;
-	for (auto componentPtr : terminalTypeComponents) {
-		ss << componentPtr->name << "," << std::endl;
+	//	- choose appropriate input stream type
+	if (!machine->on) {
+		if(!m_hasIncludedRawStreamFiles) {
+			std::filesystem::copy_file("Resources/RawStream.h", m_folderPath / "RawStream.h", std::filesystem::copy_options::overwrite_existing);
+			std::filesystem::copy_file("Resources/RawStream.cpp", m_folderPath / "RawStream.cpp", std::filesystem::copy_options::overwrite_existing);
+
+			m_hasIncludedRawStreamFiles = true;
+		}
+		macros.emplace("AppropriateStreamHeader", "RawStream.h");
+		macros.emplace("InputTerminalTypeName", "RawTerminal");
+		macros.emplace("InputStreamTypeName", "RawStream");
+		macros.emplace("DependencyHeaderInclude", "");
+	} else {
+		macros.emplace("AppropriateStreamHeader", "ProductionStream.h");
+		macros.emplace("InputTerminalTypeName", machine->on->name + "::OutputTerminal");
+		macros.emplace("InputStreamTypeName", "ProductionStream<" + machine->on->name + "::OutputTerminal>");
+		macros.emplace("DependencyHeaderInclude", "#include \"" + machine->on->name + ".h\"");
 	}
-	macros.emplace("TerminalTypesEnumerated", ss.str());
+	
+	//  - enumerate all the production roots
+	auto terminalRootProductions = machine->getTerminalRoots();
+	std::stringstream ss;
+	for (auto productionPtr : terminalRootProductions) {
+		ss << productionPtr->name << " = " << productionPtr->typeIndex << "," << std::endl;
+	}
+	macros.emplace("OutputTerminalTypesEnumerated", ss.str());
+	macros.emplace("OutputTerminalTypeCount", std::to_string(machine->terminalProductionCount()));
 
 	//  - generate type declarations
-	auto typeComponents = machine->getTypeComponents();
-	const std::string& generatedClasses = generateTypeDeclarations(typeComponents);
-	macros.emplace("TypeDeclarations", generatedClasses);
+	for (const auto& machineComponentPair : machine->components) {
+		machineComponentPair.second->accept(this);
+	}
+	macros.emplace("TypeDeclarations", this->outputAndReset());
+
+	//	- set the type of out the output to the highest resolution possible
+	macros.emplace("OutputType", machine->hasPurelyTerminalRoots() ? "OutputTerminal" : "Production");
 
 	//  - set the DFA table parameter macros
 	macros.emplace("StateCount", std::to_string(machine->getNFA().states.size()));
-	macros.emplace("TransitionCount", "256");
+	size_t numberOfInputTerminals;
+	if (machine->on) {
+		numberOfInputTerminals = machine->on->terminalProductionCount() + 1; //+1 comes from having EOS (TerminalTypeIndex = 0) there implicitly
+	} else {
+		numberOfInputTerminals = 256;
+	}
+	macros.emplace("TransitionSymbolCount", std::to_string(numberOfInputTerminals));
 
+	CppNFAGenerationHelper cngh(machine->name, nfa, numberOfInputTerminals);
 	//  - generate action context declarations
-	macros.emplace("ActionContextsDeclarations", generateAutomatonContextDeclarations(machine->getNFA()));
+	macros.emplace("ActionContextsDeclarations", cngh.generateContextDeclarations());
 
 	// generate this bulk by traversing the NFA only once
 	std::string stateMap;
@@ -60,7 +96,7 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 	std::string actionRegisterDefinitions;
 	std::string transitionActionMap;
 	std::string stateActionMap;
-	generateAutomatonMechanicsMaps(machine->name, machine->getNFA(), stateMap, actionRegisterDeclarations, actionRegisterDefinitions, transitionActionMap, stateActionMap);
+	cngh.generateMechanicsMaps(stateMap, actionRegisterDeclarations, actionRegisterDefinitions, transitionActionMap, stateActionMap);
 
 	//  - generate state map
 	macros.emplace("StateMapEnumerated", stateMap);
@@ -72,13 +108,47 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 	macros.emplace("StateActionMapEnumerated", stateActionMap);
 
 	//  - generate state finality
-	macros.emplace("StateFinalityEnumerated", generateStateFinality(machine->getNFA()));
+	macros.emplace("StateFinalityEnumerated", cngh.generateStateFinality());
 
 	std::ofstream faHeader(m_folderPath / (machine->name + ".h"));
 	std::ofstream faCode(m_folderPath / (machine->name + ".cpp"));
 
 	GenerationHelper::macroWrite(specimenFaHeaderContents, macros, faHeader);
 	GenerationHelper::macroWrite(specimenFaCodeContents, macros, faCode);
+}
+
+void CppGenerationVisitor::visit(const MachineComponent* mc) {
+	if (!mc->isTypeForming()) {
+		return;
+	}
+
+	m_output << "class " << mc->name << " : ";
+	if (mc->isTerminal()) {
+		m_output << "public OutputTerminal";
+	} else {
+		m_output << "public Production";
+	}
+	for (auto catPtr : mc->categories) {
+		m_output << ", public " << catPtr->name;
+	}
+	m_output << " {" << std::endl;
+
+	m_output << "public:" << std::endl;
+	m_output << '\t' << mc->name << "(const std::shared_ptr<Location>& location)" << std::endl;
+	m_output << "\t\t: ";
+	if (mc->isTerminal()) {
+		m_output << "OutputTerminal(OutputTerminalType::" << mc->name << ", location)";
+	} else {
+		m_output << "Production(location)";
+	}
+	m_output << " { }" << std::endl;
+	m_output << '\t' << std::endl;
+	for (auto fieldPtr : mc->fields) {
+		m_output << '\t';
+		fieldPtr->accept(this);
+		// m_output << outputAndReset(); not needed actually since we are working on m_output atm
+	}
+	m_output << "};" << std::endl;
 }
 
 void CppGenerationVisitor::visit(const FlagField* flagField) {
@@ -90,247 +160,11 @@ void CppGenerationVisitor::visit(const RawField* rawField) {
 }
 
 void CppGenerationVisitor::visit(const ItemField* itemField) {
-	m_output << "std::shared_ptr<" << itemField->type << "> " << itemField->name << ";" << std::endl;
+	m_output << "std::shared_ptr<" << itemField->machineOfTheType->name << "::" << itemField->type << "> " << itemField->name << ";" << std::endl;
 }
 
 void CppGenerationVisitor::visit(const ListField* listField) {
-	m_output << "std::list<std::shared_ptr<" << listField->type << ">> " << listField->name << ";" << std::endl;
-}
-
-void CppGenerationVisitor::visit(const NFAActionRegister* actionRegister) {
-	for (const NFAAction& action : *actionRegister) {
-		m_output << '\t';
-		action.accept(this);
-		m_output << std::endl;
-	}
-}
-
-void CppGenerationVisitor::visit(const NFAAction* action) {
-	switch (action->type) {
-		case NFAActionType::Flag:
-			m_output << action->contextPath << "->" << action->targetName << " = true;";
-			break;
-		case NFAActionType::Unflag:
-			m_output << action->contextPath << "->" << action->targetName << " = false;";
-			break;
-
-		case NFAActionType::InitiateCapture:
-			m_output << "m_captureStack.push(position);";
-			break;
-		case NFAActionType::Capture:
-			m_output << "{" << std::endl;
-			m_output << "\t\tauto stackPos = m_captureStack.top();" << std::endl;
-			m_output << "\t\tm_captureStack.pop();" << std::endl;
-			m_output << "\t\t" << action->contextPath << "->" << action->targetName << " = std::string(input, stackPos, position-stackPos+1);" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
-			m_output << "\t}";
-			break;
-		case NFAActionType::Empty:
-			m_output << action->contextPath << "->" << action->targetName << ".clear();";
-			break;
-		case NFAActionType::Append:
-			m_output << "{" << std::endl;
-			m_output << "\t\tauto stackPos = m_captureStack.top();" << std::endl;
-			m_output << "\t\tm_captureStack.pop();" << std::endl;
-			m_output << "\t\t" << action->contextPath << "->" << action->targetName << ".append(input, stackPos, position-stackPos+1);" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
-			m_output << "\t}";
-			break;
-		case NFAActionType::Prepend:
-			m_output << "{" << std::endl;
-			m_output << "\t\tauto stackPos = m_captureStack.top();" << std::endl;
-			m_output << "\t\tm_captureStack.pop();" << std::endl;
-			m_output << "\t\t" << action->contextPath << "->" << action->targetName << ".insert(0, input, stackPos, position-stackPos+1);" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
-			m_output << "\t}";
-			break;
-		
-		case NFAActionType::CreateContext:
-			m_output << action->contextPath << "__" << action->targetName << " = std::make_shared<" << action->targetName << ">(location);" << std::endl;
-			m_output << "\tm_captureStack.push(position);";
-			break;
-		case NFAActionType::TerminalizeContext:
-			m_output << "{" << std::endl;
-			m_output << "\t\tauto stackPos = m_captureStack.top();" << std::endl;
-			m_output << "\t\tm_captureStack.pop();" << std::endl;
-			m_output << "\t\t" << action->contextPath << "__" << action->targetName << "->raw = std::string(input, stackPos, position-stackPos+1);" << std::endl; // +1 is to recognize the fact that position points at the current character payload and not beyond it
-			m_output << "\t}";
-			break;
-		case NFAActionType::ElevateContext:
-			m_output << action->contextPath << " = " << action->contextPath << "__" << action->targetName << ';';
-			break;
-		case NFAActionType::Set:
-			m_output << action->contextPath << "->" << action->targetName << " = " << action->payload << ';';
-			break;
-		case NFAActionType::Unset:
-			m_output << action->contextPath << "->" << action->targetName << " = nullptr;";
-			break;
-		case NFAActionType::Push:
-			m_output << action->contextPath << "->" << action->targetName << ".push_back(" << action->payload << ");";
-			break;
-		case NFAActionType::Pop:
-			m_output << action->contextPath << "->" << action->targetName << ".pop_back();";
-			break;
-		case NFAActionType::Clear:
-			m_output << action->contextPath << "->" << action->targetName << ".clear();";
-			break;
-	}
-}
-
-std::string CppGenerationVisitor::generateTypeDeclarations(const std::list<const MachineComponent*>& components) {
-	std::stringstream ss;
-
-	for (auto mc : components) {
-		ss << "class " << mc->name << " : public Production";
-		if (mc->isTerminal()) {
-			ss << ", public Terminal";
-		}
-		for (auto catPtr : mc->categories) {
-			ss << ", public " << catPtr->name;
-		}
-		ss <<"{" << std::endl;
-
-		ss << "public:" << std::endl;
-		ss << '\t' << mc->name << "(const std::shared_ptr<RawStreamLocation>& location)" << std::endl;
-		ss << "\t\t: Production(location)";
-		if (mc->isTerminal()) {
-			ss << ", Terminal(TerminalType::" << mc->name << ")";
-		}
-		ss << " { }" << std::endl;
-		ss << '\t' << std::endl;
-		for (auto fieldPtr : mc->fields) {
-			ss << '\t';
-			fieldPtr->accept(this);
-			ss << outputAndReset();
-		}
-		ss << "};" << std::endl;
-	}
-
-	return ss.str();
-}
-
-void CppGenerationVisitor::generateAutomatonMechanicsMaps(const std::string& machineName, const NFA& fa, std::string& stateMap, std::string& actionRegisterDeclarations, std::string& actionRegisterDefinitions, std::string& transitionActionMap, std::string& stateActionMap) {
-	std::stringstream stateMapStream;
-	std::stringstream actionRegisterDeclarationStream;
-	std::stringstream actionRegisterDefinitionStream;
-	std::stringstream transitionActionMapStream;
-
-	// the entire state action-register map, 0 (to be nullptr) by default
-	std::vector<ActionRegisterId> stateActionRegisterMap(fa.states.size(), (ActionRegisterId)0);
-
-	for (State state = 0; state < fa.states.size(); ++state) {
-		const auto& stateObject = fa.states[state];
-
-		// a single line of the state transition map, (State)-1 by default
-		std::vector<std::vector<State>> transitionStateMapLine(256, std::vector<State>());
-
-		// a single line of transition action-register map, 0 (to be nullptr) by default
-		std::vector<std::vector<ActionRegisterId>> transitionActionRegisterMapLine(256, std::vector<ActionRegisterId>());
-		
-		// handle the action register of state actions
-		const NFAActionRegister& snar = stateObject.actions;
-		if (snar.size() > 0) {
-			ActionRegisterId registerId = ++m_actionRegistersUsed;
-			actionRegisterDeclarationStream << "void actionRegister" << registerId << "(size_t position, const std::string & input, const std::shared_ptr<RawStreamLocation>& location);" << std::endl;
-			actionRegisterDefinitionStream << generateActionRegisterDefinition(machineName, registerId, snar, true);
-
-			stateActionRegisterMap[state] = registerId;
-		}
-
-		for (const auto& transition : stateObject.transitions) {
-			auto symbolPtr = std::dynamic_pointer_cast<LiteralSymbolGroup>(transition.condition);
-			for (auto it = transitionStateMapLine.begin() + symbolPtr->rangeStart; it <= transitionStateMapLine.begin() + symbolPtr->rangeEnd; ++it) {
-				it->push_back(transition.target);
-			}
-			
-			// handle the action register of transition actions
-			const NFAActionRegister& tnar = transition.condition->actions;
-			ActionRegisterId createdRegisterId;
-			if (tnar.size() > 0) {
-				createdRegisterId = ++m_actionRegistersUsed;
-				actionRegisterDeclarationStream << "void actionRegister" << createdRegisterId << "(size_t position, const std::string & input, const std::shared_ptr<RawStreamLocation>& location);" << std::endl;
-				actionRegisterDefinitionStream << generateActionRegisterDefinition(machineName, createdRegisterId, tnar, false);
-			} else {
-				createdRegisterId = 0;
-			}
-
-			for (auto it = transitionActionRegisterMapLine.begin() + symbolPtr->rangeStart; it <= transitionActionRegisterMapLine.begin() + symbolPtr->rangeEnd; ++it) {
-				it->push_back(createdRegisterId);
-			}
-		}
-
-		stateMapStream << "{ ";
-		for (const std::vector<State>& transitionStateMapEntryVector : transitionStateMapLine) {
-			stateMapStream << "{ ";
-			for (auto it = transitionStateMapEntryVector.crbegin(); it != transitionStateMapEntryVector.crend(); ++it) {
-				stateMapStream << *it << ", ";
-			}
-			stateMapStream << "}, ";
-		}
-		stateMapStream << "},\n";
-
-		transitionActionMapStream << "{ ";
-		for (const std::vector<ActionRegisterId>& actionMapEntryVector : transitionActionRegisterMapLine) {
-			transitionActionMapStream << "{ ";
-			for (auto it = actionMapEntryVector.crbegin(); it != actionMapEntryVector.crend(); ++it) {
-				if(*it == (ActionRegisterId)0) {
-					transitionActionMapStream << "nullptr, ";
-				} else {
-					transitionActionMapStream << "&actionRegister" << *it << ", ";
-				}
-			}
-			transitionActionMapStream << "}, ";
-		}
-		transitionActionMapStream << "},\n";
-	}
-
-	std::stringstream stateActionMapStream;
-	for (State state = 0; state < fa.states.size(); ++state) {
-		if (stateActionRegisterMap[state] == (ActionRegisterId)0) {
-			stateActionMapStream << "nullptr, ";
-		} else {
-			stateActionMapStream << "&actionRegister" << stateActionRegisterMap[state] << ", ";
-		}
-	}
-
-	stateMap = stateMapStream.str();
-	actionRegisterDeclarations = actionRegisterDeclarationStream.str();
-	actionRegisterDefinitions = actionRegisterDefinitionStream.str();
-	transitionActionMap = transitionActionMapStream.str();
-	stateActionMap = stateActionMapStream.str();
-}
-
-std::string CppGenerationVisitor::generateAutomatonContextDeclarations(const NFA& fa) const {
-	std::stringstream ss;
-
-	for (const auto& contextParentChildPair : fa.contexts) {
-		ss << "std::shared_ptr<" << contextParentChildPair.second << "> " << contextParentChildPair.first << "__"  << contextParentChildPair.second << ';' << std::endl;
-	}
-	
-	return ss.str();
-}
-
-std::string CppGenerationVisitor::generateStateFinality(const NFA& fa) const {
-	std::stringstream ss;
-
-	for (State state = 0; state < fa.states.size(); ++state) {
-		if (fa.finalStates.contains(state)) {
-			ss << "true, ";
-		} else {
-			ss << "false, ";
-		}
-	}
-
-	return ss.str();
-}
-
-std::string CppGenerationVisitor::generateActionRegisterDefinition(const std::string& machineName, ActionRegisterId registerId, const NFAActionRegister& nar, bool isStateAction) {
-	std::stringstream ss;
-	ss << "void " << machineName << "::" << "actionRegister" << registerId << (isStateAction ? "(size_t position, const std::string& input, const std::shared_ptr<RawStreamLocation>& location)" : "(size_t position, const std::string& input, const std::shared_ptr<RawStreamLocation>& location)") << " {" << std::endl;
-
-	nar.accept(this);
-	ss << outputAndReset();
-
-	ss << "}" << std::endl << std::endl;
-
-	return ss.str();
+	m_output << "std::list<std::shared_ptr<" << listField->machineOfTheType->name << "::" << listField->type << ">> " << listField->name << ";" << std::endl;
 }
 
 void CppGenerationVisitor::resetOutput() {
