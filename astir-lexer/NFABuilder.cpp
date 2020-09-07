@@ -70,9 +70,16 @@ NFA NFABuilder::visit(const Production* rule) const {
 
 NFA NFABuilder::visit(const DisjunctiveRegex* regex) const {
 	NFA base;
+
 	for (const auto& conjunctiveRegex : regex->disjunction) {
 		base |= conjunctiveRegex->accept(*this);
 	}
+
+	NFAActionRegister initial, final;
+	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
+	base.addInitialActions(initial);
+	base.addFinalActions(final);
+
 	return base;
 }
 
@@ -153,12 +160,25 @@ NFA NFABuilder::visit(const RepetitiveRegex* regex) const {
 	}
 
 	base.orNFA(theLongBranch, true);
+
+	NFAActionRegister initial, final;
+	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
+	base.addInitialActions(initial);
+	base.addFinalActions(final);
+
 	return base;
 }
 
-NFA NFABuilder::visit(const LookaheadRegex* regex) const {
-	//TODO: implement LookaheadRegex handling
-	throw Exception("LookaheadRegexes not supported at the moment");
+NFA NFABuilder::visit(const EmptyRegex* regex) const {
+	NFA base;
+
+	base.finalStates.insert(0);
+	NFAActionRegister initial, final;
+	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
+	base.states[0].actions += initial;
+	base.states[0].actions += final;
+
+	return base;
 }
 
 NFA NFABuilder::visit(const AnyRegex* regex) const {
@@ -256,23 +276,6 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 		base.addTransition(0, Transition(newBaseState, std::make_shared<TerminalSymbolGroup>(component->calculateInstandingProductions()), initial));
 		base.addFinalActions(final);
 	}
-
-	return base;
-}
-
-NFA NFABuilder::visit(const LineEndRegex* regex) const {
-	NFA base;
-
-	NFAActionRegister initial, final;
-	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
-
-	auto lineFeedState = base.addState();
-	base.addTransition(0, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n'), final));
-	base.finalStates.insert(lineFeedState);
-	auto carriageReturnState = base.addState();
-	base.addTransition(0, Transition(carriageReturnState, std::make_shared<LiteralSymbolGroup>('\r', '\r')));
-	base.addTransition(carriageReturnState, Transition(lineFeedState, std::make_shared<LiteralSymbolGroup>('\n', '\n'), final));
-	base.addInitialActions(initial);
 
 	return base;
 }

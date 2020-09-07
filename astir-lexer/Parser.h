@@ -25,7 +25,6 @@ private:
 	std::unique_ptr<Field> parseMemberDeclaration(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<RootRegex> parseRootRegex(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<RepetitiveRegex> parseRepetitiveRegex(std::list<Token>::const_iterator& it) const;
-	std::unique_ptr<LookaheadRegex> parseLookaheadRegex(std::list<Token>::const_iterator& it) const;
 	RegexActionType parseRegexAction(std::list<Token>::const_iterator& it) const;
 
 	std::unique_ptr<AtomicRegex> parseAtomicRegex(std::list<Token>::const_iterator& it) const;

@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include "RegexAction.h"
+
 #include "ISyntacticEntity.h"
 #include "IProductionReferencable.h"
 #include "INFABuildable.h"
@@ -13,7 +15,15 @@ using ComputationCharType = signed short int;
 struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IProductionReferencable { };
 
 struct RootRegex : public Regex {
+public:
+	std::list<RegexAction> actions;
+
 	virtual ~RootRegex() = default;
+
+	void checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) override;
+	virtual std::string computeItemType(const Machine& machine, const MachineComponent* context) const;
+
+protected:
 };
 
 struct AtomicRegex;
@@ -32,45 +42,6 @@ struct RepetitiveRegex : public RootRegex {
 	void checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) override;
 };
 
-struct PrimitiveRegex;
-struct LookaheadRegex : public RootRegex {
-	std::unique_ptr<AtomicRegex> match;
-	std::unique_ptr<PrimitiveRegex> lookahead;
-
-	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
-
-	NFA accept(const NFABuilder& nfaBuilder) const override;
-
-	void checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) override;
-};
-
-enum class RegexActionType : unsigned char {
-	Flag = 1,
-	Unflag = 2,
-
-	Capture = 3,
-	Empty = 4,
-	Append = 5,
-	Prepend = 6,
-
-	Set = 7,
-	Unset = 8,
-	Push = 9,
-	Pop = 10,
-	Clear = 11,
-	
-	None = 255
-};
-struct RegexAction : public ISyntacticEntity {
-	RegexActionType type = RegexActionType::None;
-	std::string target;
-	const Field* targetField;
-
-	RegexAction()
-		: targetField(nullptr) { }
-	RegexAction(RegexActionType type, std::string target)
-		: type(type), target(target), targetField(nullptr) { }
-};
 struct AtomicRegex : public RootRegex { };
 
 struct ConjunctiveRegex;
@@ -96,10 +67,11 @@ struct ConjunctiveRegex : public Regex {
 };
 
 struct PrimitiveRegex : public AtomicRegex {
-	std::list<RegexAction> actions;
+	
+};
 
-	void checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) override;
-	virtual std::string computeItemType(const Machine& machine, const MachineComponent* context) const;
+struct EmptyRegex : public PrimitiveRegex {
+	NFA accept(const NFABuilder& nfaBuilder) const override;
 };
 
 struct RegexRange {
@@ -137,11 +109,3 @@ struct ReferenceRegex : public PrimitiveRegex {
 struct ArbitrarySymbolRegex : public PrimitiveRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 };
-
-struct LineEndRegex : public PrimitiveRegex {
-	NFA accept(const NFABuilder& nfaBuilder) const override;
-};
-
-/* struct LineBeginRegex : public PrimitiveRegex {
-	
-}; */

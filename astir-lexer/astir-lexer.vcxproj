@@ -189,6 +189,7 @@
     <ClInclude Include="NFA.h" />
     <ClInclude Include="Parser.h" />
     <ClInclude Include="Regex.h" />
+    <ClInclude Include="RegexAction.h" />
     <ClInclude Include="Resources\Location.h" />
     <ClInclude Include="Resources\Production.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
