@@ -9,10 +9,6 @@
 #include "Regex.h"
 #include "NFAAction.h"
 
-class Machine;
-class MachineComponent;
-class Production;
-
 using State = size_t;
 using SymbolIndex = size_t;
 
@@ -63,9 +59,10 @@ private:
 	std::shared_ptr<std::list<SymbolIndex>> m_symbolIndicesFlyweight;
 };
 
+struct ProductionStatement;
 struct TerminalSymbolGroup : public SymbolGroup {
-	std::list<const Production*> referencedProductions;
-	TerminalSymbolGroup(const std::list<const Production*>& referencedProductions)
+	std::list<const ProductionStatement*> referencedProductions;
+	TerminalSymbolGroup(const std::list<const ProductionStatement*>& referencedProductions)
 		: SymbolGroup(), referencedProductions(referencedProductions), m_symbolIndicesFlyweight(std::make_shared<std::list<SymbolIndex>>()) { }
 
 	bool equals(const SymbolGroup* rhs) const override;

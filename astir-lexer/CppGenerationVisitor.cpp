@@ -19,13 +19,13 @@ void CppGenerationVisitor::setup() const {
 	std::filesystem::copy_file("Resources/ProductionStream.h", m_folderPath / "ProductionStream.h", std::filesystem::copy_options::overwrite_existing);
 }
 
-void CppGenerationVisitor::visit(const SemanticTree* tree) {
-	for (const auto machinePair : tree->machines) {
-		machinePair.second->accept(this);
+void CppGenerationVisitor::visit(const SyntacticTree* tree) {
+	for (const auto machineDefinitionPair : tree->machineDefinitions) {
+		machineDefinitionPair.second->accept(this);
 	}
 }
 
-void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
+void CppGenerationVisitor::visit(const FiniteAutomatonDefinition* machine) {
 	std::ifstream specimenFaHeader("Resources/SpecimenFiniteAutomaton.sh");
 	std::string specimenFaHeaderContents((std::istreambuf_iterator<char>(specimenFaHeader)), (std::istreambuf_iterator<char>()));
 
@@ -40,7 +40,7 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 	//  - register all the name macros
 	macros.emplace("MachineName", machine->name);
 	//	- choose appropriate input stream type
-	if (!machine->on) {
+	if (!machine->on.second) {
 		if(!m_hasIncludedRawStreamFiles) {
 			std::filesystem::copy_file("Resources/RawStream.h", m_folderPath / "RawStream.h", std::filesystem::copy_options::overwrite_existing);
 			std::filesystem::copy_file("Resources/RawStream.cpp", m_folderPath / "RawStream.cpp", std::filesystem::copy_options::overwrite_existing);
@@ -52,24 +52,26 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 		macros.emplace("InputStreamTypeName", "RawStream");
 		macros.emplace("DependencyHeaderInclude", "");
 	} else {
+		const std::string& onName = machine->on.first;
 		macros.emplace("AppropriateStreamHeader", "ProductionStream.h");
-		macros.emplace("InputTerminalTypeName", machine->on->name + "::OutputTerminal");
-		macros.emplace("InputStreamTypeName", "ProductionStream<" + machine->on->name + "::OutputTerminal>");
-		macros.emplace("DependencyHeaderInclude", "#include \"" + machine->on->name + ".h\"");
+		macros.emplace("InputTerminalTypeName", onName + "::OutputTerminal");
+		macros.emplace("InputStreamTypeName", "ProductionStream<" + onName + "::OutputTerminal>");
+		macros.emplace("DependencyHeaderInclude", "#include \"" + onName + ".h\"");
 	}
 	
 	//  - enumerate all the production roots
 	auto terminalRootProductions = machine->getTerminalRoots();
 	std::stringstream ss;
 	for (auto productionPtr : terminalRootProductions) {
-		ss << productionPtr->name << " = " << productionPtr->typeIndex << "," << std::endl;
+		ss << productionPtr->name << " = " << productionPtr->terminalTypeIndex << "," << std::endl;
 	}
 	macros.emplace("OutputTerminalTypesEnumerated", ss.str());
 	macros.emplace("OutputTerminalTypeCount", std::to_string(machine->terminalProductionCount()));
 
 	//  - generate type declarations
-	for (const auto& machineComponentPair : machine->components) {
-		machineComponentPair.second->accept(this);
+	for (const auto& machineStatementPair : machine->statements) {
+		auto machineStatementCast = std::dynamic_pointer_cast<IGenerationVisitable>(machineStatementPair.second);
+		machineStatementCast->accept(this);
 	}
 	macros.emplace("TypeDeclarations", this->outputAndReset());
 
@@ -79,8 +81,8 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 	//  - set the DFA table parameter macros
 	macros.emplace("StateCount", std::to_string(machine->getNFA().states.size()));
 	size_t numberOfInputTerminals;
-	if (machine->on) {
-		numberOfInputTerminals = machine->on->terminalProductionCount() + 1; //+1 comes from having EOS (TerminalTypeIndex = 0) there implicitly
+	if (machine->on.second) {
+		numberOfInputTerminals = machine->on.second->terminalProductionCount() + 1; //+1 comes from having EOS (TerminalTypeIndex = 0) there implicitly
 	} else {
 		numberOfInputTerminals = 256;
 	}
@@ -117,33 +119,32 @@ void CppGenerationVisitor::visit(const FiniteAutomatonMachine* machine) {
 	GenerationHelper::macroWrite(specimenFaCodeContents, macros, faCode);
 }
 
-void CppGenerationVisitor::visit(const MachineComponent* mc) {
-	if (!mc->isTypeForming()) {
-		return;
-	}
+void CppGenerationVisitor::visit(const TypeFormingStatement* tfs) {
+	auto productionPtr = dynamic_cast<const ProductionStatement*>(tfs);
+	const bool isTerminal = productionPtr != nullptr && productionPtr->terminality == Terminality::Terminal;
 
-	m_output << "class " << mc->name << " : ";
-	if (mc->isTerminal()) {
+	m_output << "class " << tfs->name << " : ";
+	if (isTerminal) {
 		m_output << "public OutputTerminal";
 	} else {
 		m_output << "public Production";
 	}
-	for (auto catPtr : mc->categories) {
-		m_output << ", public " << catPtr->name;
+	for (auto categoryPair : tfs->categories) {
+		m_output << ", public " << categoryPair.first;
 	}
 	m_output << " {" << std::endl;
 
 	m_output << "public:" << std::endl;
-	m_output << '\t' << mc->name << "(const std::shared_ptr<Location>& location)" << std::endl;
+	m_output << '\t' << tfs->name << "(const std::shared_ptr<Location>& location)" << std::endl;
 	m_output << "\t\t: ";
-	if (mc->isTerminal()) {
-		m_output << "OutputTerminal(OutputTerminalType::" << mc->name << ", location)";
+	if (isTerminal) {
+		m_output << "OutputTerminal(OutputTerminalType::" << tfs->name << ", location)";
 	} else {
 		m_output << "Production(location)";
 	}
 	m_output << " { }" << std::endl;
 	m_output << '\t' << std::endl;
-	for (auto fieldPtr : mc->fields) {
+	for (auto fieldPtr : tfs->fields) {
 		m_output << '\t';
 		fieldPtr->accept(this);
 		// m_output << outputAndReset(); not needed actually since we are working on m_output atm

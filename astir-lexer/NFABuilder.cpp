@@ -4,23 +4,25 @@
 #include <stack>
 #include <algorithm>
 
-#include "SemanticTree.h"
+#include "SyntacticTree.h"
 
-NFA NFABuilder::visit(const Category* category) const {
+NFA NFABuilder::visit(const CategoryStatement* category) const {
 	NFA alternationPoint;
 	const std::string parentContextPath = m_generationContextPath + "__" + category->name;
 	const std::string generationContextPathPrefix = parentContextPath + "__";
 	for (const auto referencePair : category->references) {
 		const std::string& newSubcontextName = referencePair.first;
-		const INFABuildable* componentCastIntoBuildable = dynamic_cast<const INFABuildable*>(referencePair.second.component);
+		const INFABuildable* componentCastIntoBuildable = dynamic_cast<const INFABuildable*>(referencePair.second.statement);
 		NFA alternativeNfa = componentCastIntoBuildable->accept(*this);
 
 		NFAActionRegister elevateContextActionRegister;
 		
-		if(referencePair.second.component->isTypeForming()) {
+		auto typeFormingStatement = dynamic_cast<const TypeFormingStatement*>(referencePair.second.statement);
+		if(typeFormingStatement) {
 			// if the component is type-forming, a new context has been created in alternativeNfa and it needs to be elevated to the category level
 			// but, if it is also terminal, we need to associate the raw capture with the context before elevating
-			if (referencePair.second.component->isTerminal()) {
+			auto productionStatement = dynamic_cast<const ProductionStatement*>(typeFormingStatement);
+			if (productionStatement && productionStatement->terminality == Terminality::Terminal) {
 				elevateContextActionRegister.emplace_back(NFAActionType::TerminalizeContext, parentContextPath, newSubcontextName);
 			}
 			elevateContextActionRegister.emplace_back(NFAActionType::ElevateContext, parentContextPath, newSubcontextName);
@@ -42,30 +44,35 @@ NFA NFABuilder::visit(const Category* category) const {
 	return alternationPoint;
 }
 
-NFA NFABuilder::visit(const Pattern* rule) const {
-	const std::string newContextPath = m_generationContextPath + "__" + rule->name;
+NFA NFABuilder::visit(const PatternStatement* patternStatement) const {
+	const std::string newContextPath = m_generationContextPath + "__" + patternStatement->name;
 
-	NFABuilder contextualizedBuilder(this->m_contextMachine, rule, newContextPath);
-	NFA regexNfa = rule->regex->accept(contextualizedBuilder);
+	NFABuilder contextualizedBuilder(this->m_contextMachine, patternStatement, newContextPath);
+	NFA regexNfa = patternStatement->regex->accept(contextualizedBuilder);
 
 	return regexNfa;
 }
 
-NFA NFABuilder::visit(const Production* rule) const {
-	const std::string newContextPath = m_generationContextPath + "__" + rule->name;
+NFA NFABuilder::visit(const ProductionStatement* productionStatement) const {
+	const std::string newContextPath = m_generationContextPath + "__" + productionStatement->name;
 
 	// compute the NFA of the underlying regex
-	NFABuilder contextualizedBuilder(this->m_contextMachine, rule, newContextPath);
-	NFA regexNfa = rule->regex->accept(contextualizedBuilder);
+	NFABuilder contextualizedBuilder(this->m_contextMachine, productionStatement, newContextPath);
+	NFA regexNfa = productionStatement->regex->accept(contextualizedBuilder);
 	
 	// add context creation actions
 	NFAActionRegister createContextActionRegister;
-	createContextActionRegister.emplace_back(NFAActionType::CreateContext, m_generationContextPath, rule->name);
+	createContextActionRegister.emplace_back(NFAActionType::CreateContext, m_generationContextPath, productionStatement->name);
 	regexNfa.addInitialActions(createContextActionRegister);
-	regexNfa.registerContext(m_generationContextPath, rule->name);
+	regexNfa.registerContext(m_generationContextPath, productionStatement->name);
 
 	// return the contexted result
 	return regexNfa;
+}
+
+NFA NFABuilder::visit(const RegexStatement* regexStatement) const {
+	// we are certain that there will be no type forming nor any actions in this NFA, so let's just use this builder to build the NFA
+	return regexStatement->regex->accept(*this);
 }
 
 NFA NFABuilder::visit(const DisjunctiveRegex* regex) const {
@@ -259,22 +266,24 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 	const State newBaseState = base.addState();
 	base.finalStates.insert(newBaseState);
 
-	const Machine* componentMachine;
-	const MachineComponent* component = this->m_contextMachine.findMachineComponent(regex->referenceName, &componentMachine);
-	const INFABuildable* componentCastIntoBuildable = dynamic_cast<const INFABuildable*>(component);
-	if (componentMachine->name == m_contextMachine.name) {
-		const std::string payloadPath = component->isTypeForming() ? m_generationContextPath + "__" + regex->referenceName : "";
+	const MachineDefinition* statementMachine;
+	auto statement = this->m_contextMachine.findMachineStatement(regex->referenceName, &statementMachine);
+	auto statementCastIntoBuildable = dynamic_pointer_cast<INFABuildable>(statement);
+	if (statementMachine->name == m_contextMachine.name) {
+		auto typeFormingComponent = std::dynamic_pointer_cast<TypeFormingStatement>(statement);
+		const std::string payloadPath = typeFormingComponent ? m_generationContextPath + "__" + regex->referenceName : "";
 		NFAActionRegister initial, final;
 		std::tie(initial, final) = computeActionRegisterEntries(regex->actions, payloadPath);
 
-		NFABuilder contextualizedBuilder(m_contextMachine, component, m_generationContextPath);
-		base = componentCastIntoBuildable->accept(contextualizedBuilder);
+		NFABuilder contextualizedBuilder(m_contextMachine, statement.get(), m_generationContextPath);
+		base = statementCastIntoBuildable->accept(contextualizedBuilder);
 		base.addInitialActions(initial);
 		base.addFinalActions(final);
 	} else {
 		NFAActionRegister initial, final;
 		std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
-		base.addTransition(0, Transition(newBaseState, std::make_shared<TerminalSymbolGroup>(component->calculateInstandingProductions()), initial));
+		auto attributedStatement = std::dynamic_pointer_cast<AttributedStatement>(statement);
+		base.addTransition(0, Transition(newBaseState, std::make_shared<TerminalSymbolGroup>(attributedStatement->calculateInstandingProductions()), initial));
 		base.addFinalActions(final);
 	}
 
@@ -323,8 +332,8 @@ std::pair<NFAActionRegister, NFAActionRegister>  NFABuilder::computeActionRegist
 }
 
 std::shared_ptr<SymbolGroup> NFABuilder::createArbitrarySymbolGroup() const {
-	if (m_contextMachine.on) {
-		return std::make_shared<TerminalSymbolGroup>(m_contextMachine.on->getProductionRoots());
+	if (m_contextMachine.on.second) {
+		return std::make_shared<TerminalSymbolGroup>(m_contextMachine.on.second->getUnderlyingProductionsOfRoots());
 	} else {
 		return std::make_shared<LiteralSymbolGroup>((CharType)0, (CharType)255);
 	}

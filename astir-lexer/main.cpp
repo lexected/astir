@@ -20,13 +20,12 @@ int main(int argc, char* argv[]) {
 	}
 
 	Parser parser;
-	std::shared_ptr<ISemanticallyProcessable<SemanticTree>> syntacticTree = parser.parse(tokenList);
-	auto semanticTree = syntacticTree->makeSemanticEntity(syntacticTree);
-	semanticTree->initialize();
+	std::shared_ptr<SyntacticTree> syntacticTree = parser.parse(tokenList);
+	syntacticTree->initialize();
 
 	CppGenerationVisitor generationVisitor("Tests/Test06/Output");
 	generationVisitor.setup();
-	generationVisitor.visit(semanticTree.get());
+	generationVisitor.visit(syntacticTree.get());
 
 	return 0;
 }

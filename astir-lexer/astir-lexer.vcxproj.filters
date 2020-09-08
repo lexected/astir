@@ -93,12 +93,6 @@
     <ClCompile Include="Regex.cpp">
       <Filter>Source Files\Syntactic Analysis</Filter>
     </ClCompile>
-    <ClCompile Include="SemanticTree.cpp">
-      <Filter>Source Files\Semantic Analysis</Filter>
-    </ClCompile>
-    <ClCompile Include="SyntacticTree.cpp">
-      <Filter>Source Files\Syntactic Analysis</Filter>
-    </ClCompile>
     <ClCompile Include="Token.cpp">
       <Filter>Source Files\Lexical Analysis</Filter>
     </ClCompile>
@@ -125,6 +119,12 @@
     </ClCompile>
     <ClCompile Include="Resources\RawStream.cpp">
       <Filter>Resource Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="SyntacticTree.cpp">
+      <Filter>Source Files\Syntactic Analysis</Filter>
+    </ClCompile>
+    <ClCompile Include="SemanticAnalysisException.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -163,9 +163,6 @@
     </ClInclude>
     <ClInclude Include="Token.h">
       <Filter>Header Files\Lexical Analysis</Filter>
-    </ClInclude>
-    <ClInclude Include="SemanticTree.h">
-      <Filter>Header Files\Semantic Analysis</Filter>
     </ClInclude>
     <ClInclude Include="ISemanticEntity.h">
       <Filter>Header Files\Semantic Analysis</Filter>
@@ -220,6 +217,9 @@
     </ClInclude>
     <ClInclude Include="RegexAction.h">
       <Filter>Header Files\Syntactic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="SemanticAnalysisException.h">
+      <Filter>Header Files\Semantic Analysis</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

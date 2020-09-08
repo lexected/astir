@@ -163,7 +163,7 @@
     <ClCompile Include="Resources\SpecimenFiniteAutomaton.scpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="SemanticTree.cpp" />
+    <ClCompile Include="SemanticAnalysisException.cpp" />
     <ClCompile Include="SyntacticTree.cpp" />
     <ClCompile Include="Token.cpp" />
   </ItemGroup>
@@ -206,7 +206,7 @@
     <ClInclude Include="Resources\Terminal.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="SemanticTree.h" />
+    <ClInclude Include="SemanticAnalysisException.h" />
     <ClInclude Include="SyntacticTree.h" />
     <ClInclude Include="Token.h" />
   </ItemGroup>

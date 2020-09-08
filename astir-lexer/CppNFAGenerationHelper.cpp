@@ -3,6 +3,8 @@
 
 #include <sstream>
 
+#include "SyntacticTree.h"
+
 void CppNFAGenerationHelper::generateMechanicsMaps(std::string& stateMap, std::string& actionRegisterDeclarations, std::string& actionRegisterDefinitions, std::string& transitionActionMap, std::string& stateActionMap) const {
 	std::stringstream stateMapStream;
 	std::stringstream actionRegisterDeclarationStream;
@@ -149,10 +151,10 @@ std::string CppNFAGenerationHelper::generateActionRegisterDefinition(ActionRegis
 	return ss.str();
 }
 
-#include "SemanticTree.h"
+
 std::string CppNFAGenerationHelper::generateActionOperation(const NFAAction& na) const {
 	const std::string payloadOrInput = na.payload.empty() ? "input[position]" : na.payload;
-	const VariablyTypedField* vtf = dynamic_cast<const VariablyTypedField*>(na.targetField);
+	auto vtf = dynamic_pointer_cast<VariablyTypedField>(na.targetField);
 	std::string dynamicCastType;
 	if (vtf) {
 		dynamicCastType = vtf->machineOfTheType->name + "::" + vtf->type;

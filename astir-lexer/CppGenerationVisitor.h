@@ -12,10 +12,10 @@ public:
 
 	void setup() const override;
 
-	void visit(const SemanticTree* tree) override;
-	void visit(const FiniteAutomatonMachine* tree) override;
+	void visit(const SyntacticTree* tree) override;
+	void visit(const FiniteAutomatonDefinition* tree) override;
 
-	void visit(const MachineComponent* component) override;
+	void visit(const TypeFormingStatement* component) override;
 	void visit(const FlagField* flagField) override;
 	void visit(const RawField* rawField) override;
 	void visit(const ItemField * itemField) override;

@@ -2,6 +2,7 @@
 
 #include <string>
 #include <list>
+#include <memory>
 
 enum class NFAActionType : unsigned char {
 	Flag = 1,
@@ -32,13 +33,13 @@ struct NFAAction {
 	std::string contextPath;
 	std::string targetName;
 	std::string payload;
-	const Field* targetField;
+	std::shared_ptr<Field> targetField;
 
 	NFAAction(NFAActionType faAction, const std::string& contextPath, const std::string& targetName)
 		: NFAAction(faAction, contextPath, targetName, nullptr) { }
-	NFAAction(NFAActionType faAction, const std::string& contextPath, const std::string& targetName, const Field* targetField)
+	NFAAction(NFAActionType faAction, const std::string& contextPath, const std::string& targetName, const std::shared_ptr<Field>& targetField)
 		: NFAAction(faAction, contextPath, targetName, targetField, std::string()) { }
-	NFAAction(NFAActionType faAction, const std::string& contextPath, const std::string& targetName, const Field* targetField, const std::string& payload)
+	NFAAction(NFAActionType faAction, const std::string& contextPath, const std::string& targetName, const std::shared_ptr<Field>& targetField, const std::string& payload)
 		: type(faAction), contextPath(contextPath), targetName(targetName), targetField(targetField), payload(payload) { }
 
 	bool operator==(const NFAAction& rhs) const;

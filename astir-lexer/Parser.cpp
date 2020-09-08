@@ -4,6 +4,8 @@
 
 using namespace std;
 
+#include "SemanticAnalysisException.h"
+
 /*
 	A VERY IMPORTANT RULE:
 	 --- IF YOU'RE RETURNING NULLPTR, YOU ARE RESPONSIBLE FOR MAKING SURE IT POINTS TO WHERE IT WAS POINTING WHEN IT WAS PASSED TO YOU ---
@@ -24,7 +26,13 @@ std::unique_ptr<SyntacticTree> Parser::parse(const std::list<Token>& tokens) con
 
 		unique_ptr<MachineDefinition> machineDefinition;
 		if ((machineDefinition = Parser::parseMachineDefinition(it))) {
-			specificationFile->machineDefinitions.push_back(move(machineDefinition));
+			const std::string& incomingMachineDefinitionName = machineDefinition->name;
+			auto fit = specificationFile->machineDefinitions.find(incomingMachineDefinitionName);
+			if (fit != specificationFile->machineDefinitions.end()) {
+				throw SemanticAnalysisException("A machine with the name '" + incomingMachineDefinitionName + "' has already been defined in the current context", *fit->second);
+			}
+
+			specificationFile->machineDefinitions.emplace(incomingMachineDefinitionName, move(machineDefinition));
 			continue;
 		}
 
@@ -89,7 +97,7 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 		if (it->type != TokenType::IDENTIFIER) {
 			throw UnexpectedTokenException(*it, "an identifier for the machine to \"use\" to follow the 'uses' keyword", "for machine declaration", *savedIt);
 		}
-		machineDefinition->uses.push_back(it->string);
+		machineDefinition->uses.emplace(it->string, nullptr);
 
 		while (it->type == TokenType::OP_COMMA) {
 			++it;
@@ -98,7 +106,7 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 				throw UnexpectedTokenException(*it, "an identifier for the machine to \"use\" in the 'uses' clause", "for machine declaration", *savedIt);
 			}
 
-			machineDefinition->uses.push_back(it->string);
+			machineDefinition->uses.emplace(it->string, nullptr);
 			++it;
 		}
 	} else if (it->type == TokenType::KW_ON) {
@@ -108,7 +116,7 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 			throw UnexpectedTokenException(*it, "an identifier for the target of 'on' (i.e. underlying/input machine)", "for machine declaration", *savedIt);
 		}
 
-		machineDefinition->on = it->string;
+		machineDefinition->on = std::make_pair<std::string, std::shared_ptr<MachineDefinition>>(std::string(it->string), nullptr);
 		++it;
 	}
 
@@ -126,7 +134,13 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 	while (true) {
 		statement = Parser::parseMachineStatement(it);
 		if(statement) {
-			machineDefinition->statements.push_back(statement);
+			const std::string& incomingStatementName = statement->name;
+			auto fit = machineDefinition->statements.find(incomingStatementName);
+			if (fit != machineDefinition->statements.end()) {
+				throw SemanticAnalysisException("A statement with the name '" + incomingStatementName + "' has already been defined in the current context", *fit->second);
+			}
+
+			machineDefinition->statements.emplace(incomingStatementName, statement);
 		} else {
 			break;
 		}
@@ -249,6 +263,7 @@ std::unique_ptr<MachineStatement> Parser::parseMachineStatement(std::list<Token>
 			} else if (terminality != Terminality::Unspecified) {
 				throw UnexpectedTokenException(*it, "an identifier, or 'production' + an identifier to follow the terminality specification", "machine statement", *savedIt);
 			} else {
+				it = savedIt;
 				return nullptr;
 			}
 		}
@@ -258,64 +273,24 @@ std::unique_ptr<MachineStatement> Parser::parseMachineStatement(std::list<Token>
 std::unique_ptr<CategoryStatement> Parser::parseCategoryStatement(std::list<Token>::const_iterator& it, Rootness rootness) const {
 	auto savedIt = it;
 
-	std::unique_ptr<CategoryStatement> catstat = make_unique<CategoryStatement>();
-	catstat->copyLocation(*savedIt);
+	std::unique_ptr<CategoryStatement> categoryStatement = make_unique<CategoryStatement>();
+	categoryStatement->copyLocation(*savedIt);
 
 	if (it->type != TokenType::IDENTIFIER) {
 		throw UnexpectedTokenException(*it, "an identifier for the category name", "for category declaration", *savedIt);
 	}
-	catstat->name = it->string;
+	categoryStatement->name = it->string;
 	++it;
 
-	if (it->type == TokenType::OP_COLON) {
-		++it;
-		do {
-			if (it->type != TokenType::IDENTIFIER) {
-				throw UnexpectedTokenException(*it, "an category name identifier", "for inheritance in category declaration", *savedIt);
-			}
-			catstat->categories.push_back(it->string);
-			++it;
-
-			if (it->type != TokenType::OP_COMMA) {
-				break;
-			}
-			++it;
-		} while (true);
-	}
-
-	if (it->type == TokenType::OP_SEMICOLON) {
-		++it;
-		return catstat;
-	}
-
-	if (it->type != TokenType::CURLY_LEFT) {
-		throw UnexpectedTokenException(*it, "'{' followed by member declarations", "for category definition", *savedIt);
-	}
-	++it;
-
-	std::unique_ptr<Field> lastDeclaration;
-	do {
-		auto savedIt = it;
-		lastDeclaration = Parser::parseMemberDeclaration(it);
-		if (lastDeclaration) {
-			catstat->fields.push_back(std::move(lastDeclaration));
-		} else {
-			it = savedIt;
-			break;
-		}
-	} while (true);
-
-	if (it->type != TokenType::CURLY_RIGHT) {
-		throw UnexpectedTokenException(*it, "a token for member declaration or the matching closing right curly bracket '}'", "for category definition", *savedIt);
-	}
-	++it;
+	// category is also an attributed statement
+	parseInAttributedStatement(savedIt, it, *categoryStatement, "category");
 
 	if (it->type != TokenType::OP_SEMICOLON) {
 		throw UnexpectedTokenException(*it, "the terminal semicolon ';'", "for category definition", *savedIt);
 	}
 	++it;
 
-	return catstat;
+	return categoryStatement;
 }
 
 void Parser::parseInAttributedStatement(std::list<Token>::const_iterator& productionStartIt, std::list<Token>::const_iterator& it, AttributedStatement& statement, const std::string& attributedStatementType) const {
@@ -325,7 +300,7 @@ void Parser::parseInAttributedStatement(std::list<Token>::const_iterator& produc
 			if (it->type != TokenType::IDENTIFIER) {
 				throw UnexpectedTokenException(*it, "a " + attributedStatementType + " name identifier", "for inheritance in " + attributedStatementType + " declaration", *productionStartIt);
 			}
-			statement.categories.push_back(it->string);
+			statement.categories.emplace(std::string(it->string), nullptr);
 			++it;
 
 			if (it->type != TokenType::OP_COMMA) {
@@ -368,7 +343,7 @@ void Parser::parseInRuleStatement(std::list<Token>::const_iterator& productionSt
 	if (!disjunction) {
 		throw ParserException("Expected an alternative (i.e. a valid, possibly disjunctive, astir regex) to follow the '=' on the intial token - none found.", *it, *prevIt);
 	}
-	statement.ruleRegex = move(disjunction);
+	statement.regex = move(disjunction);
 
 	if (it->type != TokenType::OP_SEMICOLON) {
 		throw UnexpectedTokenException(*it, "the terminal semicolon ';'", "for " + attributedStatementType + " definition", *productionStartIt);

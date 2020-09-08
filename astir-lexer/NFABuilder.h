@@ -1,19 +1,18 @@
 #pragma once
 
-#include "SemanticTree.h"
+#include "SyntacticTree.h"
 #include "Regex.h"
 #include "NFA.h"
 
-class Machine;
-
 class NFABuilder {
 public:
-	NFABuilder(const Machine& context, const MachineComponent* component, const std::string& generationContextPath)
-		: m_contextMachine(context), m_contextComponent(component), m_generationContextPath(generationContextPath) { }
+	NFABuilder(const MachineDefinition& context, const MachineStatement* statement, const std::string& generationContextPath)
+		: m_contextMachine(context), m_contextStatement(statement), m_generationContextPath(generationContextPath) { }
 
-	NFA visit(const Category* category) const;
-	NFA visit(const Pattern* rule) const;
-	NFA visit(const Production* rule) const;
+	NFA visit(const CategoryStatement* category) const;
+	NFA visit(const PatternStatement* rule) const;
+	NFA visit(const ProductionStatement* rule) const;
+	NFA visit(const RegexStatement* rule) const;
 
 	NFA visit(const DisjunctiveRegex* regex) const;
 	NFA visit(const ConjunctiveRegex* regex) const;
@@ -27,8 +26,8 @@ public:
 	NFA visit(const ArbitrarySymbolRegex* regex) const;
 	NFA visit(const ReferenceRegex* regex) const; 
 private:
-	const Machine& m_contextMachine;
-	const MachineComponent* m_contextComponent;
+	const MachineDefinition& m_contextMachine;
+	const MachineStatement* m_contextStatement;
 	const std::string m_generationContextPath;
 
 	std::list<std::shared_ptr<SymbolGroup>> makeLiteralGroups(const AnyRegex* regex) const;

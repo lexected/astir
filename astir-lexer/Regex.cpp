@@ -1,10 +1,11 @@
 #include "Regex.h"
 #include "SyntacticTree.h"
-#include "SemanticTree.h"
 #include "NFA.h"
 #include "NFABuilder.h"
 
-const IFileLocalizable* RepetitiveRegex::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
+#include "SemanticAnalysisException.h"
+
+const IFileLocalizable* RepetitiveRegex::findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
 	return regex->findRecursiveReference(machine, namesEncountered, targetName);
 }
 
@@ -12,13 +13,23 @@ NFA RepetitiveRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
-void RepetitiveRegex::checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) {
-	regex->checkAndTypeformActionUsage(machine, context);
+void RepetitiveRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) {
+	regex->checkAndTypeformActionUsage(machine, context, areActionsAllowed);
 }
 
-void RootRegex::checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) {
+void RootRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) {
+	if (!areActionsAllowed && !actions.empty()) {
+		throw SemanticAnalysisException("Regex actions appearing in the regex located at " + this->locationString() + " while all actions are prohibited within the context of '" + context->name + "' (presumably a regex statement) declared at " + context->locationString());
+	}
+
+	auto attributedStatement = dynamic_cast<const AttributedStatement*>(context);
+	if (attributedStatement == nullptr) {
+		throw SemanticAnalysisException("Regex actions attempting to modify '" + context->name + "' in the regex at " + this->locationString() + " but '" + context->name + "', declared at " + context->locationString() + ", is not an attributed statement");
+	}
+
 	for (auto& action : actions) {
-		const Field* fieldPtr = context->findField(action.target);
+		std::shared_ptr<CategoryStatement> __tmp;
+		auto fieldPtr = attributedStatement->findField(action.target, __tmp);
 		action.targetField = fieldPtr;
 		if (fieldPtr == nullptr) {
 			throw SemanticAnalysisException("The action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not recognized as a field in the context of the rule '" + context->name + "' with definition at '" + context->locationString());
@@ -27,7 +38,7 @@ void RootRegex::checkAndTypeformActionUsage(const Machine& machine, const Machin
 		switch (action.type) {
 			case RegexActionType::Flag:
 			case RegexActionType::Unflag: {
-				const FlagField* ffPtr = dynamic_cast<const FlagField*>(fieldPtr);
+				auto ffPtr = std::dynamic_pointer_cast<FlagField>(fieldPtr);
 				if (ffPtr == nullptr) {
 					throw SemanticAnalysisException("The action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not a 'flag' field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
 				}
@@ -38,7 +49,7 @@ void RootRegex::checkAndTypeformActionUsage(const Machine& machine, const Machin
 			case RegexActionType::Empty:
 			case RegexActionType::Append:
 			case RegexActionType::Prepend: {
-				const RawField* rfPtr = dynamic_cast<const RawField*>(fieldPtr);
+				auto rfPtr = std::dynamic_pointer_cast<RawField>(fieldPtr);
 				if (rfPtr == nullptr) {
 					throw SemanticAnalysisException("The action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not an 'raw' field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
 				}
@@ -46,7 +57,7 @@ void RootRegex::checkAndTypeformActionUsage(const Machine& machine, const Machin
 			}
 
 			case RegexActionType::Set: {
-				const VariablyTypedField* svtf = dynamic_cast<const VariablyTypedField*>(fieldPtr);
+				auto svtf = std::dynamic_pointer_cast<VariablyTypedField>(fieldPtr);
 				if (svtf == nullptr) {
 					throw SemanticAnalysisException("The typed action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not a typed field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
 				}
@@ -57,7 +68,7 @@ void RootRegex::checkAndTypeformActionUsage(const Machine& machine, const Machin
 				}
 			}
 			case RegexActionType::Unset: {
-				const ItemField* ifPtr = dynamic_cast<const ItemField*>(fieldPtr);
+				auto ifPtr = std::dynamic_pointer_cast<ItemField>(fieldPtr);
 				if (ifPtr == nullptr) {
 					throw SemanticAnalysisException("The action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not an 'item' field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
 				}
@@ -65,7 +76,7 @@ void RootRegex::checkAndTypeformActionUsage(const Machine& machine, const Machin
 			}
 
 			case RegexActionType::Push: {
-				const VariablyTypedField* pvtf = dynamic_cast<const VariablyTypedField*>(fieldPtr);
+				auto pvtf = std::dynamic_pointer_cast<VariablyTypedField>(fieldPtr);
 				if (pvtf == nullptr) {
 					throw SemanticAnalysisException("The typed action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not a typed field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
 				}
@@ -76,7 +87,7 @@ void RootRegex::checkAndTypeformActionUsage(const Machine& machine, const Machin
 			}
 			case RegexActionType::Pop:
 			case RegexActionType::Clear: {
-				const ListField* lf = dynamic_cast<const ListField*>(fieldPtr);
+				auto lf = std::dynamic_pointer_cast<ListField>(fieldPtr);
 				if (lf == nullptr) {
 					throw SemanticAnalysisException("The action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not a 'list' field of '" + context->name + "' (see its definition at " + context->locationString() + ")");
 				}
@@ -90,12 +101,12 @@ void RootRegex::checkAndTypeformActionUsage(const Machine& machine, const Machin
 	}
 }
 
-std::string RootRegex::computeItemType(const Machine& machine, const MachineComponent* context) const {
+std::string RootRegex::computeItemType(const MachineDefinition& machine, const MachineStatement* context) const {
 	// TODO: figure out wtf is this for...
 	return "raw";
 }
 
-const IFileLocalizable* DisjunctiveRegex::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
+const IFileLocalizable* DisjunctiveRegex::findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
 	for (const auto& conjunctiveRegexPtr : disjunction) {
 		auto ret = conjunctiveRegexPtr->findRecursiveReference(machine, namesEncountered, targetName);
 		if (ret) {
@@ -110,13 +121,13 @@ NFA DisjunctiveRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
-void DisjunctiveRegex::checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) {
+void DisjunctiveRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) {
 	for (const auto& conjunction : disjunction) {
-		conjunction->checkAndTypeformActionUsage(machine, context);
+		conjunction->checkAndTypeformActionUsage(machine, context, areActionsAllowed);
 	}
 }
 
-const IFileLocalizable* ConjunctiveRegex::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
+const IFileLocalizable* ConjunctiveRegex::findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
 	for (const auto& rootRegexPtr : conjunction) {
 		auto ret = rootRegexPtr->findRecursiveReference(machine, namesEncountered, targetName);
 		if (ret) {
@@ -131,19 +142,19 @@ NFA ConjunctiveRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
-void ConjunctiveRegex::checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) {
+void ConjunctiveRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) {
 	for (const auto& rootRegex : conjunction) {
-		rootRegex->checkAndTypeformActionUsage(machine, context);
+		rootRegex->checkAndTypeformActionUsage(machine, context, areActionsAllowed);
 	}
 }
 
-std::string ReferenceRegex::computeItemType(const Machine& machine, const MachineComponent* context) const {
-	const MachineComponent* capturedComponent = machine.findMachineComponent(referenceName);
-	const std::string& typeName = capturedComponent->name;
+std::string ReferenceRegex::computeItemType(const MachineDefinition& machine, const MachineStatement* context) const {
+	auto capturedStatement = machine.findMachineStatement(referenceName);
+	const std::string& typeName = capturedStatement->name;
 	return typeName;
 }
 
-const IFileLocalizable* ReferenceRegex::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
+const IFileLocalizable* ReferenceRegex::findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
 	if (targetName == referenceName) {
 		return this;
 	}

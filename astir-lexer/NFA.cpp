@@ -5,8 +5,10 @@
 #include <iterator>
 
 #include "Exception.h"
-#include "SemanticTree.h"
+#include "SyntacticTree.h"
 #include "NFAAction.h"
+
+#include "SemanticAnalysisException.h"
 
 NFA::NFA()
     : finalStates(), states() {
@@ -482,7 +484,7 @@ bool TerminalSymbolGroup::disjoint(const SymbolGroup* rhs) const {
         return true;
     } else {
         for (const auto referencedComponentPtr : referencedProductions) {
-            auto fit = std::find_if(rhsCast->referencedProductions.cbegin(), rhsCast->referencedProductions.cend(), [referencedComponentPtr](const MachineComponent* rhsComponentPtr) {
+            auto fit = std::find_if(rhsCast->referencedProductions.cbegin(), rhsCast->referencedProductions.cend(), [referencedComponentPtr](const MachineStatement* rhsComponentPtr) {
                 return referencedComponentPtr->name == rhsComponentPtr->name;
                 });
             if (fit != rhsCast->referencedProductions.cend()) {
@@ -504,10 +506,10 @@ std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> TerminalSymbolGroup::di
         return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhsUncast, true } });
     }
 
-    std::list<const Production*> sharedComponents;
-    std::list<const Production*> excludedComponents;
+    std::list<const ProductionStatement*> sharedComponents;
+    std::list<const ProductionStatement*> excludedComponents;
     for (auto it = referencedProductions.begin(); it != referencedProductions.end(); ) {
-        auto fit = std::find_if(rhs->referencedProductions.cbegin(), rhs->referencedProductions.cend(), [it](const Production* rhsComponentPtr) {
+        auto fit = std::find_if(rhs->referencedProductions.cbegin(), rhs->referencedProductions.cend(), [it](const ProductionStatement* rhsComponentPtr) {
             return (*it)->name == rhsComponentPtr->name;
             });
         if (fit != rhs->referencedProductions.cend()) {
@@ -533,8 +535,8 @@ std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> TerminalSymbolGroup::di
 
 std::shared_ptr<std::list<SymbolIndex>> TerminalSymbolGroup::retrieveSymbolIndices() const {
     if (m_symbolIndicesFlyweight->empty()) {
-        for (const Production* referencedComponentPtr : referencedProductions) {
-            m_symbolIndicesFlyweight->push_back(referencedComponentPtr->typeIndex);
+        for (const ProductionStatement* referencedComponentPtr : referencedProductions) {
+            m_symbolIndicesFlyweight->push_back(referencedComponentPtr->terminalTypeIndex);
         }
     }
 

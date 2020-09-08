@@ -4,6 +4,7 @@
 #include "ISemanticEntity.h"
 
 #include <string>
+#include <memory>
 
 enum class RegexActionType : unsigned char {
 	Flag = 1,
@@ -25,7 +26,7 @@ enum class RegexActionType : unsigned char {
 struct RegexAction : public ISyntacticEntity {
 	RegexActionType type = RegexActionType::None;
 	std::string target;
-	const Field* targetField;
+	std::shared_ptr<Field> targetField;
 
 	RegexAction()
 		: targetField(nullptr) { }

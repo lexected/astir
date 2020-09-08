@@ -20,8 +20,8 @@ public:
 
 	virtual ~RootRegex() = default;
 
-	void checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) override;
-	virtual std::string computeItemType(const Machine& machine, const MachineComponent* context) const;
+	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
+	virtual std::string computeItemType(const MachineDefinition& machine, const MachineStatement* context) const;
 
 protected:
 };
@@ -35,11 +35,11 @@ struct RepetitiveRegex : public RootRegex {
 
 	RepetitiveRegex() : minRepetitions(0), maxRepetitions(0) { }
 
-	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+	const IFileLocalizable* findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
-	void checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) override;
+	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 };
 
 struct AtomicRegex : public RootRegex { };
@@ -48,22 +48,22 @@ struct ConjunctiveRegex;
 struct DisjunctiveRegex : public AtomicRegex {
 	std::list<std::unique_ptr<ConjunctiveRegex>> disjunction;
 
-	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+	const IFileLocalizable* findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
-	void checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) override;
+	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 };
 
 struct RootRegex;
 struct ConjunctiveRegex : public Regex {
 	std::list<std::unique_ptr<RootRegex>> conjunction;
 
-	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+	const IFileLocalizable* findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
-	void checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) override;
+	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 };
 
 struct PrimitiveRegex : public AtomicRegex {
@@ -99,9 +99,9 @@ struct LiteralRegex : public PrimitiveRegex {
 struct ReferenceRegex : public PrimitiveRegex {
 	std::string referenceName;
 
-	std::string computeItemType(const Machine& machine, const MachineComponent* context) const override;
+	std::string computeItemType(const MachineDefinition& machine, const MachineStatement* context) const override;
 
-	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+	const IFileLocalizable* findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 };

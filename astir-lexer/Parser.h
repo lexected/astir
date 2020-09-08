@@ -22,7 +22,7 @@ private:
 	std::unique_ptr<MachineStatement> parseMachineStatement(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<CategoryStatement> parseCategoryStatement(std::list<Token>::const_iterator& it, Rootness rootness) const;
 	void parseInAttributedStatement(std::list<Token>::const_iterator& productionStartIt, std::list<Token>::const_iterator& it, AttributedStatement& statement, const std::string& attributedStatementType) const;
-	void parseInRuleStatement(std::list<Token>::const_iterator& productionStartIt, std::list<Token>::const_iterator& it, Rule& statement, const std::string& attributedStatementType) const;
+	void parseInRuleStatement(std::list<Token>::const_iterator& productionStartIt, std::list<Token>::const_iterator& it, RuleStatement& statement, const std::string& attributedStatementType) const;
 	std::unique_ptr<ProductionStatement> parseProductionStatement(std::list<Token>::const_iterator& it, Rootness rootness, Terminality terminality) const;
 	std::unique_ptr<PatternStatement> parsePatternStatement(std::list<Token>::const_iterator& it) const;
 	std::unique_ptr<RegexStatement> parseRegexStatement(std::list<Token>::const_iterator& it) const;
