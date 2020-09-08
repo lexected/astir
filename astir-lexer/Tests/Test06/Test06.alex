@@ -15,5 +15,6 @@ finite automaton SecondaryAutomaton on PrimaryAutomaton {
 		raw rawSentence;
 	} = 
 		(()@flag:emptyFlag (WORD@push:words WHITESPACE)* WORD@push:words PUNCTUATION@set:type)@capture:rawSentence
+		// (WORD@push:words WHITESPACE)* WORD@push:words PUNCTUATION@set:type
 		;
 }

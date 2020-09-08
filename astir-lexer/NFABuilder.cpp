@@ -171,13 +171,14 @@ NFA NFABuilder::visit(const RepetitiveRegex* regex) const {
 
 NFA NFABuilder::visit(const EmptyRegex* regex) const {
 	NFA base;
+	const State newState = base.addState();
+	base.finalStates.insert(newState);
 
-	base.finalStates.insert(0);
 	NFAActionRegister initial, final;
 	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
-	base.states[0].actions += initial;
-	base.states[0].actions += final;
-
+	initial += final;
+	base.addEmptyTransition(0, newState, initial);
+	
 	return base;
 }
 
