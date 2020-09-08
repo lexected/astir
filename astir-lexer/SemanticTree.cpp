@@ -65,7 +65,16 @@ void Machine::initialize() {
 			throw SemanticAnalysisException("Category name '" + statementPtr->name + "' encountered in machine '" + name + "' already defined", *this); // TODO: could use an improvement; already defined where?
 		}
 
-		components[statementPtr->name] = std::make_shared<Category>(statementPtr, statementPtr->name);
+		bool rootnessDecision;
+		if (statementPtr->rootSpecified) {
+			rootnessDecision = true;
+		} else {
+			const auto machineDefinitionAttributeIterator = machineDefinition->attributes.find(MachineFlag::CategoriesRootByDefault);
+			rootnessDecision = machineDefinitionAttributeIterator->second.value;
+		}
+
+		auto categoryPtr = std::make_shared<Category>(statementPtr, statementPtr->name, rootnessDecision);
+		components[statementPtr->name] = categoryPtr;
 	}
 
 	for (const auto& statementPtr : machineDefinition->ruleStatements) {
@@ -98,6 +107,14 @@ void Machine::initialize() {
 
 			rulePtr = std::make_shared<Pattern>(statementPtr, statementPtr->name, statementPtr->disjunction);
 		} else if (typeDecision == RuleStatementType::Production) {
+			bool rootnessDecision;
+			if(statementPtr->rootSpecified) {
+				rootnessDecision = true;
+			} else {
+				const auto machineDefinitionAttributeIterator = machineDefinition->attributes.find(MachineFlag::ProductionsRootByDefault);
+				rootnessDecision = machineDefinitionAttributeIterator->second.value;
+			}
+
 			TerminalTypeIndex terminalityDecision = (TerminalTypeIndex)0;
 			if (!statementPtr->terminalitySpecified) {
 				const auto machineDefinitionAttributeIterator = machineDefinition->attributes.find(MachineFlag::ProductionsTerminalByDefault);
@@ -105,7 +122,7 @@ void Machine::initialize() {
 			} else {
 				terminalityDecision = statementPtr->terminality ? ++m_terminalCount : (TerminalTypeIndex)0;
 			}
-			rulePtr = std::make_shared<Production>(statementPtr, statementPtr->name, statementPtr->disjunction, terminalityDecision);
+			rulePtr = std::make_shared<Production>(statementPtr, statementPtr->name, statementPtr->disjunction, terminalityDecision, rootnessDecision);
 		}
 
 		// register the newly build semantic object
@@ -210,7 +227,7 @@ std::list<const MachineComponent*> Machine::getTypeComponents() const {
 
 bool Machine::hasPurelyTerminalRoots() const {
 	for (const auto& machineComponentPair : this->components) {
-		if (/* machineComponentPair.second->isRoot() && */!machineComponentPair.second->isTerminal()) {
+		if (machineComponentPair.second->isRoot() && !machineComponentPair.second->isTerminal()) {
 			return false;
 		}
 	}
@@ -222,7 +239,9 @@ std::list<const MachineComponent*> Machine::getRoots() const {
 	std::list<const MachineComponent*> terminalRoots;
 
 	for (const auto& machineComponentPair : this->components) {
-		terminalRoots.push_back(machineComponentPair.second.get());
+		if(machineComponentPair.second->isRoot()) {
+			terminalRoots.push_back(machineComponentPair.second.get());
+		}
 	}
 
 	return terminalRoots;
@@ -232,8 +251,9 @@ std::list<const Production*> Machine::getProductionRoots() const {
 	std::list<const Production*> productionRoots;
 
 	for (const auto& machineComponentPair : this->components) {
-		// TODO differentiate between roots and non-roots
-		productionRoots.merge(machineComponentPair.second->calculateInstandingProductions()); //WTF? I can't remember why this is here... maybe because of categories? Sort it out in your head!!
+		if(machineComponentPair.second->isRoot()) {
+			productionRoots.merge(machineComponentPair.second->calculateInstandingProductions()); //WTF? I can't remember why this is here... maybe because of categories? Sort it out in your head!!
+		}
 	}
 
 	return productionRoots;
@@ -243,7 +263,7 @@ std::list<const Production*> Machine::getTerminalRoots() const {
 	std::list<const Production*> productionRoots;
 
 	for (const auto& machineComponentPair : this->components) {
-		if(machineComponentPair.second->isTerminal()) {
+		if(machineComponentPair.second->isRoot() && machineComponentPair.second->isTerminal()) {
 			// TODO differentiate between roots and non-roots
 			productionRoots.merge(machineComponentPair.second->calculateInstandingProductions()); // the inside call is not strictly needed, but it does help to avoid the dynamic cast in a virtual-method way
 			// with merge and move constructor it should also be fairly efficient...
@@ -332,6 +352,10 @@ void FiniteAutomatonMachine::initialize() {
 	NFABuilder builder(*this, nullptr, "m_token");
 	for (const auto& componentPair : this->components) {
 		const MachineComponent* componentPtr = componentPair.second.get();
+		if (!componentPtr->isRoot()) {
+			continue;
+		}
+
 		const std::string& newSubcontextName = componentPtr->name;
 		const INFABuildable* componentCastPtr = dynamic_cast<const INFABuildable*>(componentPtr);
 		NFA alternativeNfa = componentCastPtr->accept(builder);
@@ -471,12 +495,16 @@ NFA Category::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
-const bool Category::isTypeForming() const {
+bool Category::isTypeForming() const {
 	return true;
 }
 
-const bool Category::isTerminal() const {
+bool Category::isTerminal() const {
 	return false;
+}
+
+bool Category::isRoot() const {
+	return m_isRoot;
 }
 
 std::list<const Production*> Category::calculateInstandingProductions() const {
@@ -530,11 +558,15 @@ void Rule::verifyContextualValidity(const Machine& machine) const {
 	regex->checkAndTypeformActionUsage(machine, this);
 }
 
-const bool Pattern::isTypeForming() const {
+bool Pattern::isTypeForming() const {
 	return false;
 }
 
-const bool Pattern::isTerminal() const {
+bool Pattern::isTerminal() const {
+	return false;
+}
+
+bool Pattern::isRoot() const {
 	return false;
 }
 
@@ -550,12 +582,16 @@ std::list<const Production*> Pattern::calculateInstandingProductions() const {
 	return std::list<const Production*>();
 }
 
-const bool Production::isTypeForming() const {
+bool Production::isTypeForming() const {
 	return true;
 }
 
-const bool Production::isTerminal() const {
+bool Production::isTerminal() const {
 	return typeIndex != 0;
+}
+
+bool Production::isRoot() const {
+	return m_isRoot;
 }
 
 NFA Production::accept(const NFABuilder& nfaBuilder) const {

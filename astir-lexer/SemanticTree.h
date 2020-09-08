@@ -122,9 +122,6 @@ public:
 	std::list<const Category*> categories; // non-owning pointers for the categories
 	std::list<std::shared_ptr<Field>> fields; // owning pointers for the fields <- I tried with unique_ptr, but it does not fit the narrative of the ISpecificationInitializable methods that return shared_ptrs. So shared_ptr it is because narrative...
 
-	MachineComponent(const std::string& name)
-		: name(name) { }
-
 	void initialize() override;
 	void checkFieldName(Machine& context, const Field* field) const;
 	void checkAndTypeformFieldDeclarations(Machine& context) const;
@@ -133,13 +130,18 @@ public:
 	virtual bool entails(const std::string& name) const = 0;
 	virtual bool entails(const std::string& name, std::list<const Category*>& path) const = 0;
 
-	virtual const bool isTypeForming() const = 0;
-	virtual const bool isTerminal() const = 0;
+	virtual bool isTypeForming() const = 0;
+	virtual bool isTerminal() const = 0;
+	virtual bool isRoot() const = 0;
 
 	virtual void verifyContextualValidity(const Machine& machine) const;
 	void accept(GenerationVisitor* visitor) const override;
 
 	virtual std::list<const Production*> calculateInstandingProductions() const = 0;
+
+protected:
+	MachineComponent(const std::string& name)
+		: name(name) { }
 };
 
 struct CategoryReference {
@@ -156,8 +158,8 @@ class Category : public MachineComponent {
 public:
 	std::map<std::string, CategoryReference> references; // references to 'me',  i.e. by other machine components. Non-owning pointers so ok.
 
-	Category(const std::shared_ptr<const CategoryStatement>& categoryStatement, const std::string& name)
-		: MachineComponent(name), m_categoryStatement(categoryStatement) { }
+	Category(const std::shared_ptr<const CategoryStatement>& categoryStatement, const std::string& name, bool isRoot)
+		: MachineComponent(name), m_categoryStatement(categoryStatement), m_isRoot(isRoot) { }
 
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const override;
 	std::shared_ptr<const ISyntacticEntity> underlyingSyntacticEntity() const override;
@@ -166,11 +168,13 @@ public:
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
-	const bool isTypeForming() const override;
-	const bool isTerminal() const override;
+	bool isTypeForming() const override;
+	bool isTerminal() const override;
+	bool isRoot() const override;
 
 	std::list<const Production*> calculateInstandingProductions() const override;
 private:
+	bool m_isRoot;
 	std::shared_ptr<const CategoryStatement> m_categoryStatement;
 };
 
@@ -199,8 +203,9 @@ public:
 	Pattern(const std::shared_ptr<const RuleStatement>& ruleStatement, const std::string& name, const std::shared_ptr<DisjunctiveRegex>& regex)
 		: Rule(ruleStatement, name, regex) { }
 
-	const bool isTypeForming() const override;
-	const bool isTerminal() const override;
+	bool isTypeForming() const override;
+	bool isTerminal() const override;
+	bool isRoot() const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
@@ -213,15 +218,17 @@ class Production : public Rule {
 public:
 	TerminalTypeIndex typeIndex;
 
-	Production(const std::shared_ptr<const RuleStatement>& ruleStatement, const std::string& name, std::shared_ptr<DisjunctiveRegex>& regex, TerminalTypeIndex typeIndex)
-		: Rule(ruleStatement, name, regex), typeIndex(typeIndex) { }
+	Production(const std::shared_ptr<const RuleStatement>& ruleStatement, const std::string& name, std::shared_ptr<DisjunctiveRegex>& regex, TerminalTypeIndex typeIndex, bool isRoot)
+		: Rule(ruleStatement, name, regex), typeIndex(typeIndex), m_isRoot(isRoot) { }
 
-	const bool isTypeForming() const override;
-	const bool isTerminal() const override;
+	bool isTypeForming() const override;
+	bool isTerminal() const override;
+	bool isRoot() const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
 	std::list<const Production*> calculateInstandingProductions() const override;
 private:
+	bool m_isRoot;
 	std::shared_ptr<const RuleStatement> m_ruleStatement;
 };

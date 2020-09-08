@@ -48,6 +48,14 @@ std::string Token::convertTypeToString(TokenType type) {
 			return "KW_RULES_PRODUCTIONS_BY_DEFAULT";
 		case TokenType::KW_RULES_PATTERNS_BY_DEFAULT:
 			return "KW_RULES_PATTERNS_BY_DEFAULT";
+		case TokenType::KW_PRODUCTIONS_ROOT_BY_DEFAULT:
+			return "KW_PRODUCTIONS_ROOT_BY_DEFAULT";
+		case TokenType::KW_PRODUCTIONS_NONROOT_BY_DEFAULT:
+			return "KW_PRODUCTIONS_NONROOT_BY_DEFAULT";
+		case TokenType::KW_CATEGORIES_ROOT_BY_DEFAULT:
+			return "KW_CATEGORIES_ROOT_BY_DEFAULT";
+		case TokenType::KW_CATEGORIES_NONROOT_BY_DEFAULT:
+			return "KW_CATEGORIES_NONROOT_BY_DEFAULT";
 
 		case TokenType::KW_CATEGORY:
 			return "KW_CATEGORY";
@@ -66,6 +74,8 @@ std::string Token::convertTypeToString(TokenType type) {
 			return "KW_LIST";
 		case TokenType::KW_RAW:
 			return "KW_RAW";
+		case TokenType::KW_ROOT:
+			return "KW_ROOT";
 
 		case TokenType::KW_FLAG:
 			return "KW_FLAG";

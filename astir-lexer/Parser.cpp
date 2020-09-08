@@ -156,7 +156,15 @@ bool Parser::tryParseMachineFlag(std::list<Token>::const_iterator& it, std::map<
 	} else if (it->type == TokenType::KW_RULES_PRODUCTIONS_BY_DEFAULT) {
 		setting = make_pair<MachineFlag, bool>(MachineFlag::RulesProductionsByDefault, true);
 	} else if (it->type == TokenType::KW_RULES_PATTERNS_BY_DEFAULT) {
-		setting = make_pair<MachineFlag, bool>(MachineFlag::ProductionsTerminalByDefault, false);
+		setting = make_pair<MachineFlag, bool>(MachineFlag::RulesProductionsByDefault, false);
+	} else if (it->type == TokenType::KW_PRODUCTIONS_ROOT_BY_DEFAULT) {
+		setting = make_pair<MachineFlag, bool>(MachineFlag::ProductionsRootByDefault, true);
+	} else if (it->type == TokenType::KW_PRODUCTIONS_NONROOT_BY_DEFAULT) {
+		setting = make_pair<MachineFlag, bool>(MachineFlag::ProductionsRootByDefault, false);
+	} else if (it->type == TokenType::KW_CATEGORIES_ROOT_BY_DEFAULT) {
+		setting = make_pair<MachineFlag, bool>(MachineFlag::CategoriesRootByDefault, true);
+	} else if (it->type == TokenType::KW_CATEGORIES_NONROOT_BY_DEFAULT) {
+		setting = make_pair<MachineFlag, bool>(MachineFlag::CategoriesRootByDefault, false);
 	} else {
 		return false;
 	}
@@ -192,14 +200,24 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineType(std::list<Token>::co
 }
 
 std::unique_ptr<CategoryStatement> Parser::parseCategoryStatement(std::list<Token>::const_iterator& it) const {
+	auto savedIt = it;
+
+	bool hasRootSpecified;
+	if (it->type == TokenType::KW_ROOT) {
+		++it;
+		hasRootSpecified = true;
+	} else {
+		hasRootSpecified = false;
+	}
+
 	if (it->type != TokenType::KW_CATEGORY) {
 		return nullptr;
 	}
-
-	auto savedIt = it;
 	++it;
+
 	std::unique_ptr<CategoryStatement> catstat = make_unique<CategoryStatement>();
 	catstat->copyLocation(*savedIt);
+	catstat->rootSpecified = hasRootSpecified;
 
 	if (it->type != TokenType::IDENTIFIER) {
 		throw UnexpectedTokenException(*it, "an identifier for the category name", "for category declaration", *savedIt);
@@ -259,7 +277,8 @@ std::unique_ptr<CategoryStatement> Parser::parseCategoryStatement(std::list<Toke
 }
 
 std::unique_ptr<RuleStatement> Parser::parseRuleStatement(std::list<Token>::const_iterator& it) const {
-	if (it->type != TokenType::KW_TERMINAL
+	if (it->type != TokenType::KW_ROOT
+		&& it->type != TokenType::KW_TERMINAL
 		&& it->type != TokenType::KW_NONTERMINAL
 		&& it->type != TokenType::KW_PATTERN
 		&& it->type != TokenType::KW_PRODUCTION
@@ -271,6 +290,14 @@ std::unique_ptr<RuleStatement> Parser::parseRuleStatement(std::list<Token>::cons
 	std::unique_ptr<RuleStatement> grastat = make_unique<RuleStatement>();
 	grastat->copyLocation(*savedIt);
 
+	bool hasRootSpecified;
+	if (it->type == TokenType::KW_ROOT) {
+		++it;
+		hasRootSpecified = true;
+	} else {
+		hasRootSpecified = false;
+	}
+
 	if (it->type == TokenType::KW_TERMINAL) {
 		grastat->terminalitySpecified = true;
 		grastat->terminality = true;
@@ -281,21 +308,36 @@ std::unique_ptr<RuleStatement> Parser::parseRuleStatement(std::list<Token>::cons
 		++it;
 	}
 
-	std::string grammarStatementType = "production/pattern";
-	if (it->type == TokenType::KW_PATTERN) {
-		grastat->typeSpecified = true;
-		grastat->type = RuleStatementType::Pattern;
-		++it;
-
-		grammarStatementType = "pattern";
-	} else if (it->type == TokenType::KW_PRODUCTION) {
+	std::string grammarStatementType;
+	if(hasRootSpecified) {
+		grammarStatementType= "production";
 		grastat->typeSpecified = true;
 		grastat->type = RuleStatementType::Production;
-		++it;
+		grastat->rootSpecified = true;
 
-		grammarStatementType = "production";
+		if (it->type == TokenType::KW_PATTERN) {
+			throw ParserException("Unexpected occurence of 'pattern' keyword in rule statement following an occurence of the 'root' keyword - patterns can not be 'root'", *it, *savedIt);
+		} else if (it->type == TokenType::KW_PRODUCTION) {
+			++it;
+		}
+	} else {
+		if (it->type == TokenType::KW_PATTERN) {
+			grastat->typeSpecified = true;
+			grastat->type = RuleStatementType::Pattern;
+			++it;
+
+			grammarStatementType = "pattern";
+		} else if (it->type == TokenType::KW_PRODUCTION) {
+			grastat->typeSpecified = true;
+			grastat->type = RuleStatementType::Production;
+			++it;
+
+			grammarStatementType = "production";
+		} else {
+			grammarStatementType = "production/pattern";
+		}
 	}
-
+	
 	if (it->type != TokenType::IDENTIFIER) {
 		throw UnexpectedTokenException(*it, "an identifier to serve as "+ grammarStatementType + " name", " for " + grammarStatementType + " declaration", *savedIt);
 	}

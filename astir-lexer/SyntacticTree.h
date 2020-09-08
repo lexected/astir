@@ -41,7 +41,9 @@ struct UsesStatement : public ISyntacticEntity {
 
 enum class MachineFlag {
 	ProductionsTerminalByDefault,
-	RulesProductionsByDefault
+	RulesProductionsByDefault,
+	ProductionsRootByDefault,
+	CategoriesRootByDefault
 };
 
 struct MachineDefinitionAttribute {
@@ -81,6 +83,8 @@ struct FiniteAutomatonDefinition : public MachineDefinition {
 		:  MachineDefinition({
 				{ MachineFlag::ProductionsTerminalByDefault, MachineDefinitionAttribute(true) },
 				{ MachineFlag::RulesProductionsByDefault, MachineDefinitionAttribute(true) },
+				{ MachineFlag::ProductionsRootByDefault, MachineDefinitionAttribute(true) },
+				{ MachineFlag::CategoriesRootByDefault, MachineDefinitionAttribute(false) },
 			}) { }
 
 	std::shared_ptr<Machine> makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Machine>>& ownershipPtr) const override;
@@ -95,8 +99,13 @@ struct MachineStatement : public ISyntacticEntity {
 	std::string name;
 	std::list<std::string> categories;
 	std::list<std::shared_ptr<Field>> fields;
+	bool rootSpecified;
 	
 	virtual ~MachineStatement() = default;
+
+protected:
+	MachineStatement()
+		: rootSpecified(false) { }
 };
 
 struct CategoryStatement : public MachineStatement { };
