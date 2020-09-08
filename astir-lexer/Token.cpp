@@ -57,16 +57,23 @@ std::string Token::convertTypeToString(TokenType type) {
 		case TokenType::KW_CATEGORIES_NONROOT_BY_DEFAULT:
 			return "KW_CATEGORIES_NONROOT_BY_DEFAULT";
 
-		case TokenType::KW_CATEGORY:
-			return "KW_CATEGORY";
+		
+		case TokenType::KW_ROOT:
+			return "KW_ROOT";
+		case TokenType::KW_IGNORED:
+			return "KW_IGNORED";
 		case TokenType::KW_TERMINAL:
 			return "KW_TERMINAL";
 		case TokenType::KW_NONTERMINAL:
 			return "KW_NONTERMINAL";
-		case TokenType::KW_PATTERN:
-			return "KW_PATTERN";
+		case TokenType::KW_CATEGORY:
+			return "KW_CATEGORY";
 		case TokenType::KW_PRODUCTION:
 			return "KW_PRODUCTION";
+		case TokenType::KW_PATTERN:
+			return "KW_PATTERN";
+		case TokenType::KW_REGEX:
+			return "KW_REGEX";
 
 		case TokenType::KW_ITEM:
 			return "KW_ITEM";
@@ -74,8 +81,6 @@ std::string Token::convertTypeToString(TokenType type) {
 			return "KW_LIST";
 		case TokenType::KW_RAW:
 			return "KW_RAW";
-		case TokenType::KW_ROOT:
-			return "KW_ROOT";
 
 		case TokenType::KW_FLAG:
 			return "KW_FLAG";

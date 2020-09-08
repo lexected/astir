@@ -64,15 +64,19 @@ private:
 		std::pair<std::string, TokenType>("productions_nonroot_by_default", TokenType::KW_PRODUCTIONS_NONROOT_BY_DEFAULT),
 		std::pair<std::string, TokenType>("categories_root_by_default", TokenType::KW_CATEGORIES_ROOT_BY_DEFAULT),
 		std::pair<std::string, TokenType>("categories_nonroot_by_default", TokenType::KW_CATEGORIES_NONROOT_BY_DEFAULT),
-		std::pair<std::string, TokenType>("category", TokenType::KW_CATEGORY),
+		
+		std::pair<std::string, TokenType>("ignored", TokenType::KW_IGNORED),
+		std::pair<std::string, TokenType>("root", TokenType::KW_ROOT),
 		std::pair<std::string, TokenType>("terminal", TokenType::KW_TERMINAL),
 		std::pair<std::string, TokenType>("nonterminal", TokenType::KW_NONTERMINAL),
-		std::pair<std::string, TokenType>("pattern", TokenType::KW_PATTERN),
+		std::pair<std::string, TokenType>("category", TokenType::KW_CATEGORY),
 		std::pair<std::string, TokenType>("production", TokenType::KW_PRODUCTION),
+		std::pair<std::string, TokenType>("pattern", TokenType::KW_PATTERN),
+		std::pair<std::string, TokenType>("regex", TokenType::KW_REGEX),
+
 		std::pair<std::string, TokenType>("item", TokenType::KW_ITEM),
 		std::pair<std::string, TokenType>("list", TokenType::KW_LIST),
 		std::pair<std::string, TokenType>("raw", TokenType::KW_RAW),
-		std::pair<std::string, TokenType>("root", TokenType::KW_ROOT),
 
 		std::pair<std::string, TokenType>("flag", TokenType::KW_FLAG),
 		std::pair<std::string, TokenType>("unflag", TokenType::KW_UNFLAG),

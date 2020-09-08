@@ -133,6 +133,7 @@ public:
 	virtual bool isTypeForming() const = 0;
 	virtual bool isTerminal() const = 0;
 	virtual bool isRoot() const = 0;
+	virtual bool isIgnored() const = 0;
 
 	virtual void verifyContextualValidity(const Machine& machine) const;
 	void accept(GenerationVisitor* visitor) const override;
@@ -158,8 +159,8 @@ class Category : public MachineComponent {
 public:
 	std::map<std::string, CategoryReference> references; // references to 'me',  i.e. by other machine components. Non-owning pointers so ok.
 
-	Category(const std::shared_ptr<const CategoryStatement>& categoryStatement, const std::string& name, bool isRoot)
-		: MachineComponent(name), m_categoryStatement(categoryStatement), m_isRoot(isRoot) { }
+	Category(const std::shared_ptr<const CategoryStatement>& categoryStatement, const std::string& name)
+		: MachineComponent(name), m_categoryStatement(categoryStatement) { }
 
 	const IFileLocalizable* findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const override;
 	std::shared_ptr<const ISyntacticEntity> underlyingSyntacticEntity() const override;
@@ -170,11 +171,9 @@ public:
 
 	bool isTypeForming() const override;
 	bool isTerminal() const override;
-	bool isRoot() const override;
 
 	std::list<const Production*> calculateInstandingProductions() const override;
 private:
-	bool m_isRoot;
 	std::shared_ptr<const CategoryStatement> m_categoryStatement;
 };
 
@@ -206,6 +205,7 @@ public:
 	bool isTypeForming() const override;
 	bool isTerminal() const override;
 	bool isRoot() const override;
+	bool isIgnored() const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 

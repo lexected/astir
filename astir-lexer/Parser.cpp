@@ -122,22 +122,15 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineDefinition(std::list<Toke
 	}
 	++it;
 
-	std::unique_ptr<MachineStatement> lastStatement;
-	do {
-		std::shared_ptr<CategoryStatement> categoryStatement;
-		if (categoryStatement = Parser::parseCategoryStatement(it)) {
-			machineDefinition->categoryStatements.push_back(categoryStatement);
-			continue;
+	std::shared_ptr<MachineStatement> statement;
+	while (true) {
+		statement = Parser::parseMachineStatement(it);
+		if(statement) {
+			machineDefinition->statements.push_back(statement);
+		} else {
+			break;
 		}
-
-		std::shared_ptr<RuleStatement> ruleStatement;
-		if (ruleStatement = Parser::parseRuleStatement(it)) {
-			machineDefinition->ruleStatements.push_back(ruleStatement);
-			continue;
-		}
-
-		break;
-	} while (true);
+	}
 
 	if (it->type != TokenType::CURLY_RIGHT) {
 		throw UnexpectedTokenException(*it, "a statement or definition body opening bracket '}'", "for machine definition", *savedIt);
@@ -199,25 +192,74 @@ std::unique_ptr<MachineDefinition> Parser::parseMachineType(std::list<Token>::co
 	}
 }
 
-std::unique_ptr<CategoryStatement> Parser::parseCategoryStatement(std::list<Token>::const_iterator& it) const {
+std::unique_ptr<MachineStatement> Parser::parseMachineStatement(std::list<Token>::const_iterator& it) const {
 	auto savedIt = it;
 
-	bool hasRootSpecified;
-	if (it->type == TokenType::KW_ROOT) {
+	Rootness rootness = Rootness::Unspecified;
+	if (it->type == TokenType::KW_IGNORED) {
 		++it;
-		hasRootSpecified = true;
-	} else {
-		hasRootSpecified = false;
+
+		if (it->type != TokenType::KW_ROOT) {
+			throw UnexpectedTokenException(*it, "keyword 'root'", "machine statement", *savedIt);
+		}
+
+		rootness = Rootness::IgnoreRoot;
+		++it;
+	} else if (it->type == TokenType::KW_ROOT) {
+		++it;
+		rootness = Rootness::AcceptRoot;
 	}
 
-	if (it->type != TokenType::KW_CATEGORY) {
-		return nullptr;
+	if (it->type == TokenType::KW_CATEGORY) {
+		++it;
+		return parseCategoryStatement(it, rootness);
+	} else if (it->type == TokenType::KW_PATTERN) {
+		if (rootness != Rootness::Unspecified) {
+			throw UnexpectedTokenException(*it, "'category', 'production', or terminality [+ 'production']", "machine statement", *savedIt);
+		}
+
+		++it;
+		return parsePatternStatement(it);
+	} else if (it->type == TokenType::KW_REGEX) {
+		if (rootness != Rootness::Unspecified) {
+			throw UnexpectedTokenException(*it, "'category', 'production', or terminality [+ 'production']", "machine statement", *savedIt);
+		}
+
+		++it;
+		return parseRegexStatement(it);
+	} else {
+		Terminality terminality = Terminality::Unspecified;
+		if (it->type == TokenType::KW_TERMINAL) {
+			++it;
+			terminality = Terminality::Terminal;
+		} else if (it->type == TokenType::KW_NONTERMINAL) {
+			++it;
+			terminality = Terminality::Nonterminal;
+		}
+
+		if(it->type == TokenType::KW_PRODUCTION) {
+			++it;
+		}
+
+		if(it->type == TokenType::IDENTIFIER) {
+			return parseProductionStatement(it, rootness, terminality);
+		} else {
+			if (rootness != Rootness::Unspecified) {
+				throw UnexpectedTokenException(*it, "an identifier, or 'production' + an identifier, or 'category' + an identifier to follow the rootness specification", "machine statement", *savedIt);
+			} else if (terminality != Terminality::Unspecified) {
+				throw UnexpectedTokenException(*it, "an identifier, or 'production' + an identifier to follow the terminality specification", "machine statement", *savedIt);
+			} else {
+				return nullptr;
+			}
+		}
 	}
-	++it;
+}
+
+std::unique_ptr<CategoryStatement> Parser::parseCategoryStatement(std::list<Token>::const_iterator& it, Rootness rootness) const {
+	auto savedIt = it;
 
 	std::unique_ptr<CategoryStatement> catstat = make_unique<CategoryStatement>();
 	catstat->copyLocation(*savedIt);
-	catstat->rootSpecified = hasRootSpecified;
 
 	if (it->type != TokenType::IDENTIFIER) {
 		throw UnexpectedTokenException(*it, "an identifier for the category name", "for category declaration", *savedIt);
@@ -276,81 +318,14 @@ std::unique_ptr<CategoryStatement> Parser::parseCategoryStatement(std::list<Toke
 	return catstat;
 }
 
-std::unique_ptr<RuleStatement> Parser::parseRuleStatement(std::list<Token>::const_iterator& it) const {
-	if (it->type != TokenType::KW_ROOT
-		&& it->type != TokenType::KW_TERMINAL
-		&& it->type != TokenType::KW_NONTERMINAL
-		&& it->type != TokenType::KW_PATTERN
-		&& it->type != TokenType::KW_PRODUCTION
-		&& it->type != TokenType::IDENTIFIER) {
-		return nullptr;
-	}
-
-	auto savedIt = it;
-	std::unique_ptr<RuleStatement> grastat = make_unique<RuleStatement>();
-	grastat->copyLocation(*savedIt);
-
-	bool hasRootSpecified;
-	if (it->type == TokenType::KW_ROOT) {
-		++it;
-		hasRootSpecified = true;
-	} else {
-		hasRootSpecified = false;
-	}
-
-	if (it->type == TokenType::KW_TERMINAL) {
-		grastat->terminalitySpecified = true;
-		grastat->terminality = true;
-		++it;
-	} else if(it->type == TokenType::KW_NONTERMINAL) {
-		grastat->terminalitySpecified = true;
-		grastat->terminality = false;
-		++it;
-	}
-
-	std::string grammarStatementType;
-	if(hasRootSpecified) {
-		grammarStatementType= "production";
-		grastat->typeSpecified = true;
-		grastat->type = RuleStatementType::Production;
-		grastat->rootSpecified = true;
-
-		if (it->type == TokenType::KW_PATTERN) {
-			throw ParserException("Unexpected occurence of 'pattern' keyword in rule statement following an occurence of the 'root' keyword - patterns can not be 'root'", *it, *savedIt);
-		} else if (it->type == TokenType::KW_PRODUCTION) {
-			++it;
-		}
-	} else {
-		if (it->type == TokenType::KW_PATTERN) {
-			grastat->typeSpecified = true;
-			grastat->type = RuleStatementType::Pattern;
-			++it;
-
-			grammarStatementType = "pattern";
-		} else if (it->type == TokenType::KW_PRODUCTION) {
-			grastat->typeSpecified = true;
-			grastat->type = RuleStatementType::Production;
-			++it;
-
-			grammarStatementType = "production";
-		} else {
-			grammarStatementType = "production/pattern";
-		}
-	}
-	
-	if (it->type != TokenType::IDENTIFIER) {
-		throw UnexpectedTokenException(*it, "an identifier to serve as "+ grammarStatementType + " name", " for " + grammarStatementType + " declaration", *savedIt);
-	}
-	grastat->name = it->string;
-	++it;
-
+void Parser::parseInAttributedStatement(std::list<Token>::const_iterator& productionStartIt, std::list<Token>::const_iterator& it, AttributedStatement& statement, const std::string& attributedStatementType) const {
 	if (it->type == TokenType::OP_COLON) {
 		++it;
 		do {
 			if (it->type != TokenType::IDENTIFIER) {
-				throw UnexpectedTokenException(*it, "a " + grammarStatementType + " name identifier", "for inheritance in " + grammarStatementType + " declaration", *savedIt);
+				throw UnexpectedTokenException(*it, "a " + attributedStatementType + " name identifier", "for inheritance in " + attributedStatementType + " declaration", *productionStartIt);
 			}
-			grastat->categories.push_back(it->string);
+			statement.categories.push_back(it->string);
 			++it;
 
 			if (it->type != TokenType::OP_COMMA) {
@@ -368,7 +343,7 @@ std::unique_ptr<RuleStatement> Parser::parseRuleStatement(std::list<Token>::cons
 			auto savedIt = it;
 			lastDeclaration = Parser::parseMemberDeclaration(it);
 			if (lastDeclaration) {
-				grastat->fields.push_back(std::move(lastDeclaration));
+				statement.fields.push_back(std::move(lastDeclaration));
 			} else {
 				it = savedIt;
 				break;
@@ -376,13 +351,15 @@ std::unique_ptr<RuleStatement> Parser::parseRuleStatement(std::list<Token>::cons
 		} while (true);
 
 		if (it->type != TokenType::CURLY_RIGHT) {
-			throw UnexpectedTokenException(*it, "a token for member declaration or the matching closing right curly bracket '}'", "for " + grammarStatementType + " definition", *savedIt);
+			throw UnexpectedTokenException(*it, "a token for member declaration or the matching closing right curly bracket '}'", "for " + attributedStatementType + " definition", *productionStartIt);
 		}
 		++it;
 	}
+}
 
+void Parser::parseInRuleStatement(std::list<Token>::const_iterator& productionStartIt, std::list<Token>::const_iterator& it, RuleStatement& statement, const std::string& attributedStatementType) const {
 	if (it->type != TokenType::OP_EQUALS) {
-		throw UnexpectedTokenException(*it, "'=' followed by a list of qualified names", "for " + grammarStatementType + " declaration", *savedIt);
+		throw UnexpectedTokenException(*it, "'=' followed by a list of qualified names", "for " + attributedStatementType + " declaration", *productionStartIt);
 	}
 	++it;
 
@@ -391,14 +368,69 @@ std::unique_ptr<RuleStatement> Parser::parseRuleStatement(std::list<Token>::cons
 	if (!disjunction) {
 		throw ParserException("Expected an alternative (i.e. a valid, possibly disjunctive, astir regex) to follow the '=' on the intial token - none found.", *it, *prevIt);
 	}
-	grastat->disjunction = move(disjunction);
+	statement.ruleRegex = move(disjunction);
 
 	if (it->type != TokenType::OP_SEMICOLON) {
-		throw UnexpectedTokenException(*it, "the terminal semicolon ';'", "for " + grammarStatementType + " definition", *savedIt);
+		throw UnexpectedTokenException(*it, "the terminal semicolon ';'", "for " + attributedStatementType + " definition", *productionStartIt);
 	}
 	++it;
+}
 
-	return grastat;
+std::unique_ptr<ProductionStatement> Parser::parseProductionStatement(std::list<Token>::const_iterator& it, Rootness rootness, Terminality terminality) const {
+	auto savedIt = it;
+	std::unique_ptr<ProductionStatement> productionStatement = make_unique<ProductionStatement>();
+	productionStatement->copyLocation(*savedIt);
+
+	if (it->type != TokenType::IDENTIFIER) {
+		throw UnexpectedTokenException(*it, "an identifier to serve as production name", " for production declaration", *savedIt);
+	}
+	productionStatement->name = it->string;
+	++it;
+
+	// production is also an attributed statement
+	parseInAttributedStatement(savedIt, it, *productionStatement, "production");
+
+	// production is also a rule statement
+	parseInRuleStatement(savedIt, it, *productionStatement, "production");
+
+	return productionStatement;
+}
+
+std::unique_ptr<PatternStatement> Parser::parsePatternStatement(std::list<Token>::const_iterator& it) const {
+	auto savedIt = it;
+	std::unique_ptr<PatternStatement> patternStatement = make_unique<PatternStatement>();
+	patternStatement->copyLocation(*savedIt);
+
+	if (it->type != TokenType::IDENTIFIER) {
+		throw UnexpectedTokenException(*it, "an identifier to serve as pattern name", " for pattern declaration", *savedIt);
+	}
+	patternStatement->name = it->string;
+	++it;
+
+	// pattern is also an attributed statement
+	parseInAttributedStatement(savedIt, it, *patternStatement, "pattern");
+
+	// pattern is also a rule statement
+	parseInRuleStatement(savedIt, it, *patternStatement, "pattern");
+
+	return patternStatement;
+}
+
+std::unique_ptr<RegexStatement> Parser::parseRegexStatement(std::list<Token>::const_iterator& it) const {
+	auto savedIt = it;
+	std::unique_ptr<RegexStatement> regexStatement = make_unique<RegexStatement>();
+	regexStatement->copyLocation(*savedIt);
+
+	if (it->type != TokenType::IDENTIFIER) {
+		throw UnexpectedTokenException(*it, "an identifier to serve as regex name", " for regex declaration", *savedIt);
+	}
+	regexStatement->name = it->string;
+	++it;
+
+	// production is also a rule statement
+	parseInRuleStatement(savedIt, it, *regexStatement, "regex");
+
+	return regexStatement;
 }
 
 std::unique_ptr<Field> Parser::parseMemberDeclaration(std::list<Token>::const_iterator& it) const {
@@ -487,7 +519,7 @@ std::unique_ptr<RepetitiveRegex> Parser::parseRepetitiveRegex(std::list<Token>::
 	auto savedIt = it;
 	unique_ptr<AtomicRegex> atomicRegex = parseAtomicRegex(it);
 	if (!atomicRegex) {
-		// throw UnexpectedTokenException(*it, "token for action-atomic regex", "for repetitive regex as an alternative of root regex", *savedIt);
+		// throw UnexpectedTokenException(*it, "token for action-atomic regex", "for repetitive regex as an alternative of root regex", *productionStartIt);
 		return nullptr;
 	}
 

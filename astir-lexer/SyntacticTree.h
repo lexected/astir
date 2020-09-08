@@ -64,8 +64,7 @@ public:
 	std::map<MachineFlag, MachineDefinitionAttribute> attributes;
 	std::list<std::string> uses;
 	std::string on;
-	std::list<std::shared_ptr<CategoryStatement>> categoryStatements;
-	std::list<std::shared_ptr<RuleStatement>> ruleStatements;
+	std::list<std::shared_ptr<MachineStatement>> statements;
 
 	MachineDefinition()
 		: attributes({
@@ -90,33 +89,56 @@ struct FiniteAutomatonDefinition : public MachineDefinition {
 	std::shared_ptr<Machine> makeSemanticEntity(const std::shared_ptr<ISemanticallyProcessable<Machine>>& ownershipPtr) const override;
 };
 
-enum class RuleStatementType {
-	Pattern,
-	Production
+enum class Rootness {
+	AcceptRoot,
+	IgnoreRoot,
+	Unspecified
+};
+
+enum class Terminality {
+	Terminal,
+	Nonterminal,
+	Unspecified
 };
 
 struct MachineStatement : public ISyntacticEntity {
 	std::string name;
-	std::list<std::string> categories;
-	std::list<std::shared_ptr<Field>> fields;
-	bool rootSpecified;
-	
 	virtual ~MachineStatement() = default;
 
 protected:
-	MachineStatement()
-		: rootSpecified(false) { }
+	MachineStatement() = default;
+	MachineStatement(const std::string& name)
+		: name(name) { }
 };
 
-struct CategoryStatement : public MachineStatement { };
-
-struct RuleStatement : public MachineStatement {
-	bool terminalitySpecified;
-	bool terminality;
-	bool typeSpecified;
-	RuleStatementType type;
-	std::shared_ptr<DisjunctiveRegex> disjunction;
-
-	RuleStatement()
-		: terminalitySpecified(false), terminality(false), typeSpecified(false), type(RuleStatementType::Production) { }
+struct AttributedStatement : public virtual MachineStatement {
+	std::list<std::string> categories;
+	std::list<std::shared_ptr<Field>> fields;
 };
+
+struct TypeFormingStatement : public AttributedStatement {
+	Rootness rootness;
+
+protected:
+	TypeFormingStatement()
+		: rootness(Rootness::Unspecified) { }
+	TypeFormingStatement(Rootness rootness)
+		: rootness(rootness) { }
+};
+
+struct RuleStatement : public virtual MachineStatement {
+	std::shared_ptr<DisjunctiveRegex> ruleRegex;
+};
+
+struct CategoryStatement : public TypeFormingStatement { };
+
+struct ProductionStatement : public TypeFormingStatement, public RuleStatement {
+	Terminality terminality;
+
+	ProductionStatement()
+		: terminality(Terminality::Unspecified) { }
+};
+
+struct PatternStatement : public AttributedStatement, public RuleStatement { };
+
+struct RegexStatement : public RuleStatement { };
