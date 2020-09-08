@@ -152,7 +152,7 @@
     <ClCompile Include="LexicalAnalyzer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="NFA.cpp" />
-    <ClCompile Include="Parser.cpp" />
+    <ClCompile Include="SyntacticAnalyzer.cpp" />
     <ClCompile Include="Regex.cpp" />
     <ClCompile Include="Resources\Location.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
@@ -180,6 +180,7 @@
     <ClInclude Include="IFileLocalizable.h" />
     <ClInclude Include="IGenerationVisitable.h" />
     <ClInclude Include="INFABuildable.h" />
+    <ClInclude Include="LexicalAnalysisException.h" />
     <ClInclude Include="NFAAction.h" />
     <ClInclude Include="NFABuilder.h" />
     <ClInclude Include="ISemanticEntity.h" />
@@ -187,7 +188,8 @@
     <ClInclude Include="IProductionReferencable.h" />
     <ClInclude Include="LexicalAnalyzer.h" />
     <ClInclude Include="NFA.h" />
-    <ClInclude Include="Parser.h" />
+    <ClInclude Include="SyntacticAnalysisException.h" />
+    <ClInclude Include="SyntacticAnalyzer.h" />
     <ClInclude Include="Regex.h" />
     <ClInclude Include="RegexAction.h" />
     <ClInclude Include="Resources\Location.h" />

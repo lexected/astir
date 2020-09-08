@@ -87,9 +87,6 @@
     <ClCompile Include="NFABuilder.cpp">
       <Filter>Source Files\Semantic Analysis</Filter>
     </ClCompile>
-    <ClCompile Include="Parser.cpp">
-      <Filter>Source Files\Syntactic Analysis</Filter>
-    </ClCompile>
     <ClCompile Include="Regex.cpp">
       <Filter>Source Files\Syntactic Analysis</Filter>
     </ClCompile>
@@ -126,6 +123,9 @@
     <ClCompile Include="SemanticAnalysisException.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SyntacticAnalyzer.cpp">
+      <Filter>Source Files\Syntactic Analysis</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h">
@@ -151,9 +151,6 @@
     </ClInclude>
     <ClInclude Include="NFABuilder.h">
       <Filter>Header Files\Semantic Analysis</Filter>
-    </ClInclude>
-    <ClInclude Include="Parser.h">
-      <Filter>Header Files\Syntactic Analysis</Filter>
     </ClInclude>
     <ClInclude Include="Regex.h">
       <Filter>Header Files\Syntactic Analysis</Filter>
@@ -220,6 +217,15 @@
     </ClInclude>
     <ClInclude Include="SemanticAnalysisException.h">
       <Filter>Header Files\Semantic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="SyntacticAnalyzer.h">
+      <Filter>Header Files\Syntactic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="LexicalAnalysisException.h">
+      <Filter>Header Files\Lexical Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="SyntacticAnalysisException.h">
+      <Filter>Header Files\Syntactic Analysis</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

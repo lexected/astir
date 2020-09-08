@@ -5,7 +5,7 @@
 #include <map>
 
 #include "Token.h"
-#include "Exception.h"
+#include "LexicalAnalysisException.h"
 
 enum class LexicalAnalyzerState {
 	Default,
@@ -21,12 +21,6 @@ enum class LexicalAnalyzerState {
 	StringOctalEscapeSequence,
 	StringHexEscapeSequence,
 	LeftArrow
-};
-
-class LexicalAnalyzerException : public Exception {
-public:
-	LexicalAnalyzerException(const std::string& errmsg)
-		: Exception(errmsg) {}
 };
 
 class LexicalAnalyzer {

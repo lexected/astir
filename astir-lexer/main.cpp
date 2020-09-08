@@ -2,7 +2,7 @@
 #include <fstream>
 
 #include "LexicalAnalyzer.h"
-#include "Parser.h"
+#include "SyntacticAnalyzer.h"
 #include "CppGenerationVisitor.h"
 
 int main(int argc, char* argv[]) {
@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
 			;
 	}
 
-	Parser parser;
+	SyntacticAnalyzer parser;
 	std::shared_ptr<SyntacticTree> syntacticTree = parser.parse(tokenList);
 	syntacticTree->initialize();
 

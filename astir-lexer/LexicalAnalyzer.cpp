@@ -125,7 +125,7 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 							m_currentToken.type = TokenType::OP_AT;
 							break;
 						default:
-							throw LexicalAnalyzerException("Unrecognized character '" + m_currentToken.string + "' found on line " + m_currentLocation.toString());
+							throw LexicalAnalysisException("Unrecognized character '" + m_currentToken.string + "' found on line " + m_currentLocation.toString());
 							break;
 					}
 					ret.push_back(m_currentToken);
@@ -158,7 +158,7 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 				break;
 			case LexicalAnalyzerState::String:
 				if (m_currentCharacter == '\n') {
-					throw LexicalAnalyzerException("Unexpected end of line encountered at " + m_currentLocation.toString() + ", string started at " + m_currentToken.locationString() + " was left unterminated");
+					throw LexicalAnalysisException("Unexpected end of line encountered at " + m_currentLocation.toString() + ", string started at " + m_currentToken.locationString() + " was left unterminated");
 				} else if (m_currentCharacter == '\\') {
 					m_state = LexicalAnalyzerState::StringEscapeSequence;
 				} else if (m_currentCharacter == '"' && m_stringIsDoubleQuote || m_currentCharacter == '\'' && !m_stringIsDoubleQuote) {
@@ -175,7 +175,7 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 						m_currentToken.string.clear();
 					}
 				} else {
-					throw LexicalAnalyzerException("Unexpected end of stream encountered at " + m_currentLocation.toString() + ", string started at " + m_currentToken.locationString() + " was left unterminated");
+					throw LexicalAnalysisException("Unexpected end of stream encountered at " + m_currentLocation.toString() + ", string started at " + m_currentToken.locationString() + " was left unterminated");
 				}
 				break;
 			case LexicalAnalyzerState::StringEscapeSequence: {
@@ -216,7 +216,7 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 					m_state = LexicalAnalyzerState::StringOctalEscapeSequence;
 					m_currentEscapeSequence.append(1, m_currentCharacter);
 				} else {
-					throw LexicalAnalyzerException("Unknown escape sequence encountered at " + m_currentLocation.toString() + " in string started at " + m_currentToken.locationString());
+					throw LexicalAnalysisException("Unknown escape sequence encountered at " + m_currentLocation.toString() + " in string started at " + m_currentToken.locationString());
 				}
 				break;
 			}
@@ -277,7 +277,7 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 				break;
 			case LexicalAnalyzerState::LeftArrow:
 				if (m_currentCharacter != '-' || m_endOfStreamReached) {
-					throw LexicalAnalyzerException("Unrecognized character '" + m_currentToken.string + "' found on line " + m_currentLocation.toString() + ", expected '-' to complete the left-arrow operator '<-'");
+					throw LexicalAnalysisException("Unrecognized character '" + m_currentToken.string + "' found on line " + m_currentLocation.toString() + ", expected '-' to complete the left-arrow operator '<-'");
 				} else {
 					ret.push_back(m_currentToken);
 					m_currentToken.string.clear();
@@ -304,7 +304,7 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 				break;
 			case LexicalAnalyzerState::MultilineComment:
 				if (m_endOfStreamReached) {
-					throw LexicalAnalyzerException("Multiline comment without closure started on " + m_currentToken.locationString() + ", expected '*/' to close the multiline comment before the input stream end");
+					throw LexicalAnalysisException("Multiline comment without closure started on " + m_currentToken.locationString() + ", expected '*/' to close the multiline comment before the input stream end");
 				}
 
 				if (m_currentCharacter == '*') {
@@ -313,7 +313,7 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 				break;
 			case LexicalAnalyzerState::MultilineCommentStarEncountered:
 				if (m_endOfStreamReached) {
-					throw LexicalAnalyzerException("Multiline comment without closure started on " + m_currentToken.locationString() + ", expected '*/' (now only '/' is missing as star has recently been encountered) to close the multiline comment before the input stream end");
+					throw LexicalAnalysisException("Multiline comment without closure started on " + m_currentToken.locationString() + ", expected '*/' (now only '/' is missing as star has recently been encountered) to close the multiline comment before the input stream end");
 				}
 
 				if (m_currentCharacter == '/') {
