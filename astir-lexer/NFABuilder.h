@@ -19,14 +19,13 @@ public:
 	NFA visit(const ConjunctiveRegex* regex) const;
 
 	NFA visit(const RepetitiveRegex* regex) const;
-	NFA visit(const LookaheadRegex* regex) const;
 	
+	NFA visit(const EmptyRegex* regex) const;
 	NFA visit(const AnyRegex* regex) const;
 	NFA visit(const ExceptAnyRegex* regex) const;
 	NFA visit(const LiteralRegex* regex) const;
 	NFA visit(const ArbitrarySymbolRegex* regex) const;
 	NFA visit(const ReferenceRegex* regex) const; 
-	NFA visit(const LineEndRegex* regex) const;
 private:
 	const Machine& m_contextMachine;
 	const MachineComponent* m_contextComponent;

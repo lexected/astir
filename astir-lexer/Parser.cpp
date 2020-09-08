@@ -409,14 +409,34 @@ std::unique_ptr<Field> Parser::parseMemberDeclaration(std::list<Token>::const_it
 }
 
 std::unique_ptr<RootRegex> Parser::parseRootRegex(std::list<Token>::const_iterator& it) const {
+	auto savedIt = it;
+
 	unique_ptr<RootRegex> rr;
-	if ((rr = parseRepetitiveRegex(it))) {
+	if ((rr = parseRepetitiveRegex(it)) || (rr = parseAtomicRegex(it))) {
+		while (it->type == TokenType::OP_AT) {
+			auto interimIt = it;
+			++it;
+
+			RegexAction atp;
+			atp.type = parseRegexAction(it);
+
+			if (it->type != TokenType::OP_COLON) {
+				throw UnexpectedTokenException(*it, "a colon ':' to separate action from target", "for action-atomic regex", *savedIt);
+			}
+			++it;
+
+			if (it->type != TokenType::IDENTIFIER) {
+				throw UnexpectedTokenException(*it, "an identifier to specify the action target", "for action-atomic regex", *savedIt);
+			}
+			atp.target = it->string;
+			atp.copyLocation(*interimIt);
+			++it;
+
+			rr->actions.push_back(move(atp));
+		}
+
 		return rr;
-	} else if ((rr = parseLookaheadRegex(it))) {
-		return rr;
-	} else if ((rr = parseAtomicRegex(it))) {
-		return rr;
-	} else {
+	}  else {
 		return nullptr;
 	}
 }
@@ -491,32 +511,6 @@ std::unique_ptr<RepetitiveRegex> Parser::parseRepetitiveRegex(std::list<Token>::
 	}
 }
 
-std::unique_ptr<LookaheadRegex> Parser::parseLookaheadRegex(std::list<Token>::const_iterator& it) const {
-	auto savedIt = it;
-	unique_ptr<AtomicRegex> atomicRegex = parseAtomicRegex(it);
-	if (!atomicRegex) {
-		// throw UnexpectedTokenException(*it, "token for action-atomic regex", "for lookahead regex as an alternative of root regex", *savedIt);
-		return nullptr;
-	}
-
-	if (it->type == TokenType::OP_FWDSLASH) {
-		++it;
-
-		unique_ptr<LookaheadRegex> lr = make_unique<LookaheadRegex>();
-		lr->copyLocation(*savedIt);
-		unique_ptr<PrimitiveRegex> ar = parsePrimitiveRegex(it);
-		if (!ar) {
-			throw UnexpectedTokenException(*it, "a token for atomic regex to follow '\\'", "for lookahead match regex", *savedIt);
-		}
-		lr->match = move(atomicRegex);
-		lr->lookahead = move(ar);
-		return lr;
-	} else {
-		it = savedIt;
-		return nullptr;
-	}
-}
-
 std::unique_ptr<PrimitiveRegex> Parser::parsePrimitiveRegex(std::list<Token>::const_iterator& it) const {
 	/* perhaps rather surprisingly, this will be a lookahead bit of this parser */
 	auto savedIt = it; // for throwing purposes, heh
@@ -535,10 +529,6 @@ std::unique_ptr<PrimitiveRegex> Parser::parsePrimitiveRegex(std::list<Token>::co
 		ret = move(lr);
 	} else if (it->type == TokenType::OP_DOT) {
 		ret = make_unique<ArbitrarySymbolRegex>();
-	} /*else if (it->type == TokenType::OP_CARET) {
-		ret = make_unique<LineBeginRegex>();
-	}*/ else if (it->type == TokenType::OP_DOLLAR) {
-		ret = make_unique<LineEndRegex>();
 	} else if (it->type == TokenType::IDENTIFIER) {
 		auto rr = make_unique<ReferenceRegex>();
 		rr->referenceName = it->string;
@@ -549,28 +539,6 @@ std::unique_ptr<PrimitiveRegex> Parser::parsePrimitiveRegex(std::list<Token>::co
 	++it;
 
 	ret->copyLocation(*savedIt);
-	
-	while (it->type == TokenType::OP_AT) {
-		auto interimIt = it;
-		++it;
-
-		RegexAction atp;
-		atp.type = parseRegexAction(it);
-
-		if (it->type != TokenType::OP_COLON) {
-			throw UnexpectedTokenException(*it, "a colon ':' to separate action from target", "for action-atomic regex", *savedIt);
-		}
-		++it;
-
-		if (it->type != TokenType::IDENTIFIER) {
-			throw UnexpectedTokenException(*it, "an identifier to specify the action target", "for action-atomic regex", *savedIt);
-		}
-		atp.target = it->string;
-		atp.copyLocation(*interimIt);
-		++it;
-
-		ret->actions.push_back(move(atp));
-	}
 
 	return ret;
 }
@@ -626,9 +594,14 @@ std::unique_ptr<AtomicRegex> Parser::parseAtomicRegex(std::list<Token>::const_it
 	if (it->type == TokenType::PAR_LEFT) {
 		++it;
 
+		if (it->type == TokenType::PAR_RIGHT) {
+			++it;
+			return std::make_unique<EmptyRegex>();
+		}
+
 		auto dr = parseDisjunctiveRegex(it);
 		if (!dr) {
-			throw UnexpectedTokenException(*it, "a beginning token for a disjunctive regex", "for atomic regex", *savedIt);
+			throw UnexpectedTokenException(*it, "a beginning token for a disjunctive regex or an empty regex", "for atomic regex", *savedIt);
 		}
 
 		if (it->type != TokenType::PAR_RIGHT) {

@@ -162,15 +162,20 @@ void NFA::addFinalActions(const NFAActionRegister& actions) {
 }
 
 void NFA::addInitialActions(const NFAActionRegister& actions) {
+    // should probably be called 'prependInitialActions' rather than 'addInitialActions', 'cause the "prepension" is crucial
     for (Transition& transition : this->states[0].transitions) {
-        transition.actions += actions;
+        auto newActions = actions;
+        newActions += transition.actions;
+        transition.actions = newActions;
     }
 
     // now this may sound like cheating but I promise you it is not
     // in fact, it makes perfect sense - in the specific case when we might be done before we ever consume anything,
     // we want to make sure that the initial actions are performed
     if (this->finalStates.contains(0)) {
-        this->states[0].actions += actions;
+        auto newActions = actions;
+        newActions += this->states[0].actions;
+        this->states[0].actions = newActions;
     }
 }
 

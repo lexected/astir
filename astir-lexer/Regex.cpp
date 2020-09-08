@@ -16,25 +16,7 @@ void RepetitiveRegex::checkAndTypeformActionUsage(const Machine& machine, const 
 	regex->checkAndTypeformActionUsage(machine, context);
 }
 
-const IFileLocalizable* LookaheadRegex::findRecursiveReference(const Machine& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
-	const IFileLocalizable* ret = match->findRecursiveReference(machine, namesEncountered, targetName);
-	if (ret) {
-		return ret;
-	}
-
-	return lookahead->findRecursiveReference(machine, namesEncountered, targetName);
-}
-
-NFA LookaheadRegex::accept(const NFABuilder& nfaBuilder) const {
-	return nfaBuilder.visit(this);
-}
-
-void LookaheadRegex::checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) {
-	match->checkAndTypeformActionUsage(machine, context);
-	// lookahead->checkAndTypeformActionUsage(context); NO NEED!!!
-}
-
-void PrimitiveRegex::checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) {
+void RootRegex::checkAndTypeformActionUsage(const Machine& machine, const MachineComponent* context) {
 	for (auto& action : actions) {
 		const Field* fieldPtr = context->findField(action.target);
 		action.targetField = fieldPtr;
@@ -108,7 +90,8 @@ void PrimitiveRegex::checkAndTypeformActionUsage(const Machine& machine, const M
 	}
 }
 
-std::string PrimitiveRegex::computeItemType(const Machine& machine, const MachineComponent* context) const {
+std::string RootRegex::computeItemType(const Machine& machine, const MachineComponent* context) const {
+	// TODO: figure out wtf is this for...
 	return "raw";
 }
 
@@ -188,6 +171,6 @@ NFA ArbitrarySymbolRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
-NFA LineEndRegex::accept(const NFABuilder& nfaBuilder) const {
+NFA EmptyRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }

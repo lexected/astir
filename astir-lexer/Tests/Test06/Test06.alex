@@ -10,7 +10,11 @@ finite automaton SecondaryAutomaton on PrimaryAutomaton {
 	nonterminal production Sentence {
 		PUNCTUATION type;
 		WORD list words;
+
+		flag emptyFlag;
+		raw rawSentence;
 	} = 
-		(WORD@push:words WHITESPACE)* WORD@push:words PUNCTUATION@set:type
+		(()@flag:emptyFlag (WORD@push:words WHITESPACE)* WORD@push:words PUNCTUATION@set:type)@capture:rawSentence
+		// (WORD@push:words WHITESPACE)* WORD@push:words PUNCTUATION@set:type
 		;
 }
