@@ -1,0 +1,263 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Resource Files\Tests">
+      <UniqueIdentifier>{91f52aaa-fbcd-4730-ab7b-52a1809eaee3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Resources">
+      <UniqueIdentifier>{ab80739d-95a4-44e3-a077-891229331752}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Generation">
+      <UniqueIdentifier>{872bc301-a809-4139-ad92-50de3f6e4af4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Lexical Analysis">
+      <UniqueIdentifier>{0523cec0-636e-4a9d-a840-885fd0e78169}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Syntactic Analysis">
+      <UniqueIdentifier>{6b774034-db19-4267-bc8d-3405694b205e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Semantic Analysis">
+      <UniqueIdentifier>{4ae10ae4-5dc5-4b46-ae67-23fd1f9536f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Generation">
+      <UniqueIdentifier>{3db38239-c434-423c-a66b-e73748da54f0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Syntactic Analysis">
+      <UniqueIdentifier>{1d1c508f-bd0a-4f80-a6ee-859f805471ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Semantic Analysis">
+      <UniqueIdentifier>{a592363f-fb3b-48cc-9707-ed26ac6f5a15}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Lexical Analysis">
+      <UniqueIdentifier>{847d288a-0b0f-4ca8-83ea-68bafc845e4b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Tests\Uncategorized">
+      <UniqueIdentifier>{42098e62-6d69-43a2-b8e6-8923040f3218}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Tests\Test03">
+      <UniqueIdentifier>{57269340-5064-475d-a9cc-ec2ce4e975d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Tests\Test01">
+      <UniqueIdentifier>{96550b82-097c-49a9-8557-10e545b679ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Tests\Test02">
+      <UniqueIdentifier>{96c4f0f8-9f52-4a5f-b93c-fb265e3c2f0b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Tests\Test04">
+      <UniqueIdentifier>{ba024569-a224-41e9-9979-f70f3c52c5a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Tests\Test05">
+      <UniqueIdentifier>{5eb4e56c-4786-4313-bda1-b442e07440e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Tests\Test06">
+      <UniqueIdentifier>{c792f448-9ab7-4465-9677-92c14e9a21ba}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CppGenerationVisitor.cpp">
+      <Filter>Source Files\Generation</Filter>
+    </ClCompile>
+    <ClCompile Include="ISyntacticEntity.cpp">
+      <Filter>Source Files\Syntactic Analysis</Filter>
+    </ClCompile>
+    <ClCompile Include="LexicalAnalyzer.cpp">
+      <Filter>Source Files\Lexical Analysis</Filter>
+    </ClCompile>
+    <ClCompile Include="IProductionReferencable.cpp">
+      <Filter>Source Files\Semantic Analysis</Filter>
+    </ClCompile>
+    <ClCompile Include="NFA.cpp">
+      <Filter>Source Files\Semantic Analysis</Filter>
+    </ClCompile>
+    <ClCompile Include="NFABuilder.cpp">
+      <Filter>Source Files\Semantic Analysis</Filter>
+    </ClCompile>
+    <ClCompile Include="Regex.cpp">
+      <Filter>Source Files\Syntactic Analysis</Filter>
+    </ClCompile>
+    <ClCompile Include="Token.cpp">
+      <Filter>Source Files\Lexical Analysis</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\SpecimenFiniteAutomaton.scpp">
+      <Filter>Resource Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="GenerationHelper.cpp">
+      <Filter>Source Files\Generation</Filter>
+    </ClCompile>
+    <ClCompile Include="GenerationException.cpp">
+      <Filter>Source Files\Generation</Filter>
+    </ClCompile>
+    <ClCompile Include="Field.cpp">
+      <Filter>Source Files\Syntactic Analysis</Filter>
+    </ClCompile>
+    <ClCompile Include="NFAAction.cpp">
+      <Filter>Source Files\Semantic Analysis</Filter>
+    </ClCompile>
+    <ClCompile Include="CppNFAGenerationHelper.cpp">
+      <Filter>Source Files\Generation</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\Location.cpp">
+      <Filter>Resource Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\RawStream.cpp">
+      <Filter>Resource Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="SyntacticTree.cpp">
+      <Filter>Source Files\Syntactic Analysis</Filter>
+    </ClCompile>
+    <ClCompile Include="SemanticAnalysisException.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SyntacticAnalyzer.cpp">
+      <Filter>Source Files\Syntactic Analysis</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Exception.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IFileLocalizable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FileLocation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CppGenerationVisitor.h">
+      <Filter>Header Files\Generation</Filter>
+    </ClInclude>
+    <ClInclude Include="GenerationVisitor.h">
+      <Filter>Header Files\Generation</Filter>
+    </ClInclude>
+    <ClInclude Include="IGenerationVisitable.h">
+      <Filter>Header Files\Generation</Filter>
+    </ClInclude>
+    <ClInclude Include="NFA.h">
+      <Filter>Header Files\Semantic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="NFABuilder.h">
+      <Filter>Header Files\Semantic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="Regex.h">
+      <Filter>Header Files\Syntactic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="SyntacticTree.h">
+      <Filter>Header Files\Syntactic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="Token.h">
+      <Filter>Header Files\Lexical Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="ISemanticEntity.h">
+      <Filter>Header Files\Semantic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="ISyntacticEntity.h">
+      <Filter>Header Files\Syntactic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="LexicalAnalyzer.h">
+      <Filter>Header Files\Lexical Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="IProductionReferencable.h">
+      <Filter>Header Files\Semantic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="INFABuildable.h">
+      <Filter>Header Files\Semantic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="IActing.h">
+      <Filter>Header Files\Semantic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\SpecimenFiniteAutomaton.sh">
+      <Filter>Resource Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="GenerationException.h">
+      <Filter>Header Files\Generation</Filter>
+    </ClInclude>
+    <ClInclude Include="GenerationHelper.h">
+      <Filter>Header Files\Generation</Filter>
+    </ClInclude>
+    <ClInclude Include="Field.h">
+      <Filter>Header Files\Syntactic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="NFAAction.h">
+      <Filter>Header Files\Semantic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="CppNFAGenerationHelper.h">
+      <Filter>Header Files\Generation</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\ProductionStream.h">
+      <Filter>Resource Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Production.h">
+      <Filter>Resource Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Terminal.h">
+      <Filter>Resource Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\RawStream.h">
+      <Filter>Resource Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Location.h">
+      <Filter>Resource Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="RegexAction.h">
+      <Filter>Header Files\Syntactic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="SemanticAnalysisException.h">
+      <Filter>Header Files\Semantic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="SyntacticAnalyzer.h">
+      <Filter>Header Files\Syntactic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="LexicalAnalysisException.h">
+      <Filter>Header Files\Lexical Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="SyntacticAnalysisException.h">
+      <Filter>Header Files\Syntactic Analysis</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Grammar.astir">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Tests\Uncategorized\C99Tokenizer.alex">
+      <Filter>Resource Files\Tests\Uncategorized</Filter>
+    </None>
+    <None Include="Tests\Uncategorized\ExampleParser.apar">
+      <Filter>Resource Files\Tests\Uncategorized</Filter>
+    </None>
+    <None Include="Tests\Uncategorized\ExampleTokenizer.alex">
+      <Filter>Resource Files\Tests\Uncategorized</Filter>
+    </None>
+    <None Include="Tests\Test01\Test01.alex">
+      <Filter>Resource Files\Tests\Test01</Filter>
+    </None>
+    <None Include="Tests\Test02\Test02.alex">
+      <Filter>Resource Files\Tests\Test02</Filter>
+    </None>
+    <None Include="Tests\Test03\Test03.alex">
+      <Filter>Resource Files\Tests\Test03</Filter>
+    </None>
+    <None Include="Tests\Test04\Test04.alex">
+      <Filter>Resource Files\Tests\Test04</Filter>
+    </None>
+    <None Include="Tests\Test05\Test05.alex">
+      <Filter>Resource Files\Tests\Test05</Filter>
+    </None>
+    <None Include="Tests\Test06\Test06.alex">
+      <Filter>Resource Files\Tests\Test06</Filter>
+    </None>
+  </ItemGroup>
+</Project>
