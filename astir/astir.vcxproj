@@ -213,6 +213,7 @@
     </ClInclude>
     <ClInclude Include="SemanticAnalysisException.h" />
     <ClInclude Include="SyntacticTree.h" />
+    <ClInclude Include="TestingSwitch.h" />
     <ClInclude Include="Token.h" />
   </ItemGroup>
   <ItemGroup>

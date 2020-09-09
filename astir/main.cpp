@@ -7,10 +7,9 @@
 
 #include "dimcli/libs/dimcli/cli.h"
 
-#undef TESTING
-
 void printTokenList(const std::list<Token>& tokenList);
 
+#include "TestingSwitch.h"
 int main(int argc, char* argv[]) {
 #ifndef TESTING
 	Dim::Cli cli;
@@ -39,7 +38,8 @@ int main(int argc, char* argv[]) {
 		"Test03",
 		"Test04",
 		"Test05",
-		"Test06"
+		"Test06",
+		"Test07",
 	};
 	for (const std::string& testName : testsToRun) {
 		std::fstream inputFile("Tests/" + testName + "/" + testName + ".alex");

@@ -239,6 +239,9 @@
     <ClInclude Include="dimcli\libs\dimcli\cli.h">
       <Filter>Header Files\dimcli</Filter>
     </ClInclude>
+    <ClInclude Include="TestingSwitch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Grammar.astir">
