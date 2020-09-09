@@ -15,11 +15,15 @@ std::string Token::typeString() const {
 }
 
 std::string Token::toHumanString() const {
+	std::string ret = typeString() + " ('";
 	if (type == TokenType::STRING) {
-		return std::string("\"") + string + "\"";
+		ret += std::string("\"") + string + "\"";
 	} else {
-		return string;
+		ret += string;
 	}
+	ret += "')";
+
+	return ret;
 }
 
 const FileLocation& Token::location() const {

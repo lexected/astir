@@ -20,16 +20,25 @@ int main(int argc, char* argv[]) {
 
 	std::fstream grammarFile(*grammarFilePath);
 
-	LexicalAnalyzer lexicalAnalyzer;
-	auto tokenList = lexicalAnalyzer.process(grammarFile);
+	try {
+		LexicalAnalyzer lexicalAnalyzer;
+		std::cout << "Tokenizing grammar file" << std::endl;
+		auto tokenList = lexicalAnalyzer.process(grammarFile);
 
-	SyntacticAnalyzer syntacticAnalyzer;
-	std::shared_ptr<SyntacticTree> syntacticTree = syntacticAnalyzer.process(tokenList);
-	syntacticTree->initialize();
+		SyntacticAnalyzer syntacticAnalyzer;
+		std::cout << "Parsing grammar file" << std::endl;
+		std::shared_ptr<SyntacticTree> syntacticTree = syntacticAnalyzer.process(tokenList);
+		
+		std::cout << "Semantically processing the grammar" << std::endl;
+		syntacticTree->initialize();
 
-	CppGenerationVisitor generationVisitor(*outputDirectoryPath);
-	generationVisitor.setup();
-	generationVisitor.visit(syntacticTree.get());
+		CppGenerationVisitor generationVisitor(*outputDirectoryPath);
+		generationVisitor.setup();
+		std::cout << "Generating output code" << std::endl;
+		generationVisitor.visit(syntacticTree.get());
+	} catch (const Exception& exception) {
+		std::cerr << "Error: " << exception.what() << std::endl;
+	} 
 
 #else
 	std::vector<std::string> testsToRun = {
