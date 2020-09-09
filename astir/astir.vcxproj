@@ -143,6 +143,7 @@
   <ItemGroup>
     <ClCompile Include="CppGenerationVisitor.cpp" />
     <ClCompile Include="CppNFAGenerationHelper.cpp" />
+    <ClCompile Include="dimcli\libs\dimcli\cli.cpp" />
     <ClCompile Include="Field.cpp" />
     <ClCompile Include="GenerationException.cpp" />
     <ClCompile Include="GenerationHelper.cpp" />
@@ -171,6 +172,7 @@
   <ItemGroup>
     <ClInclude Include="CppGenerationVisitor.h" />
     <ClInclude Include="CppNFAGenerationHelper.h" />
+    <ClInclude Include="dimcli\libs\dimcli\cli.h" />
     <ClInclude Include="Exception.h" />
     <ClInclude Include="Field.h" />
     <ClInclude Include="FileLocation.h" />

@@ -64,6 +64,12 @@
     <Filter Include="Resource Files\Tests\Test06">
       <UniqueIdentifier>{c792f448-9ab7-4465-9677-92c14e9a21ba}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\dimcli">
+      <UniqueIdentifier>{11b8e5d4-e334-4b6d-afac-4583231fe355}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\dimcli">
+      <UniqueIdentifier>{75989e96-c8f0-4140-9199-f2455bb8d449}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -125,6 +131,9 @@
     </ClCompile>
     <ClCompile Include="SyntacticAnalyzer.cpp">
       <Filter>Source Files\Syntactic Analysis</Filter>
+    </ClCompile>
+    <ClCompile Include="dimcli\libs\dimcli\cli.cpp">
+      <Filter>Source Files\dimcli</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -226,6 +235,9 @@
     </ClInclude>
     <ClInclude Include="SyntacticAnalysisException.h">
       <Filter>Header Files\Syntactic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="dimcli\libs\dimcli\cli.h">
+      <Filter>Header Files\dimcli</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

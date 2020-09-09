@@ -11,7 +11,7 @@ class SyntacticAnalyzer {
 public:
 	SyntacticAnalyzer() = default;
 
-	std::unique_ptr<SyntacticTree> parse(const std::list<Token>& tokens) const;
+	std::unique_ptr<SyntacticTree> process(const std::list<Token>& tokens) const;
 private:
 	std::unique_ptr<UsesStatement> parseUsesStatement(std::list<Token>::const_iterator& it) const;
 	

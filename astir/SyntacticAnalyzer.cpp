@@ -11,7 +11,7 @@ using namespace std;
 	 --- IF YOU'RE RETURNING NULLPTR, YOU ARE RESPONSIBLE FOR MAKING SURE IT POINTS TO WHERE IT WAS POINTING WHEN IT WAS PASSED TO YOU ---
 */
 
-std::unique_ptr<SyntacticTree> SyntacticAnalyzer::parse(const std::list<Token>& tokens) const {
+std::unique_ptr<SyntacticTree> SyntacticAnalyzer::process(const std::list<Token>& tokens) const {
 	auto it = tokens.cbegin();
 
 	unique_ptr<SyntacticTree> specificationFile = make_unique<SyntacticTree>();
