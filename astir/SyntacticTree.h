@@ -35,7 +35,6 @@ struct UsesStatement : public ISyntacticEntity {
 
 enum class MachineFlag {
 	ProductionsTerminalByDefault,
-	RulesProductionsByDefault,
 	ProductionsRootByDefault,
 	CategoriesRootByDefault
 };
@@ -84,7 +83,8 @@ protected:
 	MachineDefinition()
 		: attributes({
 			{ MachineFlag::ProductionsTerminalByDefault, MachineDefinitionAttribute(false) },
-			{ MachineFlag::RulesProductionsByDefault, MachineDefinitionAttribute(true) }
+			{ MachineFlag::ProductionsRootByDefault, MachineDefinitionAttribute(false) },
+			{ MachineFlag::CategoriesRootByDefault, MachineDefinitionAttribute(false) }
 		}), m_terminalCount((TerminalTypeIndex)0) { }
 		
 	MachineDefinition(const std::map<MachineFlag, MachineDefinitionAttribute>& attributes)
@@ -99,7 +99,6 @@ struct FiniteAutomatonDefinition : public MachineDefinition {
 	FiniteAutomatonDefinition()
 		:  MachineDefinition({
 				{ MachineFlag::ProductionsTerminalByDefault, MachineDefinitionAttribute(true) },
-				{ MachineFlag::RulesProductionsByDefault, MachineDefinitionAttribute(true) },
 				{ MachineFlag::ProductionsRootByDefault, MachineDefinitionAttribute(true) },
 				{ MachineFlag::CategoriesRootByDefault, MachineDefinitionAttribute(false) },
 			}) { }

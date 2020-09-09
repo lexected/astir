@@ -1,69 +1,74 @@
 /*
-	RECOGNIZED TOKENS:
-		KW_USING
-		KW_TOKEN
-		KW_REGEX
-		KW_PRODUCTION
-		KW_RULE
-		KW_DETERMINISTIC
-		KW_NONDETERMINISTIC
-		KW_FINITE
-		KW_AUTOMATON
-		KW_PARSER
-		KW_RECURSIVE_DESCENT
-		KW_WITH
-		KW_FOLLOWS
-		KW_EXTENDS
-		KW_INDIVIDUAL_STRING_LITERALS
-		KW_GROUPED_STRING_LITERALS
-		KW_TABLE_LOOKUP
-		KW_MACHINE_LOOKUP
-		KW_BACKTRACKING
-		KW_PREDICTION
-		KW_CATEGORY
+	KW_USES,
 
-		KW_ITEM
-		KW_LIST
-		KW_RAW
+	KW_ON,
+	KW_WITH,
+	
+	KW_FINITE,
+	KW_AUTOMATON,
+	KW_PRODUCTIONS_TERMINAL_BY_DEFAULT,
+	KW_PRODUCTIONS_NONTERMINAL_BY_DEFAULT,
+	KW_PRODUCTIONS_ROOT_BY_DEFAULT,
+	KW_PRODUCTIONS_NONROOT_BY_DEFAULT,
+	KW_CATEGORIES_ROOT_BY_DEFAULT,
+	KW_CATEGORIES_NONROOT_BY_DEFAULT,
+	
+	KW_IGNORED,
+	KW_ROOT,
+	KW_TERMINAL,
+	KW_NONTERMINAL,
+	KW_CATEGORY,
+	KW_PRODUCTION,
+	KW_PATTERN,
+	KW_REGEX,
 
-		KW_SET
-		KW_UNSET
-		KW_FLAG
-		KW_UNFLAG
-		KW_APPEND
-		KW_PREPEND
-		KW_CLEAR
-		KW_LEFT_TRIM
-		KW_RIGHT_TRIM
+	KW_ITEM,
+	KW_LIST,
+	KW_RAW,
 
-		IDENTIFIER
-		NUMBER
-		STRING
+	KW_FLAG,
+	KW_UNFLAG,
+	KW_CAPTURE,
+	KW_EMPTY,
+	KW_APPEND,
+	KW_PREPEND,
+	KW_SET,
+	KW_UNSET,
+	KW_PUSH,
+	KW_POP,
+	KW_CLEAR,
 
-		OP_EQUALS
-		OP_COLON
-		OP_LEFTARR
-		OP_SEMICOLON
-		OP_DOT
-		OP_CARET
-		OP_DOLLAR
-		SQUARE_LEFT
-		SQUARE_RIGHT
-		PAR_LEFT
-		PAR_RIGHT
-		CURLY_LEFT
-		CURLY_RIGHT
-		OP_STAR
-		OP_PLUS
-		OP_QM
-		OP_OR
-		OP_FWDSLASH,
-		OP_COMMA,
-		OP_AT
-*/
+	IDENTIFIER,
+	STRING,
+	NUMBER,
 
-/*
-	THIS GRAMMAR IS BADLY OUT OF DATE
+	PAR_LEFT,
+	PAR_RIGHT,
+	SQUARE_LEFT,
+	SQUARE_RIGHT,
+	CURLY_LEFT,
+	CURLY_RIGHT,
+
+	OP_COLON,
+	OP_EQUALS,
+	OP_LEFTARR,
+	OP_SEMICOLON,
+	OP_COMMA,
+	OP_DOT,
+	OP_CARET,
+	OP_DOLLAR,
+
+	OP_STAR,
+	OP_PLUS,
+	OP_QM,
+	OP_OR,
+	OP_FWDSLASH,
+	
+	OP_AMPERSAND,
+	OP_DASH,
+	OP_AT,
+
+	EOS
 */
 
 production specification = 
@@ -80,78 +85,82 @@ production usingStatement =
 	;
 
 production machineDefinition =
-	machineType IDENTIFIER (KW_WITH machineOptionList)? (KW_EXTENDS IDENTIFIER| KW_FOLLOWS IDENTIFIER)? OP_SEMICOLON
-	| machineType IDENTIFIER (KW_WITH machineOptionList)? (KW_EXTENDS IDENTIFIER| KW_FOLLOWS IDENTIFIER)? CURLY_LEFT machineDefinitionBody CURLY_RIGHT
+	machineType IDENTIFIER (KW_WITH machineOptionList)? (KW_ON IDENTIFIER)? (KW_USES (IDENTIFIER)+)?  CURLY_LEFT machineDefinitionBody CURLY_RIGHT
 	;
 
-rule machineOptionList =
-	(KW_INDIVIDUAL_STRING_LITERALS
-		| KW_GROUPED_STRING_LITERALS
-		| KW_TABLE_LOOKUP
-		| KW_MACHINE_LOOKUP
-		| KW_BACKTRACKING
-		| KW_PREDICTION)+
+pattern machineType =
+	KW_FINITE KW_AUTOMATON
+	;
+
+pattern machineOptionList =
+	machineOption (OP_COMMA machineOption)*
+	;
+
+pattern machineOption = 
+	KW_PRODUCTIONS_TERMINAL_BY_DEFAULT
+	| KW_PRODUCTIONS_NONTERMINAL_BY_DEFAULT
+	| KW_PRODUCTIONS_ROOT_BY_DEFAULT
+	| KW_PRODUCTIONS_NONROOT_BY_DEFAULT
+	| KW_CATEGORIES_ROOT_BY_DEFAULT
+	| KW_CATEGORIES_NONROOT_BY_DEFAULT
 	;
 
 production machineDefinitionBody =
 	statementList
 	;
 
-rule statementList =
+pattern statementList =
 	statement*
 	;
 
 production statement =
 	categoryStatement
-	| grammarStatement
+	| productionStatement
+	| patternStatement
+	| regexStatement
+	;
+
+pattern attributedStatementAttribution =
+	(OP_COLON declarationNameList)? memberDeclarationBody?
+	;
+
+pattern typeFormingStatementAttribution =
+	(KW_ROOT|KW_IGNORED KW_ROOT)?
 	;
 
 production categoryStatement =
-	KW_CATEGORY IDENTIFIER memberDeclarationBody? OP_EQUALS categoryStatementBody OP_SEMICOLON
-	| KW_CATEGORY IDENTIFIER OP_COLON declarationNameList memberDeclarationBody? OP_EQUALS categoryStatementBody OP_SEMICOLON
-	| KW_CATEGORY IDENTIFIER OP_COLON declarationNameList memberDeclarationBody? OP_SEMICOLON
-	| KW_CATEGORY IDENTIFIER memberDeclarationBody? OP_SEMICOLON
+	typeFormingStatementAttribution KW_CATEGORY IDENTIFIER attributedStatementAttribution OP_SEMICOLON
+	| typeFormingStatementAttribution KW_CATEGORY IDENTIFIER attributedStatementAttribution OP_EQUALS categoryStatementBody OP_SEMICOLON
 	;
 
-rule memberDeclarationBody =
-	(CURLY_LEFT memberDeclaration* CURLY_RIGHT)
+pattern memberDeclarationBody =
+	CURLY_LEFT memberDeclaration* CURLY_RIGHT
 	;
 
 production memberDeclaration =
 	KW_FLAG IDENTIFIER OP_SEMICOLON
 	| KW_RAW IDENTIFIER OP_SEMICOLON
-	| IDENTIFIER (KW_LIST|KW_ITEM?) IDENTIFIER OP_SEMICOLON
+	| IDENTIFIER (KW_LIST|KW_ITEM)? IDENTIFIER OP_SEMICOLON
 	;
 
-rule categoryStatementBody =
-	qualifiedName*
+pattern categoryStatementBody =
+	IDENTIFIER*
 	;
 
-production qualifiedName =
-	specifiedName OP_AT KW_ITEM OP_COLON identifier
-	| specifiedName OP_AT KW_LIST OP_COLON identifier
-	| specifiedName OP_AT KW_FLAG OP_COLON identifier
+production productionStatement =
+	typeFormingStatementAttribution KW_PRODUCTION? IDENTIFIER attributedStatementAttribution OP_EQUALS ruleStatementBody OP_SEMICOLON
 	;
 
-production grammarStatement =
-	grammarStatementType IDENTIFIER memberDeclarationBody? OP_EQUALS grammarStatementBody OP_SEMICOLON
-	| grammarStatementType IDENTIFIER OP_COLON declarationNameList memberDeclarationBody? OP_EQUALS grammarStatementBody OP_SEMICOLON
+production patternStatement =
+	KW_PATTERN IDENTIFIER attributedStatementAttribution OP_EQUALS ruleStatementBody OP_SEMICOLON
 	;
 
-rule grammarStatementType =
-	KW_TOKEN
-	| KW_REGEX
-	| KW_RULE
-	| KW_PRODUCTION
+production regexStatement =
+	KW_REGEX IDENTIFIER OP_EQUALS ruleStatementBody OP_SEMICOLON
 	;
 
-rule declarationNameList =
-	IDENTIFIER OP_COMMA declarationNameList
-	| IDENTIFIER
-	;
-
-production grammarStatementBody = 
-	disjunctiveRegex*
+production ruleStatementBody = 
+	disjunctiveRegex?
 	;
 
 production disjunctiveRegex =
@@ -163,57 +172,43 @@ production conjunctiveRegex =
 	;
 
 production rootRegex =
-	repetitiveRegex
-	| lookaheadRegex
-	| actionAtomicRegex
+	(repetitiveRegex | atomicRegex) (OP_AT action OP_COLON IDENTIFIER)*
+	;
+
+pattern action =
+	| KW_FLAG
+	| KW_UNFLAG
+	| KW_CAPTURE
+	| KW_EMPTY
+	| KW_APPEND
+	| KW_PREPEND
+	| KW_SET
+	| KW_UNSET
+	| KW_PUSH
+	| KW_POP
+	| KW_CLEAR
 	;
 
 production repetitiveRegex =
-	actionAtomicRegex OP_QM
-	| actionAtomicRegex OP_STAR
-	| actionAtomicRegex OP_PLUS
-	| actionAtomicRegex CURLY_LEFT NUMBER, NUMBER CURLY_RIGHT
-	;
-
-production lookaheadRegex =
-	actionAtomicRegex OP_FWDSLASH atomicRegex
-	;
-
-production actionAtomicRegex =
-	atomicRegex (OP_AT action OP_COLON IDENTIFIER)*
+	atomicRegex OP_QM
+	| atomicRegex OP_STAR
+	| atomicRegex OP_PLUS
+	| atomicRegex CURLY_LEFT NUMBER, NUMBER CURLY_RIGHT
 	;
 	
-production atomicRegex : rootRegex =
+production atomicRegex =
 	PAR_LEFT disjunctiveRegex PAR_RIGHT
 	| SQUARE_LEFT OP_CARET (STRING|regexRange)+ SQUARE_RIGHT
 	| SQUARE_LEFT (STRING|regexRange)+ SQUARE_RIGHT
 	| STRING
 	| OP_DOT
-	| OP_CARET
-	| OP_DOLLAR
-	| specifiedName
+	| referenceRegex
 	;
 
 production regexRange =
 	STRING OP_DASH STRING
 	;
 
-production specifiedName =
+production referenceRegex =
 	IDENTIFIER
-	;
-
-production operationalName =
-	specifiedName (OP_AT action OP_COLON IDENTIFIER)
-	;
-
-production action =
-	KW_SET
-	| KW_UNSET
-	| KW_FLAG
-	| KW_UNFLAG
-	| KW_APPEND
-	| KW_PREPEND
-	| KW_CLEAR
-	| KW_LEFT_TRIM
-	| KW_RIGHT_TRIM
 	;

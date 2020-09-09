@@ -52,8 +52,6 @@ private:
 		std::pair<std::string, TokenType>("automaton", TokenType::KW_AUTOMATON),
 		std::pair<std::string, TokenType>("productions_terminal_by_default", TokenType::KW_PRODUCTIONS_TERMINAL_BY_DEFAULT),
 		std::pair<std::string, TokenType>("productions_nonterminal_by_default", TokenType::KW_PRODUCTIONS_NONTERMINAL_BY_DEFAULT),
-		std::pair<std::string, TokenType>("rules_productions_by_default", TokenType::KW_RULES_PRODUCTIONS_BY_DEFAULT),
-		std::pair<std::string, TokenType>("rules_patterns_by_default", TokenType::KW_RULES_PRODUCTIONS_BY_DEFAULT),
 		std::pair<std::string, TokenType>("productions_root_by_default", TokenType::KW_PRODUCTIONS_ROOT_BY_DEFAULT),
 		std::pair<std::string, TokenType>("productions_nonroot_by_default", TokenType::KW_PRODUCTIONS_NONROOT_BY_DEFAULT),
 		std::pair<std::string, TokenType>("categories_root_by_default", TokenType::KW_CATEGORIES_ROOT_BY_DEFAULT),
