@@ -1,0 +1,3 @@
+[submodule "astir/dimcli"]
+	path = astir/dimcli
+	url = https://github.com/gknowles/dimcli
