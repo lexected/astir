@@ -369,6 +369,17 @@ const IFileLocalizable* MachineDefinition::findRecursiveReferenceThroughName(con
 	return statement->findRecursiveReference(*this, namesEncountered, targetName);
 }
 
+MachineDefinition::MachineDefinition(const std::map<MachineFlag, MachineDefinitionAttribute>& attributes)
+	: MachineDefinition() {
+	mergeInAttributes(attributes);
+}
+
+void MachineDefinition::mergeInAttributes(const std::map<MachineFlag, MachineDefinitionAttribute>& attributes) {
+	for (const auto& incomingAttributePair : attributes) {
+		this->attributes[incomingAttributePair.first] = incomingAttributePair.second;
+	}
+}
+
 void FiniteAutomatonDefinition::initialize() {
 	if (initialized()) { // really necessary
 		return;

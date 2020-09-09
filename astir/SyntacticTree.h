@@ -87,12 +87,12 @@ protected:
 			{ MachineFlag::CategoriesRootByDefault, MachineDefinitionAttribute(false) }
 		}), m_terminalCount((TerminalTypeIndex)0) { }
 		
-	MachineDefinition(const std::map<MachineFlag, MachineDefinitionAttribute>& attributes)
-		: attributes(attributes), m_terminalCount((TerminalTypeIndex)0) { }
-	// TODO: instead of setting the attribute map hard, combine the two maps with values overriden by the incoming when duplicate
+	MachineDefinition(const std::map<MachineFlag, MachineDefinitionAttribute>& attributes);
 
 private:
 	TerminalTypeIndex m_terminalCount;
+
+	void mergeInAttributes(const std::map<MachineFlag, MachineDefinitionAttribute>& attributes);
 };
 
 struct FiniteAutomatonDefinition : public MachineDefinition {

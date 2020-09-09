@@ -92,6 +92,17 @@ std::unique_ptr<MachineDefinition> SyntacticAnalyzer::parseMachineDefinition(std
 		}
 	}
 
+	if (it->type == TokenType::KW_ON) {
+		++it;
+
+		if (it->type != TokenType::IDENTIFIER) {
+			throw UnexpectedTokenException(*it, "an identifier for the target of 'on' (i.e. underlying/input machine)", "for machine declaration", *savedIt);
+		}
+
+		machineDefinition->on = std::make_pair<std::string, std::shared_ptr<MachineDefinition>>(std::string(it->string), nullptr);
+		++it;
+	}
+
 	if (it->type == TokenType::KW_USES) {
 		++it;
 		if (it->type != TokenType::IDENTIFIER) {
@@ -109,16 +120,7 @@ std::unique_ptr<MachineDefinition> SyntacticAnalyzer::parseMachineDefinition(std
 			machineDefinition->uses.emplace(it->string, nullptr);
 			++it;
 		}
-	} else if (it->type == TokenType::KW_ON) {
-		++it;
-
-		if (it->type != TokenType::IDENTIFIER) {
-			throw UnexpectedTokenException(*it, "an identifier for the target of 'on' (i.e. underlying/input machine)", "for machine declaration", *savedIt);
-		}
-
-		machineDefinition->on = std::make_pair<std::string, std::shared_ptr<MachineDefinition>>(std::string(it->string), nullptr);
-		++it;
-	}
+	} 
 
 	if (it->type == TokenType::OP_SEMICOLON) {
 		++it;
