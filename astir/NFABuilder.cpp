@@ -25,6 +25,7 @@ NFA NFABuilder::visit(const CategoryStatement* category) const {
 			if (productionStatement && productionStatement->terminality == Terminality::Terminal) {
 				elevateContextActionRegister.emplace_back(NFAActionType::TerminalizeContext, parentContextPath, newSubcontextName);
 			}
+
 			elevateContextActionRegister.emplace_back(NFAActionType::ElevateContext, parentContextPath, newSubcontextName);
 			alternativeNfa.concentrateFinalStates(elevateContextActionRegister);
 		}

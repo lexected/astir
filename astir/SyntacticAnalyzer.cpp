@@ -273,6 +273,7 @@ std::unique_ptr<CategoryStatement> SyntacticAnalyzer::parseCategoryStatement(std
 
 	std::unique_ptr<CategoryStatement> categoryStatement = make_unique<CategoryStatement>();
 	categoryStatement->copyLocation(*savedIt);
+	categoryStatement->rootness = rootness;
 
 	if (it->type != TokenType::IDENTIFIER) {
 		throw UnexpectedTokenException(*it, "an identifier for the category name", "for category declaration", *savedIt);
@@ -353,6 +354,8 @@ std::unique_ptr<ProductionStatement> SyntacticAnalyzer::parseProductionStatement
 	auto savedIt = it;
 	std::unique_ptr<ProductionStatement> productionStatement = make_unique<ProductionStatement>();
 	productionStatement->copyLocation(*savedIt);
+	productionStatement->rootness = rootness;
+	productionStatement->terminality = terminality;
 
 	if (it->type != TokenType::IDENTIFIER) {
 		throw UnexpectedTokenException(*it, "an identifier to serve as production name", " for production declaration", *savedIt);

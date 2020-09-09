@@ -23,7 +23,7 @@ void RootRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, co
 	}
 
 	auto attributedStatement = dynamic_cast<const AttributedStatement*>(context);
-	if (attributedStatement == nullptr) {
+	if (!attributedStatement) {
 		throw SemanticAnalysisException("Regex actions attempting to modify '" + context->name + "' in the regex at " + this->locationString() + " but '" + context->name + "', declared at " + context->locationString() + ", is not an attributed statement");
 	}
 
@@ -31,7 +31,7 @@ void RootRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, co
 		std::shared_ptr<CategoryStatement> __tmp;
 		auto fieldPtr = attributedStatement->findField(action.target, __tmp);
 		action.targetField = fieldPtr;
-		if (fieldPtr == nullptr) {
+		if (!fieldPtr) {
 			throw SemanticAnalysisException("The action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not recognized as a field in the context of the rule '" + context->name + "' with definition at '" + context->locationString());
 		}
 

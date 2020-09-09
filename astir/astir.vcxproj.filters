@@ -70,6 +70,9 @@
     <Filter Include="Header Files\dimcli">
       <UniqueIdentifier>{75989e96-c8f0-4140-9199-f2455bb8d449}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\Tests\Test07">
+      <UniqueIdentifier>{736d7ac8-b856-47b9-86c1-2ed34b80f0c4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -273,6 +276,9 @@
     </None>
     <None Include="Tests\Test06\Test06.alex">
       <Filter>Resource Files\Tests\Test06</Filter>
+    </None>
+    <None Include="Tests\Test07\Test07.alex">
+      <Filter>Resource Files\Tests\Test07</Filter>
     </None>
   </ItemGroup>
 </Project>

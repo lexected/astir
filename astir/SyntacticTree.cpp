@@ -96,6 +96,8 @@ std::shared_ptr<Field> AttributedStatement::findCategoryField(const std::string&
 			return foundPtr;
 		}
 	}
+
+	return nullptr;
 }
 
 void AttributedStatement::completeFieldDeclarations(MachineDefinition& context) const {
@@ -396,24 +398,30 @@ void FiniteAutomatonDefinition::initialize() {
 	NFA base;
 	NFABuilder builder(*this, nullptr, "m_token");
 	auto typeFormingStatement = this->getTypeFormingStatements();
-	for (const auto& statement : typeFormingStatement) {
-		if (statement->rootness != Rootness::AcceptRoot) {
+	for (const auto& typeFormingStatement : typeFormingStatement) {
+		if (typeFormingStatement->rootness == Rootness::Unspecified) {
 			continue;
 		}
 
-		const std::string& newSubcontextName = statement->name;
-		std::shared_ptr<INFABuildable> componentCastPtr = std::dynamic_pointer_cast<INFABuildable>(statement);
+		const std::string& newSubcontextName = typeFormingStatement->name;
+		std::shared_ptr<INFABuildable> componentCastPtr = std::dynamic_pointer_cast<INFABuildable>(typeFormingStatement);
 		NFA alternativeNfa = componentCastPtr->accept(builder);
 
 		NFAActionRegister elevateContextActionRegister;
 		// if the component is type-forming, a new context has been created in alternativeNfa and it needs to be elevated to the category level
 		// but, if it is also terminal, we need to associate the raw capture with the context before elevating
-		auto productionStatement = std::dynamic_pointer_cast<ProductionStatement>(statement);
+		auto productionStatement = std::dynamic_pointer_cast<ProductionStatement>(typeFormingStatement);
 		if (productionStatement && productionStatement->terminality == Terminality::Terminal) {
 			elevateContextActionRegister.emplace_back(NFAActionType::TerminalizeContext, "m_token", newSubcontextName);
 		}
-		elevateContextActionRegister.emplace_back(NFAActionType::ElevateContext, "m_token", newSubcontextName);
-		alternativeNfa.concentrateFinalStates(elevateContextActionRegister);
+
+		// if the typeformingStatement is an ignored root, create the NFA and the context but do not elevate here
+		if (typeFormingStatement->rootness == Rootness::AcceptRoot) {
+			elevateContextActionRegister.emplace_back(NFAActionType::ElevateContext, "m_token", newSubcontextName);
+		} else if (typeFormingStatement->rootness == Rootness::IgnoreRoot) {
+			elevateContextActionRegister.emplace_back(NFAActionType::IgnoreContext, "m_token", newSubcontextName);
+		}
+
 		alternativeNfa.concentrateFinalStates(elevateContextActionRegister);
 
 		base |= alternativeNfa;

@@ -224,6 +224,7 @@
     <None Include="Tests\Test04\Test04.alex" />
     <None Include="Tests\Test05\Test05.alex" />
     <None Include="Tests\Test06\Test06.alex" />
+    <None Include="Tests\Test07\Test07.alex" />
     <None Include="Tests\Uncategorized\C99Tokenizer.alex" />
     <None Include="Tests\Uncategorized\ExampleParser.apar" />
     <None Include="Tests\Uncategorized\ExampleTokenizer.alex" />

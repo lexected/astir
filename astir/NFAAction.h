@@ -22,7 +22,8 @@ enum class NFAActionType : unsigned char {
 	CreateContext = 101,
 	TerminalizeContext = 102,
 	ElevateContext = 103,
-	InitiateCapture = 104,
+	IgnoreContext = 104,
+	InitiateCapture = 105,
 
 	None = 255
 };

@@ -228,6 +228,9 @@ std::string CppNFAGenerationHelper::generateActionOperation(const NFAAction& na)
 		case NFAActionType::ElevateContext:
 			output << na.contextPath << " = " << na.contextPath << "__" << na.targetName << ';' << std::endl;
 			break;
+		case NFAActionType::IgnoreContext:
+			output << na.contextPath << "__" << na.targetName << " = nullptr;" << std::endl;
+			break;
 		case NFAActionType::Set:
 			output << na.contextPath << "->" << na.targetName << " = std::dynamic_pointer_cast<" << dynamicCastType << ">(" << payloadOrInput << ");" << std::endl;
 			break;
