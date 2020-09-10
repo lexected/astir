@@ -17,7 +17,7 @@
 
 - Reference
 
-    - [Command line interface](command_line_interface.md)
+    - [Command-line interface](command-line_interface.md)
     - [Syntax and semantics](syntax_and_semantics.md)
     - [Code generation](code_generation.md)
     

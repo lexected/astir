@@ -1,0 +1,8 @@
+// BinaryRecognizer (refactored) - the example from the getting started part of the documentation
+
+finite automaton BinaryRecognizer {
+    regex binaryDigit = ['0' '1'];
+    regex whiteSpaceCharacter = [' ' '\t' '\n'];
+
+    production Language = binaryDigit+ (whiteSpaceCharacter+ binaryDigit+)*;
+}
