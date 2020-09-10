@@ -1,5 +1,7 @@
 #include <iostream>
 #include <fstream>
+#include <map>
+#include <string>
 
 #include "LexicalAnalyzer.h"
 #include "SyntacticAnalyzer.h"
@@ -41,17 +43,19 @@ int main(int argc, char* argv[]) {
 	} 
 
 #else
-	std::vector<std::string> testsToRun = {
-		"Test01",
-		"Test02",
-		"Test03",
-		"Test04",
-		"Test05",
-		"Test06",
-		"Test07",
+	int main;
+	std::map<std::string, std::string> testsToRun = {
+		{ "Test01", "Test01" },
+		{ "Test02", "Test02" },
+		{ "Test03", "Test03" },
+		{ "Test04", "Test04" },
+		{ "Test05", "Test05" },
+		{ "Test06", "Test06" },
+		{ "Test07", "Test07" },
+		{ "Hello Binary", "BinaryRecognizer" },
 	};
-	for (const std::string& testName : testsToRun) {
-		std::fstream inputFile("Tests/" + testName + "/" + testName + ".alex");
+	for (const auto& folderFilePair : testsToRun) {
+		std::fstream inputFile("Tests/" + folderFilePair.first + "/" + folderFilePair.second + ".astir");
 
 		LexicalAnalyzer analyzer;
 		auto tokenList = analyzer.process(inputFile);
@@ -60,7 +64,7 @@ int main(int argc, char* argv[]) {
 		std::shared_ptr<SyntacticTree> syntacticTree = parser.process(tokenList);
 		syntacticTree->initialize();
 
-		CppGenerationVisitor generationVisitor("Tests/" + testName + "/Output");
+		CppGenerationVisitor generationVisitor("Tests/" + folderFilePair.first + "/Output");
 		generationVisitor.setup();
 		generationVisitor.visit(syntacticTree.get());
 	}
