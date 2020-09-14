@@ -520,3 +520,11 @@ NFA RegexStatement::accept(const NFABuilder& nfaBuilder) const {
 void TypeFormingStatement::accept(GenerationVisitor* visitor) const {
 	visitor->visit(this);
 }
+
+void LLkParserDefinition::initialize() {
+	if (initialized()) { // really necessary
+		return;
+	}
+
+	this->MachineDefinition::initialize();
+}

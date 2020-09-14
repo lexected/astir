@@ -90,6 +90,7 @@ production machineDefinition =
 
 pattern machineType =
 	KW_FINITE KW_AUTOMATON
+	| KW_LL PAR_LEFT NUMBER PAR_RIGHT KW_PARSER
 	;
 
 pattern machineOptionList =

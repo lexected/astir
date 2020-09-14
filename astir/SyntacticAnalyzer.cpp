@@ -199,6 +199,30 @@ std::unique_ptr<MachineDefinition> SyntacticAnalyzer::parseMachineType(std::list
 		++it;
 
 		return faDef;
+	} else if (it->type == TokenType::KW_LL) {
+		std::unique_ptr<LLkParserDefinition> llDef = std::make_unique<LLkParserDefinition>();
+		llDef->copyLocation(*savedIt);
+		++it;
+
+		if (it->type != TokenType::PAR_LEFT) {
+			throw UnexpectedTokenException(*it, "the left (opening) parenthesis '('", "for LL(k) parser declaration", *savedIt);
+		}
+		++it;
+
+		if (it->type != TokenType::NUMBER) {
+			throw UnexpectedTokenException(*it, "a positive integer (k)", "for LL(k) parser declaration", *savedIt);
+		}
+		++it;
+
+		if (it->type != TokenType::PAR_RIGHT) {
+			throw UnexpectedTokenException(*it, "the right (closing) parenthesis ')'", "for LL(k) parser declaration", *savedIt);
+		}
+		++it;
+
+		if (it->type != TokenType::KW_PARSER) {
+			throw UnexpectedTokenException(*it, "the keyword 'parser'", "for LL(k) parser declaration", *savedIt);
+		}
+		++it;
 	} else {
 		return nullptr;
 	}

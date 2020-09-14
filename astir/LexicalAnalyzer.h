@@ -50,6 +50,9 @@ private:
 
 		std::pair<std::string, TokenType>("finite", TokenType::KW_FINITE),
 		std::pair<std::string, TokenType>("automaton", TokenType::KW_AUTOMATON),
+		std::pair<std::string, TokenType>("LL", TokenType::KW_LL),
+		std::pair<std::string, TokenType>("parser", TokenType::KW_PARSER),
+
 		std::pair<std::string, TokenType>("productions_terminal_by_default", TokenType::KW_PRODUCTIONS_TERMINAL_BY_DEFAULT),
 		std::pair<std::string, TokenType>("productions_nonterminal_by_default", TokenType::KW_PRODUCTIONS_NONTERMINAL_BY_DEFAULT),
 		std::pair<std::string, TokenType>("productions_root_by_default", TokenType::KW_PRODUCTIONS_ROOT_BY_DEFAULT),
