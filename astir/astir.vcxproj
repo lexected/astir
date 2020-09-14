@@ -148,12 +148,14 @@
     <ClCompile Include="GenerationException.cpp" />
     <ClCompile Include="GenerationHelper.cpp" />
     <ClCompile Include="IProductionReferencable.cpp" />
+    <ClCompile Include="LLkBuilder.cpp" />
     <ClCompile Include="NFAAction.cpp" />
     <ClCompile Include="NFABuilder.cpp" />
     <ClCompile Include="ISyntacticEntity.cpp" />
     <ClCompile Include="LexicalAnalyzer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="NFA.cpp" />
+    <ClCompile Include="SymbolGroup.cpp" />
     <ClCompile Include="SyntacticAnalyzer.cpp" />
     <ClCompile Include="Regex.cpp" />
     <ClCompile Include="Resources\Location.cpp">
@@ -170,6 +172,7 @@
     <ClCompile Include="Token.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CharType.h" />
     <ClInclude Include="CppGenerationVisitor.h" />
     <ClInclude Include="CppNFAGenerationHelper.h" />
     <ClInclude Include="dimcli\libs\dimcli\cli.h" />
@@ -182,8 +185,11 @@
     <ClInclude Include="IActing.h" />
     <ClInclude Include="IFileLocalizable.h" />
     <ClInclude Include="IGenerationVisitable.h" />
+    <ClInclude Include="ILLkBuildable.h" />
+    <ClInclude Include="ILLkNonterminal.h" />
     <ClInclude Include="INFABuildable.h" />
     <ClInclude Include="LexicalAnalysisException.h" />
+    <ClInclude Include="LLkBuilder.h" />
     <ClInclude Include="NFAAction.h" />
     <ClInclude Include="NFABuilder.h" />
     <ClInclude Include="ISemanticEntity.h" />
@@ -191,6 +197,7 @@
     <ClInclude Include="IProductionReferencable.h" />
     <ClInclude Include="LexicalAnalyzer.h" />
     <ClInclude Include="NFA.h" />
+    <ClInclude Include="SymbolGroup.h" />
     <ClInclude Include="SyntacticAnalysisException.h" />
     <ClInclude Include="SyntacticAnalyzer.h" />
     <ClInclude Include="Regex.h" />

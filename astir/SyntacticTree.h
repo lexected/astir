@@ -9,6 +9,7 @@
 #include "Regex.h"
 #include "Field.h"
 #include "NFA.h"
+#include "ILLkNonterminal.h"
 
 /*
 	As a general rule, avoid creating full insertive constructors for objects, since the container ownership of unique_ptrs then often gets quite tricky.
@@ -17,7 +18,7 @@
 
 struct UsesStatement;
 struct MachineDefinition;
-struct SyntacticTree : public ISyntacticEntity, public ISemanticEntity, public IGenerationVisitable{
+struct SyntacticTree : public ISyntacticEntity, public ISemanticEntity, public IGenerationVisitable {
 	std::list<std::unique_ptr<UsesStatement>> usesStatements;
 	std::map<std::string, std::shared_ptr<MachineDefinition>> machineDefinitions;
 
@@ -125,7 +126,7 @@ enum class Terminality {
 	Unspecified
 };
 
-struct MachineStatement : public ISyntacticEntity, public ISemanticEntity, public IProductionReferencable, public INFABuildable {
+struct MachineStatement : public ISyntacticEntity, public ISemanticEntity, public IProductionReferencable, public INFABuildable, public ILLkNonterminal {
 	std::string name;
 	virtual ~MachineStatement() = default;
 

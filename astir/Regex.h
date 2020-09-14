@@ -8,11 +8,11 @@
 #include "IProductionReferencable.h"
 #include "INFABuildable.h"
 #include "IActing.h"
+#include "ILLkNonterminal.h"
+#include "ILLkBuildable.h"
+#include "CharType.h"
 
-using CharType = unsigned char;
-using ComputationCharType = signed short int;
-
-struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IProductionReferencable { };
+struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IProductionReferencable, public ILLkBuildable, public ILLkNonterminal { };
 
 struct RootRegex : public Regex {
 public:
@@ -55,7 +55,6 @@ struct DisjunctiveRegex : public AtomicRegex {
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 };
 
-struct RootRegex;
 struct ConjunctiveRegex : public Regex {
 	std::list<std::unique_ptr<RootRegex>> conjunction;
 

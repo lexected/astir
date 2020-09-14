@@ -138,6 +138,12 @@
     <ClCompile Include="dimcli\libs\dimcli\cli.cpp">
       <Filter>Source Files\dimcli</Filter>
     </ClCompile>
+    <ClCompile Include="LLkBuilder.cpp">
+      <Filter>Source Files\Semantic Analysis</Filter>
+    </ClCompile>
+    <ClCompile Include="SymbolGroup.cpp">
+      <Filter>Source Files\Semantic Analysis</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h">
@@ -243,6 +249,21 @@
       <Filter>Header Files\dimcli</Filter>
     </ClInclude>
     <ClInclude Include="TestingSwitch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LLkBuilder.h">
+      <Filter>Header Files\Semantic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="ILLkBuildable.h">
+      <Filter>Header Files\Semantic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="ILLkNonterminal.h">
+      <Filter>Header Files\Semantic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="SymbolGroup.h">
+      <Filter>Header Files\Semantic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="CharType.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
