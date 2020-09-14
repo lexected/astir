@@ -39,11 +39,16 @@ std::string Token::convertTypeToString(TokenType type) {
 			return "KW_WITH";
 		case TokenType::KW_ON:
 			return "KW_ON";
-		
+
 		case TokenType::KW_FINITE:
 			return "KW_FINITE";
 		case TokenType::KW_AUTOMATON:
 			return "KW_AUTOMATON";
+		case TokenType::KW_LL:
+			return "KW_LL";
+		case TokenType::KW_PARSER:
+			return "KW_PARSER";
+
 		case TokenType::KW_PRODUCTIONS_TERMINAL_BY_DEFAULT:
 			return "KW_PRODUCTIONS_TERMINAL_BY_DEFAULT";
 		case TokenType::KW_PRODUCTIONS_NONTERMINAL_BY_DEFAULT:
