@@ -4,8 +4,8 @@
 
     - [Setting up](setting_up.md)
     - ["Hello Binary!"](hello_binary.md)
-    - [Something regular](handling_a_regular_language.md)
-    - [Something context-free](handling_a_context-free_language.md)
+    - [Something regular](something_regular.md)
+    - [Something context-free](something_context-free.md)
     - [A C compiler](a_c_compiler.md)
 
 - Guide
