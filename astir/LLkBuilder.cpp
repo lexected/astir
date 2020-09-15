@@ -3,7 +3,7 @@
 #include "SemanticAnalysisException.h"
 
 LLkBuilder::LLkBuilder(unsigned long k, const MachineDefinition& context)
-	: m_k(k), m_contextMachine(context) { }
+	: m_k(k), m_contextMachine(context) {}
 
 void LLkBuilder::visit(const CategoryStatement* categoryStatement) {
 	LLkFlyweight& correspondingFlyweight = m_flyweights[categoryStatement];
@@ -51,9 +51,11 @@ void LLkBuilder::visit(const ConjunctiveRegex* regex) {
 	std::list<ILLkNonterminalCPtr> conjunctionBits;
 	for (auto it = regex->conjunction.rbegin(); it != regex->conjunction.rend();++it) {
 		const auto& rootRegex = *it;
-		ILLkNonterminalCPtr ptr = rootRegex.get();
-		conjunctionBits.push_front(ptr);
-		registerContextAppearance(ptr, regex, conjunctionBits);
+		ILLkNonterminalCPtr ptr = dynamic_cast<ILLkNonterminalCPtr>(rootRegex.get());
+		if(ptr != nullptr) {
+			conjunctionBits.push_front(ptr);
+			registerContextAppearance(ptr, regex, conjunctionBits);
+		}
 
 		ILLkBuildableCPtr rootRegexCastAsBuildable = rootRegex.get();
 		rootRegexCastAsBuildable->accept(this);
@@ -64,6 +66,28 @@ void LLkBuilder::visit(const ConjunctiveRegex* regex) {
 		correspondingFlyweight.decisions += startFlyweight.decisions;
 	} else {
 		correspondingFlyweight.decisions.transitions.emplace_back(std::make_shared<EmptySymbolGroup>());
+	}
+}
+
+void LLkBuilder::visit(const RepetitiveRegex* regex) {
+	auto& repetitiveFlyweight = m_flyweights[regex];
+	ILLkBuildableCPtr atomBuildable = regex->regex.get();
+	atomBuildable->accept(this);
+
+	ILLkNonterminalCPtr atomAsNonterminal = dynamic_cast<ILLkNonterminalCPtr>(regex->regex.get());
+	if(atomAsNonterminal != nullptr) {
+		auto& atomFlyweight = m_flyweights[atomAsNonterminal];
+
+		auto repetitionCap = regex->maxRepetitions == regex->INFINITE_REPETITIONS ? regex->minRepetitions : regex->maxRepetitions;
+		std::list<ILLkNonterminalCPtr> certainContinuation(repetitionCap, atomAsNonterminal);
+		certainContinuation.pop_front();
+		for (size_t counter = 0; counter < repetitionCap; ++counter) {
+			atomFlyweight.contexts.emplace_back(regex, certainContinuation);
+		}
+
+		if (regex->maxRepetitions == regex->INFINITE_REPETITIONS) {
+			atomFlyweight.contexts.emplace_back(regex, std::list<ILLkNonterminalCPtr>({ regex->kleeneTail().get() }));
+		}
 	}
 }
 

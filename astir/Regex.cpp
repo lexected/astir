@@ -22,6 +22,14 @@ void RepetitiveRegex::checkAndTypeformActionUsage(const MachineDefinition& machi
 	regex->checkAndTypeformActionUsage(machine, context, areActionsAllowed);
 }
 
+const std::shared_ptr<RepetitiveRegex>& RepetitiveRegex::kleeneTail() const {
+	if (!*m_tailFlyweight) {
+		*m_tailFlyweight = std::make_shared<RepetitiveRegex>(regex, 0, INFINITE_REPETITIONS);
+	}
+
+	return *m_tailFlyweight;
+}
+
 void RootRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) {
 	if (!areActionsAllowed && !actions.empty()) {
 		throw SemanticAnalysisException("Regex actions appearing in the regex located at " + this->locationString() + " while all actions are prohibited within the context of '" + context->name + "' (presumably a regex statement) declared at " + context->locationString());

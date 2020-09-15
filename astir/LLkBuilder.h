@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SyntacticTree.h"
+#include "MachineStatement.h"
 #include "Regex.h"
 
 #include <map>
@@ -57,21 +57,12 @@ public:
 
 	void visit(const RepetitiveRegex* regex);
 
-	void visit(const EmptyRegex* regex);
-	void visit(const AnyRegex* regex);
-	void visit(const ExceptAnyRegex* regex);
-	void visit(const LiteralRegex* regex);
-	void visit(const ArbitrarySymbolRegex* regex);
-	void visit(const ReferenceRegex* regex);
-
 	void disambiguate(const std::list<ILLkNonterminalCPtr>& alternatives);
 	void disambiguatePair(ILLkNonterminalCPtr first, ILLkNonterminalCPtr second);
 	void disambiguateDecisionPoints(ILLkNonterminalCPtr first, ILLkNonterminalCPtr second, LLkDecisionPoint& firstPoint, LLkDecisionPoint& secondPoint, SymbolGroupList& prefix);
 	void fillDisambiguationParent(ILLkNonterminalCPtr parent, const std::list<ILLkNonterminalCPtr>& alternatives);
 
 	SymbolGroupList lookahead(ILLkNonterminalCPtr nonterminal, const SymbolGroupList& prefix);
-
-	LLkDecisionPoint getPredictionChain(ILLkNonterminalCPtr nonterminal) const;
 private:
 	const unsigned long m_k;
 	const MachineDefinition& m_contextMachine;

@@ -79,6 +79,9 @@
     <Filter Include="Source Files\Syntactic Analysis\Machines">
       <UniqueIdentifier>{3c70d44d-d731-4db4-a3fa-261aa02eaa37}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\Tests\Test08">
+      <UniqueIdentifier>{b123376d-2192-4b19-b37f-9bff3eaf3b1b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -330,6 +333,9 @@
     </None>
     <None Include="Tests\Test07\Test07.alex">
       <Filter>Resource Files\Tests\Test07</Filter>
+    </None>
+    <None Include="Tests\Test08\Test08.astir">
+      <Filter>Resource Files\Tests\Test08</Filter>
     </None>
   </ItemGroup>
 </Project>

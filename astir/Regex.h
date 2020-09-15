@@ -12,7 +12,7 @@
 #include "ILLkBuildable.h"
 #include "CharType.h"
 
-struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IReferencing, public ILLkBuildable, public ILLkNonterminal { };
+struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IReferencing, public ILLkBuildable { };
 
 struct RootRegex : public Regex {
 public:
@@ -27,13 +27,15 @@ protected:
 };
 
 struct AtomicRegex;
-struct RepetitiveRegex : public RootRegex {
-	std::unique_ptr<AtomicRegex> regex;
+struct RepetitiveRegex : public RootRegex, public ILLkNonterminal {
+	std::shared_ptr<AtomicRegex> regex;
 	unsigned long minRepetitions;
 	unsigned long maxRepetitions;
 	static const unsigned long INFINITE_REPETITIONS = (unsigned long)((signed int)-1);
 
-	RepetitiveRegex() : minRepetitions(0), maxRepetitions(0) { }
+	RepetitiveRegex() : RepetitiveRegex(nullptr, 0, 0) { }
+	RepetitiveRegex(const std::shared_ptr<AtomicRegex>& regex, unsigned long minRepetitions,
+	unsigned long maxRepetitions) : regex(regex), minRepetitions(minRepetitions), maxRepetitions(maxRepetitions), m_tailFlyweight(std::make_unique<std::shared_ptr<RepetitiveRegex>>()) { }
 
 	void completeReferences(const MachineDefinition& machine) override;
 	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
@@ -41,12 +43,16 @@ struct RepetitiveRegex : public RootRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
+
+	const std::shared_ptr<RepetitiveRegex>& kleeneTail() const;
+private:
+	std::unique_ptr<std::shared_ptr<RepetitiveRegex>> m_tailFlyweight;
 };
 
 struct AtomicRegex : public RootRegex { };
 
 struct ConjunctiveRegex;
-struct DisjunctiveRegex : public AtomicRegex {
+struct DisjunctiveRegex : public AtomicRegex, public ILLkNonterminal {
 	std::list<std::unique_ptr<ConjunctiveRegex>> disjunction;
 
 	void completeReferences(const MachineDefinition& machine) override;
@@ -57,7 +63,7 @@ struct DisjunctiveRegex : public AtomicRegex {
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 };
 
-struct ConjunctiveRegex : public Regex {
+struct ConjunctiveRegex : public Regex, public ILLkNonterminal {
 	std::list<std::unique_ptr<RootRegex>> conjunction;
 
 	void completeReferences(const MachineDefinition& machine) override;
