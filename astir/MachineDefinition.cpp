@@ -83,13 +83,13 @@ void MachineDefinition::initialize() {
 			ruleStatement->verifyContextualValidity(*this);
 		}
 
-		std::list<std::string> relevantNamesEncountered;
-		auto recursiveReferenceLocalizableInstance = statementPair.second->findRecursiveReference(*this, relevantNamesEncountered, statementPair.first);
+		std::list<IReferencingCPtr> relevantReferencesEncountered;
+		auto recursiveReferenceLocalizableInstance = statementPair.second->findRecursiveReference(relevantReferencesEncountered);
 		if (recursiveReferenceLocalizableInstance != nullptr) {
-			std::string hierarchyPath = relevantNamesEncountered.front();
-			relevantNamesEncountered.pop_front();
-			for (const auto& nameEncountered : relevantNamesEncountered) {
-				hierarchyPath += "-" + nameEncountered;
+			std::string hierarchyPath = relevantReferencesEncountered.front()->name();
+			relevantReferencesEncountered.pop_front();
+			for (const auto& referenceEncountered : relevantReferencesEncountered) {
+				hierarchyPath += "-" + referenceEncountered->name();
 			}
 			throw SemanticAnalysisException("Rule/category reference recursion found in the path " + hierarchyPath + "; start at " + statementPair.second->locationString() + ", end at " + recursiveReferenceLocalizableInstance->locationString() + " - no recursion is allowed in finite automata");
 		}
@@ -232,15 +232,6 @@ void MachineDefinition::completeCategoryReferences(std::list<std::string> namesE
 	}
 
 	namesEncountered.pop_back();
-}
-
-const IFileLocalizable* MachineDefinition::findRecursiveReferenceThroughName(const std::string& referenceName, std::list<std::string>& namesEncountered, const std::string& targetName) const {
-	auto statement = findMachineStatement(referenceName);
-	if (!statement) {
-		throw SemanticAnalysisException("The name '" + referenceName + "' is not defined in the context of machine '" + this->name + "' defined at " + this->locationString() + "' even though it has been referenced there");
-	}
-
-	return statement->findRecursiveReference(*this, namesEncountered, targetName);
 }
 
 MachineDefinition::MachineDefinition(const std::map<MachineFlag, MachineDefinitionAttribute>& attributes)

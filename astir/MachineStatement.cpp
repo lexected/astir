@@ -63,39 +63,14 @@ void AttributedStatement::completeFieldDeclarations(MachineDefinition& context) 
 	}
 }
 
-const IFileLocalizable* RuleStatement::findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
-	auto nEit = std::find(namesEncountered.cbegin(), namesEncountered.cend(), targetName);
-	if (nEit != namesEncountered.cend()) {
-		return nullptr;
-	}
-
-	namesEncountered.push_back(this->name);
-
-	auto ret = regex->findRecursiveReference(machine, namesEncountered, targetName);
-	if (ret) {
-		return ret;
-	}
-
-	namesEncountered.pop_back();
-	return nullptr;
-}
-
-const IFileLocalizable* CategoryStatement::findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
-	auto nEit = std::find(namesEncountered.cbegin(), namesEncountered.cend(), targetName);
-	if (nEit != namesEncountered.cend()) {
-		return nullptr;
-	}
-
-	namesEncountered.push_back(this->name);
-
+IFileLocalizableCPtr CategoryStatement::findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const {
 	for (const auto& referencePair : this->references) {
 		const IFileLocalizable* ret;
-		if ((ret = referencePair.second.statement->findRecursiveReference(machine, namesEncountered, targetName)) != nullptr) {
+		if ((ret = referencePair.second.statement->findRecursiveReference(referencingEntitiesEncountered)) != nullptr) {
 			return ret;
 		}
 	}
 
-	namesEncountered.pop_back();
 	return nullptr;
 }
 
@@ -148,4 +123,20 @@ NFA RegexStatement::accept(const NFABuilder& nfaBuilder) const {
 
 void TypeFormingStatement::accept(GenerationVisitor* visitor) const {
 	visitor->visit(this);
+}
+
+std::string MachineStatement::referenceName() const {
+	return this->name;
+}
+
+void RuleStatement::completeReferences(MachineDefinition& machine) const {
+	regex->completeReferences(machine);
+}
+
+IFileLocalizableCPtr RuleStatement::findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const {
+	auto ret = regex->findRecursiveReference(referencingEntitiesEncountered);
+	if (ret) {
+		return ret;
+	}
+	return nullptr;
 }

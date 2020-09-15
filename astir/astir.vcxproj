@@ -148,7 +148,7 @@
     <ClCompile Include="FiniteAutomatonDefinition.cpp" />
     <ClCompile Include="GenerationException.cpp" />
     <ClCompile Include="GenerationHelper.cpp" />
-    <ClCompile Include="IProductionReferencable.cpp" />
+    <ClCompile Include="IReferencing.cpp" />
     <ClCompile Include="LLkBuilder.cpp" />
     <ClCompile Include="LLkParserDefinition.cpp" />
     <ClCompile Include="MachineDefinition.cpp" />

@@ -6,8 +6,12 @@
 
 #include "SemanticAnalysisException.h"
 
-const IFileLocalizable* RepetitiveRegex::findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
-	return regex->findRecursiveReference(machine, namesEncountered, targetName);
+void RepetitiveRegex::completeReferences(const MachineDefinition& machine) {
+	regex->completeReferences(machine);
+}
+
+IFileLocalizableCPtr RepetitiveRegex::findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const {
+	return regex->findRecursiveReference(referencingEntitiesEncountered);
 }
 
 NFA RepetitiveRegex::accept(const NFABuilder& nfaBuilder) const {
@@ -107,9 +111,15 @@ std::string RootRegex::computeItemType(const MachineDefinition& machine, const M
 	return "raw";
 }
 
-const IFileLocalizable* DisjunctiveRegex::findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
-	for (const auto& conjunctiveRegexPtr : disjunction) {
-		auto ret = conjunctiveRegexPtr->findRecursiveReference(machine, namesEncountered, targetName);
+void DisjunctiveRegex::completeReferences(const MachineDefinition& machine) {
+	for (const auto& conjunction : disjunction) {
+		conjunction->completeReferences(machine);
+	}
+}
+
+IFileLocalizableCPtr DisjunctiveRegex::findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const {
+	for (const auto& conjunction : disjunction) {
+		auto ret = conjunction->findRecursiveReference(referencingEntitiesEncountered);
 		if (ret) {
 			return ret;
 		}
@@ -128,9 +138,15 @@ void DisjunctiveRegex::checkAndTypeformActionUsage(const MachineDefinition& mach
 	}
 }
 
-const IFileLocalizable* ConjunctiveRegex::findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
-	for (const auto& rootRegexPtr : conjunction) {
-		auto ret = rootRegexPtr->findRecursiveReference(machine, namesEncountered, targetName);
+void ConjunctiveRegex::completeReferences(const MachineDefinition& machine) {
+	for (const auto& r : conjunction) {
+		r->completeReferences(machine);
+	}
+}
+
+IFileLocalizableCPtr ConjunctiveRegex::findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const {
+	for (const auto& r : conjunction) {
+		auto ret = r->findRecursiveReference(referencingEntitiesEncountered);
 		if (ret) {
 			return ret;
 		}
@@ -155,12 +171,29 @@ std::string ReferenceRegex::computeItemType(const MachineDefinition& machine, co
 	return typeName;
 }
 
-const IFileLocalizable* ReferenceRegex::findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const {
-	if (targetName == referenceName) {
-		return this;
+void ReferenceRegex::completeReferences(const MachineDefinition& machine) {
+	auto ms = machine.findMachineStatement(referenceName);
+	if (!ms) {
+		throw SemanticAnalysisException("Name '"+referenceName+"' referenced in regex at " + this->locationString() + " could not be found in the context of the machine '" + machine.name + "' declared at " + machine.locationString());
 	}
 
-	return machine.findRecursiveReferenceThroughName(referenceName, namesEncountered, targetName);
+	referenceStatement = ms.get();
+}
+
+IFileLocalizableCPtr ReferenceRegex::findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const {
+	auto fit = std::find(referencingEntitiesEncountered.cbegin(), referencingEntitiesEncountered.cend(), this->referenceStatement);
+	if (fit != referencingEntitiesEncountered.cend()) {
+		return this->referenceStatement;
+	}
+
+	referencingEntitiesEncountered.push_back(this->referenceStatement);
+	auto ret = referenceStatement->findRecursiveReference(referencingEntitiesEncountered);
+	if (ret) {
+		return ret;
+	}
+	referencingEntitiesEncountered.pop_back();
+
+	return nullptr;
 }
 
 NFA ReferenceRegex::accept(const NFABuilder& nfaBuilder) const {

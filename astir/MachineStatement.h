@@ -2,7 +2,7 @@
 
 #include "ISyntacticEntity.h"
 #include "ISemanticEntity.h"
-#include "IProductionReferencable.h"
+#include "IReferencing.h"
 #include "INFABuildable.h"
 #include "ILLkNonterminal.h"
 #include "IGenerationVisitable.h"
@@ -30,6 +30,8 @@ enum class Terminality {
 struct MachineStatement : public ISyntacticEntity, public ISemanticEntity, public IReferencing, public INFABuildable, public ILLkNonterminal {
 	std::string name;
 	virtual ~MachineStatement() = default;
+
+	std::string referenceName() const override;
 
 protected:
 	MachineStatement() = default;
@@ -67,7 +69,7 @@ struct RuleStatement : public virtual MachineStatement {
 
 	void completeReferences(MachineDefinition& machine) const;
 
-	const IFileLocalizable* findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const override;
+	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
 
 	virtual void verifyContextualValidity(const MachineDefinition& machine) const = 0;
 };
@@ -85,7 +87,7 @@ struct CategoryReference {
 struct CategoryStatement : public TypeFormingStatement {
 	std::map<std::string, CategoryReference> references; // references to 'me',  i.e. by other machine components. Non-owning pointers so ok.
 
-	const IFileLocalizable* findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const override;
+	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
 
 	std::list<const ProductionStatement*> calculateInstandingProductions() const override;
 

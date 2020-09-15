@@ -5,12 +5,17 @@
 
 #include "IFileLocalizable.h"
 
+class IReferencing;
+typedef const IReferencing* IReferencingCPtr;
+
 struct MachineDefinition;
 class IReferencing {
 public:
 	virtual ~IReferencing() = default;
 
-	virtual const IFileLocalizable* findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+	virtual std::string referenceName() const;
+	virtual void completeReferences(const MachineDefinition& machine);
+	virtual IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const;
 	
 protected:
 	IReferencing() = default;

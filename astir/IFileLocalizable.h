@@ -11,3 +11,5 @@ protected:
 	IFileLocalizable() = default;
 	virtual ~IFileLocalizable() = default; 
 };
+
+typedef const IFileLocalizable* IFileLocalizableCPtr;

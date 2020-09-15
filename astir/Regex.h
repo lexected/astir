@@ -5,7 +5,7 @@
 #include "RegexAction.h"
 
 #include "ISyntacticEntity.h"
-#include "IProductionReferencable.h"
+#include "IReferencing.h"
 #include "INFABuildable.h"
 #include "IActing.h"
 #include "ILLkNonterminal.h"
@@ -35,7 +35,8 @@ struct RepetitiveRegex : public RootRegex {
 
 	RepetitiveRegex() : minRepetitions(0), maxRepetitions(0) { }
 
-	const IFileLocalizable* findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+	void completeReferences(const MachineDefinition& machine) override;
+	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
@@ -48,7 +49,8 @@ struct ConjunctiveRegex;
 struct DisjunctiveRegex : public AtomicRegex {
 	std::list<std::unique_ptr<ConjunctiveRegex>> disjunction;
 
-	const IFileLocalizable* findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+	void completeReferences(const MachineDefinition& machine) override;
+	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
@@ -58,7 +60,8 @@ struct DisjunctiveRegex : public AtomicRegex {
 struct ConjunctiveRegex : public Regex {
 	std::list<std::unique_ptr<RootRegex>> conjunction;
 
-	const IFileLocalizable* findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+	void completeReferences(const MachineDefinition& machine) override;
+	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 
@@ -102,7 +105,8 @@ struct ReferenceRegex : public PrimitiveRegex {
 
 	std::string computeItemType(const MachineDefinition& machine, const MachineStatement* context) const override;
 
-	const IFileLocalizable* findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+	void completeReferences(const MachineDefinition& machine) override;
+	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 };

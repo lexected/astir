@@ -93,9 +93,6 @@
     <ClCompile Include="LexicalAnalyzer.cpp">
       <Filter>Source Files\Lexical Analysis</Filter>
     </ClCompile>
-    <ClCompile Include="IProductionReferencable.cpp">
-      <Filter>Source Files\Semantic Analysis</Filter>
-    </ClCompile>
     <ClCompile Include="NFA.cpp">
       <Filter>Source Files\Semantic Analysis</Filter>
     </ClCompile>
@@ -161,6 +158,9 @@
     </ClCompile>
     <ClCompile Include="MachineStatement.cpp">
       <Filter>Source Files\Syntactic Analysis\Machines</Filter>
+    </ClCompile>
+    <ClCompile Include="IReferencing.cpp">
+      <Filter>Source Files\Semantic Analysis</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
