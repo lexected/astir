@@ -4,7 +4,8 @@
 #include "ISemanticEntity.h"
 #include "IReferencing.h"
 #include "INFABuildable.h"
-#include "ILLkNonterminal.h"
+#include "ILLkFirstable.h"
+#include "ILLkBuildable.h"
 #include "IGenerationVisitable.h"
 
 #include "Field.h"
@@ -27,7 +28,7 @@ enum class Terminality {
 	Unspecified
 };
 
-struct MachineStatement : public ISyntacticEntity, public ISemanticEntity, public IReferencing, public INFABuildable, public ILLkNonterminal {
+struct MachineStatement : public ISyntacticEntity, public ISemanticEntity, public IReferencing, public INFABuildable, public ILLkFirstable, public ILLkBuildable {
 	std::string name;
 	virtual ~MachineStatement() = default;
 
@@ -68,10 +69,12 @@ struct RuleStatement : public virtual MachineStatement {
 	std::shared_ptr<DisjunctiveRegex> regex;
 
 	void completeReferences(MachineDefinition& machine) const;
-
 	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
 
 	virtual void verifyContextualValidity(const MachineDefinition& machine) const = 0;
+
+	void accept(LLkBuilder* llkBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
 };
 
 struct CategoryReference {
@@ -92,6 +95,8 @@ struct CategoryStatement : public TypeFormingStatement {
 	std::list<const ProductionStatement*> calculateInstandingProductions() const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkBuilder* llkBuilder) const override;
 };
 
 struct ProductionStatement : public TypeFormingStatement, public RuleStatement {

@@ -5,18 +5,18 @@
 
 #include <map>
 
-#include "ILLkNonterminal.h"
+#include "ILLkFirstable.h"
 #include "SymbolGroup.h"
 
 struct LLkNonterminalContext {
-	ILLkNonterminalCPtr parent;
-	std::list<ILLkNonterminalCPtr> followedBy;
+	ILLkFirstableCPtr parent;
+	std::list<ILLkFirstableCPtr> followedBy;
 
 	LLkNonterminalContext()
 		: parent(nullptr) { }
-	LLkNonterminalContext(ILLkNonterminalCPtr parent)
+	LLkNonterminalContext(ILLkFirstableCPtr parent)
 		: parent(parent) { }
-	LLkNonterminalContext(ILLkNonterminalCPtr parent, const std::list<ILLkNonterminalCPtr>& followedBy)
+	LLkNonterminalContext(ILLkFirstableCPtr parent, const std::list<ILLkFirstableCPtr>& followedBy)
 		: parent(parent), followedBy(followedBy) { }
 };
 
@@ -57,19 +57,22 @@ public:
 
 	void visit(const RepetitiveRegex* regex);
 
-	void disambiguate(const std::list<ILLkNonterminalCPtr>& alternatives);
-	void disambiguatePair(ILLkNonterminalCPtr first, ILLkNonterminalCPtr second);
-	void disambiguateDecisionPoints(ILLkNonterminalCPtr first, ILLkNonterminalCPtr second, LLkDecisionPoint& firstPoint, LLkDecisionPoint& secondPoint, SymbolGroupList& prefix);
-	void fillDisambiguationParent(ILLkNonterminalCPtr parent, const std::list<ILLkNonterminalCPtr>& alternatives);
+	void disambiguate(const std::list<ILLkFirstableCPtr>& alternatives);
+	void disambiguatePair(ILLkFirstableCPtr first, ILLkFirstableCPtr second);
+	void disambiguateDecisionPoints(ILLkFirstableCPtr first, ILLkFirstableCPtr second, LLkDecisionPoint& firstPoint, LLkDecisionPoint& secondPoint, SymbolGroupList& prefix);
+	void fillDisambiguationParent(ILLkFirstableCPtr parent, const std::list<ILLkFirstableCPtr>& alternatives);
 
-	SymbolGroupList lookahead(ILLkNonterminalCPtr nonterminal, const SymbolGroupList& prefix);
+	SymbolGroupList lookahead(ILLkFirstableCPtr nonterminal, const SymbolGroupList& prefix);
+
+	const MachineDefinition& contextMachine() const { return m_contextMachine; }
+	const std::map<ILLkFirstableCPtr, LLkFlyweight>& flyweights() const { return m_flyweights; }
 private:
 	const unsigned long m_k;
 	const MachineDefinition& m_contextMachine;
-	std::map<ILLkNonterminalCPtr, LLkFlyweight> m_flyweights;
+	std::map<ILLkFirstableCPtr, LLkFlyweight> m_flyweights;
 
-	SymbolGroupList sequentialLookahead(std::list<ILLkNonterminalCPtr>::const_iterator& sequenceIt, const std::list<ILLkNonterminalCPtr>::const_iterator& sequenceEnd, const SymbolGroupList& prefix);
-	void registerContextAppearance(ILLkNonterminalCPtr target, ILLkNonterminalCPtr parent, const std::list<ILLkNonterminalCPtr>& followedBy);
-	void registerContextAppearance(ILLkNonterminalCPtr target, ILLkNonterminalCPtr parent, std::list<ILLkNonterminalCPtr>::const_iterator followedByIt, std::list<ILLkNonterminalCPtr>::const_iterator followedByEnd);
+	SymbolGroupList sequentialLookahead(std::list<ILLkFirstableCPtr>::const_iterator& sequenceIt, const std::list<ILLkFirstableCPtr>::const_iterator& sequenceEnd, const SymbolGroupList& prefix);
+	void registerContextAppearance(ILLkFirstableCPtr target, ILLkFirstableCPtr parent, const std::list<ILLkFirstableCPtr>& followedBy);
+	void registerContextAppearance(ILLkFirstableCPtr target, ILLkFirstableCPtr parent, std::list<ILLkFirstableCPtr>::const_iterator followedByIt, std::list<ILLkFirstableCPtr>::const_iterator followedByEnd);
 };
 

@@ -66,7 +66,7 @@ public:
 	NFA buildPseudoDFA() const;
 
 	static void calculateDisjointTransitions(std::list<Transition>& symbolGroups);
-	static std::list<std::shared_ptr<LiteralSymbolGroup>> makeComplementSymbolGroups(const std::list<std::shared_ptr<SymbolGroup>>& symbolGroups);
+	static std::list<std::shared_ptr<ByteSymbolGroup>> makeComplementSymbolGroups(const std::list<std::shared_ptr<SymbolGroup>>& symbolGroups);
 
 private:
 	void mergeInContexts(const NFA& rhs);

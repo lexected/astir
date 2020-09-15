@@ -5,6 +5,8 @@
 #include <algorithm>
 
 #include "SyntacticTree.h"
+#include "MachineDefinition.h"
+#include "Regex.h"
 
 NFA NFABuilder::visit(const CategoryStatement* category) const {
 	NFA alternationPoint;
@@ -197,7 +199,7 @@ NFA NFABuilder::visit(const AnyRegex* regex) const {
 	NFAActionRegister initial, final;
 	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
-	auto literalGroups = makeLiteralGroups(regex);
+	auto literalGroups = regex->makeSymbolGroups();
 	for (auto& literalSymbolGroup : literalGroups) {
 		base.addTransition(0, Transition(newState, literalSymbolGroup, initial));
 	}
@@ -212,7 +214,7 @@ NFA NFABuilder::visit(const ExceptAnyRegex* regex) const {
 	NFA base;
 	auto newState = base.addState();
 
-	auto literalGroups = makeLiteralGroups(regex);
+	auto literalGroups = regex->makeSymbolGroups();
 	auto complementedGroups = NFA::makeComplementSymbolGroups(literalGroups);
 
 	NFAActionRegister initial, final;
@@ -237,7 +239,7 @@ NFA NFABuilder::visit(const LiteralRegex* regex) const {
 	State prevState = 0;
 	for(CharType c : regex->literal) {
 		State newState = base.addState();
-		base.addTransition(prevState, Transition(newState, std::make_shared<LiteralSymbolGroup>(c, c), initial));
+		base.addTransition(prevState, Transition(newState, std::make_shared<ByteSymbolGroup>(c, c), initial));
 
 		prevState = newState;
 	}
@@ -255,7 +257,7 @@ NFA NFABuilder::visit(const ArbitrarySymbolRegex* regex) const {
 	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
 	auto newState = base.addState();
-	base.addTransition(0, Transition(newState, createArbitrarySymbolGroup(), initial));
+	base.addTransition(0, Transition(newState, m_contextMachine.computeArbitrarySymbolGroup(), initial));
 	base.finalStates.insert(newState);
 	base.addFinalActions(final);
 
@@ -291,23 +293,6 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 	return base;
 }
 
-std::list<std::shared_ptr<SymbolGroup>> NFABuilder::makeLiteralGroups(const AnyRegex* regex) const {
-	std::list<std::shared_ptr<SymbolGroup>> literalGroups;
-
-	for (const auto& literal : regex->literals) {
-		for (const auto& c : literal) {
-			literalGroups.push_back(std::make_shared<LiteralSymbolGroup>(c, c));
-		}
-	}
-	for (const auto& range : regex->ranges) {
-		CharType beginning = (CharType)range.start;
-		CharType end = (CharType)range.end;
-		literalGroups.push_back(std::make_shared<LiteralSymbolGroup>(beginning, end));
-	}
-
-	return literalGroups;
-}
-
 std::pair<NFAActionRegister, NFAActionRegister> NFABuilder::computeActionRegisterEntries(const std::list<RegexAction>& actions) const {
 	return computeActionRegisterEntries(actions, "");
 }
@@ -330,12 +315,4 @@ std::pair<NFAActionRegister, NFAActionRegister>  NFABuilder::computeActionRegist
 	}
 
 	return std::pair<NFAActionRegister, NFAActionRegister>(initial, final);
-}
-
-std::shared_ptr<SymbolGroup> NFABuilder::createArbitrarySymbolGroup() const {
-	if (m_contextMachine.on.second) {
-		return std::make_shared<TerminalSymbolGroup>(m_contextMachine.on.second->getUnderlyingProductionsOfRoots());
-	} else {
-		return std::make_shared<LiteralSymbolGroup>((CharType)0, (CharType)255);
-	}
 }

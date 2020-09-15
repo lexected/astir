@@ -146,6 +146,7 @@
     <ClCompile Include="dimcli\libs\dimcli\cli.cpp" />
     <ClCompile Include="Field.cpp" />
     <ClCompile Include="FiniteAutomatonDefinition.cpp" />
+    <ClCompile Include="LLkFirster.cpp" />
     <ClCompile Include="GenerationException.cpp" />
     <ClCompile Include="GenerationHelper.cpp" />
     <ClCompile Include="IReferencing.cpp" />
@@ -184,6 +185,7 @@
     <ClInclude Include="Field.h" />
     <ClInclude Include="FileLocation.h" />
     <ClInclude Include="FiniteAutomatonDefinition.h" />
+    <ClInclude Include="LLkFirster.h" />
     <ClInclude Include="GenerationException.h" />
     <ClInclude Include="GenerationHelper.h" />
     <ClInclude Include="GenerationVisitor.h" />
@@ -191,7 +193,7 @@
     <ClInclude Include="IFileLocalizable.h" />
     <ClInclude Include="IGenerationVisitable.h" />
     <ClInclude Include="ILLkBuildable.h" />
-    <ClInclude Include="ILLkNonterminal.h" />
+    <ClInclude Include="ILLkFirstable.h" />
     <ClInclude Include="INFABuildable.h" />
     <ClInclude Include="LexicalAnalysisException.h" />
     <ClInclude Include="LLkBuilder.h" />

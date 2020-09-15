@@ -82,6 +82,18 @@
     <Filter Include="Resource Files\Tests\Test08">
       <UniqueIdentifier>{b123376d-2192-4b19-b37f-9bff3eaf3b1b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Semantic Analysis\LLk">
+      <UniqueIdentifier>{1edf784c-4f26-47e2-a3d5-bea3251806bf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Semantic Analysis\FA">
+      <UniqueIdentifier>{d693d5be-c82c-40ce-8380-b73dc3f69183}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Semantic Analysis\FA">
+      <UniqueIdentifier>{7f04cf27-3bdc-430b-9529-542006d2f009}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Semantic Analysis\LLk">
+      <UniqueIdentifier>{7d95de19-8397-4f6d-bbfc-fcd999a9f79a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -95,12 +107,6 @@
     </ClCompile>
     <ClCompile Include="LexicalAnalyzer.cpp">
       <Filter>Source Files\Lexical Analysis</Filter>
-    </ClCompile>
-    <ClCompile Include="NFA.cpp">
-      <Filter>Source Files\Semantic Analysis</Filter>
-    </ClCompile>
-    <ClCompile Include="NFABuilder.cpp">
-      <Filter>Source Files\Semantic Analysis</Filter>
     </ClCompile>
     <ClCompile Include="Regex.cpp">
       <Filter>Source Files\Syntactic Analysis</Filter>
@@ -120,9 +126,6 @@
     <ClCompile Include="Field.cpp">
       <Filter>Source Files\Syntactic Analysis</Filter>
     </ClCompile>
-    <ClCompile Include="NFAAction.cpp">
-      <Filter>Source Files\Semantic Analysis</Filter>
-    </ClCompile>
     <ClCompile Include="CppNFAGenerationHelper.cpp">
       <Filter>Source Files\Generation</Filter>
     </ClCompile>
@@ -135,17 +138,11 @@
     <ClCompile Include="SyntacticTree.cpp">
       <Filter>Source Files\Syntactic Analysis</Filter>
     </ClCompile>
-    <ClCompile Include="SemanticAnalysisException.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="SyntacticAnalyzer.cpp">
       <Filter>Source Files\Syntactic Analysis</Filter>
     </ClCompile>
     <ClCompile Include="dimcli\libs\dimcli\cli.cpp">
       <Filter>Source Files\dimcli</Filter>
-    </ClCompile>
-    <ClCompile Include="LLkBuilder.cpp">
-      <Filter>Source Files\Semantic Analysis</Filter>
     </ClCompile>
     <ClCompile Include="SymbolGroup.cpp">
       <Filter>Source Files\Semantic Analysis</Filter>
@@ -163,6 +160,24 @@
       <Filter>Source Files\Syntactic Analysis\Machines</Filter>
     </ClCompile>
     <ClCompile Include="IReferencing.cpp">
+      <Filter>Source Files\Semantic Analysis</Filter>
+    </ClCompile>
+    <ClCompile Include="NFA.cpp">
+      <Filter>Source Files\Semantic Analysis\FA</Filter>
+    </ClCompile>
+    <ClCompile Include="NFAAction.cpp">
+      <Filter>Source Files\Semantic Analysis\FA</Filter>
+    </ClCompile>
+    <ClCompile Include="NFABuilder.cpp">
+      <Filter>Source Files\Semantic Analysis\FA</Filter>
+    </ClCompile>
+    <ClCompile Include="LLkBuilder.cpp">
+      <Filter>Source Files\Semantic Analysis\LLk</Filter>
+    </ClCompile>
+    <ClCompile Include="LLkFirster.cpp">
+      <Filter>Source Files\Semantic Analysis\LLk</Filter>
+    </ClCompile>
+    <ClCompile Include="SemanticAnalysisException.cpp">
       <Filter>Source Files\Semantic Analysis</Filter>
     </ClCompile>
   </ItemGroup>
@@ -185,12 +200,6 @@
     <ClInclude Include="IGenerationVisitable.h">
       <Filter>Header Files\Generation</Filter>
     </ClInclude>
-    <ClInclude Include="NFA.h">
-      <Filter>Header Files\Semantic Analysis</Filter>
-    </ClInclude>
-    <ClInclude Include="NFABuilder.h">
-      <Filter>Header Files\Semantic Analysis</Filter>
-    </ClInclude>
     <ClInclude Include="Regex.h">
       <Filter>Header Files\Syntactic Analysis</Filter>
     </ClInclude>
@@ -209,9 +218,6 @@
     <ClInclude Include="LexicalAnalyzer.h">
       <Filter>Header Files\Lexical Analysis</Filter>
     </ClInclude>
-    <ClInclude Include="INFABuildable.h">
-      <Filter>Header Files\Semantic Analysis</Filter>
-    </ClInclude>
     <ClInclude Include="IActing.h">
       <Filter>Header Files\Semantic Analysis</Filter>
     </ClInclude>
@@ -226,9 +232,6 @@
     </ClInclude>
     <ClInclude Include="Field.h">
       <Filter>Header Files\Syntactic Analysis</Filter>
-    </ClInclude>
-    <ClInclude Include="NFAAction.h">
-      <Filter>Header Files\Semantic Analysis</Filter>
     </ClInclude>
     <ClInclude Include="CppNFAGenerationHelper.h">
       <Filter>Header Files\Generation</Filter>
@@ -269,15 +272,6 @@
     <ClInclude Include="TestingSwitch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="LLkBuilder.h">
-      <Filter>Header Files\Semantic Analysis</Filter>
-    </ClInclude>
-    <ClInclude Include="ILLkBuildable.h">
-      <Filter>Header Files\Semantic Analysis</Filter>
-    </ClInclude>
-    <ClInclude Include="ILLkNonterminal.h">
-      <Filter>Header Files\Semantic Analysis</Filter>
-    </ClInclude>
     <ClInclude Include="SymbolGroup.h">
       <Filter>Header Files\Semantic Analysis</Filter>
     </ClInclude>
@@ -298,6 +292,30 @@
     </ClInclude>
     <ClInclude Include="IReferencing.h">
       <Filter>Header Files\Semantic Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="ILLkBuildable.h">
+      <Filter>Header Files\Semantic Analysis\LLk</Filter>
+    </ClInclude>
+    <ClInclude Include="INFABuildable.h">
+      <Filter>Header Files\Semantic Analysis\FA</Filter>
+    </ClInclude>
+    <ClInclude Include="LLkBuilder.h">
+      <Filter>Header Files\Semantic Analysis\LLk</Filter>
+    </ClInclude>
+    <ClInclude Include="NFA.h">
+      <Filter>Header Files\Semantic Analysis\FA</Filter>
+    </ClInclude>
+    <ClInclude Include="NFABuilder.h">
+      <Filter>Header Files\Semantic Analysis\FA</Filter>
+    </ClInclude>
+    <ClInclude Include="NFAAction.h">
+      <Filter>Header Files\Semantic Analysis\FA</Filter>
+    </ClInclude>
+    <ClInclude Include="LLkFirster.h">
+      <Filter>Header Files\Semantic Analysis\LLk</Filter>
+    </ClInclude>
+    <ClInclude Include="ILLkFirstable.h">
+      <Filter>Header Files\Semantic Analysis\LLk</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -3,9 +3,10 @@
 
 #include <algorithm>
 #include "SyntacticTree.h"
+#include "MachineStatement.h"
 
-bool LiteralSymbolGroup::equals(const SymbolGroup* rhs) const {
-	const LiteralSymbolGroup* rhsCast = dynamic_cast<const LiteralSymbolGroup*>(rhs);
+bool ByteSymbolGroup::equals(const SymbolGroup* rhs) const {
+	const ByteSymbolGroup* rhsCast = dynamic_cast<const ByteSymbolGroup*>(rhs);
 	if (rhsCast == nullptr) {
 		return false;
 	} else {
@@ -13,8 +14,8 @@ bool LiteralSymbolGroup::equals(const SymbolGroup* rhs) const {
 	}
 }
 
-bool LiteralSymbolGroup::disjoint(const SymbolGroup* rhs) const {
-	const LiteralSymbolGroup* rhsCast = dynamic_cast<const LiteralSymbolGroup*>(rhs);
+bool ByteSymbolGroup::disjoint(const SymbolGroup* rhs) const {
+	const ByteSymbolGroup* rhsCast = dynamic_cast<const ByteSymbolGroup*>(rhs);
 	if (rhsCast == nullptr) {
 		return true;
 	} else {
@@ -22,7 +23,7 @@ bool LiteralSymbolGroup::disjoint(const SymbolGroup* rhs) const {
 	}
 }
 
-std::list<std::pair<std::shared_ptr<SymbolGroup>, bool >> LiteralSymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhsUncast) {
+std::list<std::pair<std::shared_ptr<SymbolGroup>, bool >> ByteSymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhsUncast) {
 	if (rhsUncast->equals(this)) {
 		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>();
 	} else if (this->disjoint(rhsUncast.get())) {
@@ -30,7 +31,7 @@ std::list<std::pair<std::shared_ptr<SymbolGroup>, bool >> LiteralSymbolGroup::di
 	}
 
 	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool >> ret;
-	const LiteralSymbolGroup* rhs = dynamic_cast<LiteralSymbolGroup*>(rhsUncast.get());
+	const ByteSymbolGroup* rhs = dynamic_cast<ByteSymbolGroup*>(rhsUncast.get());
 	if (this->rangeEnd >= rhs->rangeStart) {
 		ComputationCharType mid_beg = std::max(this->rangeStart, rhs->rangeStart);
 		ComputationCharType mid_end = std::min(this->rangeEnd, rhs->rangeEnd);
@@ -43,22 +44,22 @@ std::list<std::pair<std::shared_ptr<SymbolGroup>, bool >> LiteralSymbolGroup::di
 		ComputationCharType top_end = std::max(this->rangeEnd, rhs->rangeEnd);
 
 		if (bottom_beg <= bottom_end) {
-			ret.emplace_back(std::make_shared<LiteralSymbolGroup>((CharType)bottom_beg, (CharType)bottom_end), bottom_beg != this->rangeStart);
+			ret.emplace_back(std::make_shared<ByteSymbolGroup>((CharType)bottom_beg, (CharType)bottom_end), bottom_beg != this->rangeStart);
 		}
 
 		this->rangeStart = (CharType)mid_beg;
 		this->rangeEnd = (CharType)mid_end;
-		ret.emplace_back(std::make_shared<LiteralSymbolGroup>((CharType)mid_beg, (CharType)mid_end), true);
+		ret.emplace_back(std::make_shared<ByteSymbolGroup>((CharType)mid_beg, (CharType)mid_end), true);
 
 		if (top_beg <= top_end) {
-			ret.emplace_back(std::make_shared<LiteralSymbolGroup>((CharType)top_beg, (CharType)top_end), top_beg == this->rangeEnd);
+			ret.emplace_back(std::make_shared<ByteSymbolGroup>((CharType)top_beg, (CharType)top_end), top_beg == this->rangeEnd);
 		}
 	}
 
 	return ret;
 }
 
-std::shared_ptr<std::list<SymbolIndex>> LiteralSymbolGroup::retrieveSymbolIndices() const {
+std::shared_ptr<std::list<SymbolIndex>> ByteSymbolGroup::retrieveSymbolIndices() const {
 	if (m_symbolIndicesFlyweight->empty()) {
 		for (ComputationCharType it = rangeStart; it <= (ComputationCharType)rangeEnd; ++it) {
 			m_symbolIndicesFlyweight->push_back(it);
@@ -166,6 +167,20 @@ std::shared_ptr<std::list<SymbolIndex>> TerminalSymbolGroup::retrieveSymbolIndic
 	return m_symbolIndicesFlyweight;
 }
 
+bool SymbolGroupList::contains(const std::shared_ptr<SymbolGroup>& symbolGroupPtr) const {
+	for (const auto& elementPtr : *this) {
+		if (elementPtr == symbolGroupPtr) {
+			return true;
+		}
+
+		if (!elementPtr->disjoint(symbolGroupPtr.get())) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool SymbolGroupList::containsEmpty() const {
 	for (const auto& sgPtr : *this) {
 		if (dynamic_cast<const EmptySymbolGroup*>(sgPtr.get()) != nullptr) {
@@ -191,4 +206,36 @@ void SymbolGroupList::removeEmpty() {
 	std::remove_if(this->begin(), this->end(), [](const auto& ptr) {
 		return dynamic_cast<const EmptySymbolGroup*>(ptr.get()) != nullptr;
 	});
+}
+
+SymbolGroupList& SymbolGroupList::operator+=(const SymbolGroupList& rhs) {
+	for (const auto& rhsItem : rhs) {
+		auto fit = std::find_if(cbegin(), cend(), [&rhsItem](const auto& sgPtr) {
+			return sgPtr->equals(rhsItem.get());
+		});
+		if (fit == cend()) {
+			push_back(rhsItem);
+		}
+	}
+}
+
+bool LiteralSymbolGroup::equals(const SymbolGroup* rhs) const {
+	const LiteralSymbolGroup* rhsCast = dynamic_cast<const LiteralSymbolGroup*>(rhs);
+	if (rhsCast == nullptr) {
+		return false;
+	} else {
+		return this->literal == rhsCast->literal;
+	}
+}
+
+bool LiteralSymbolGroup::disjoint(const SymbolGroup* rhs) const {
+	return !equals(rhs);
+}
+
+std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> LiteralSymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) {
+	if(equals(rhs.get())) {
+		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>();
+	} else {
+		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhs, true } });
+	}
 }

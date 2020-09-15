@@ -338,8 +338,8 @@ void NFA::calculateDisjointTransitions(std::list<Transition>& transitions) {
     }
 }
 
-std::list<std::shared_ptr<LiteralSymbolGroup>> NFA::makeComplementSymbolGroups(const std::list<std::shared_ptr<SymbolGroup>>& symbolGroups) {
-    return std::list<std::shared_ptr<LiteralSymbolGroup>>();
+std::list<std::shared_ptr<ByteSymbolGroup>> NFA::makeComplementSymbolGroups(const std::list<std::shared_ptr<SymbolGroup>>& symbolGroups) {
+    return std::list<std::shared_ptr<ByteSymbolGroup>>();
 }
 /*
 std::list<LiteralSymbolGroup> NFA::negateLiteralSymbolGroups(const std::list<LiteralSymbolGroup>& transitions) {

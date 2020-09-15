@@ -8,11 +8,11 @@
 #include "IReferencing.h"
 #include "INFABuildable.h"
 #include "IActing.h"
-#include "ILLkNonterminal.h"
+#include "ILLkFirstable.h"
 #include "ILLkBuildable.h"
 #include "CharType.h"
 
-struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IReferencing, public ILLkBuildable { };
+struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IReferencing, public ILLkFirstable { };
 
 struct RootRegex : public Regex {
 public:
@@ -27,7 +27,7 @@ protected:
 };
 
 struct AtomicRegex;
-struct RepetitiveRegex : public RootRegex, public ILLkNonterminal {
+struct RepetitiveRegex : public RootRegex, public ILLkBuildable {
 	std::shared_ptr<AtomicRegex> regex;
 	unsigned long minRepetitions;
 	unsigned long maxRepetitions;
@@ -41,6 +41,8 @@ struct RepetitiveRegex : public RootRegex, public ILLkNonterminal {
 	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkBuilder* llkBuilder) const override;
 
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 
@@ -52,24 +54,28 @@ private:
 struct AtomicRegex : public RootRegex { };
 
 struct ConjunctiveRegex;
-struct DisjunctiveRegex : public AtomicRegex, public ILLkNonterminal {
+struct DisjunctiveRegex : public AtomicRegex, public ILLkBuildable {
 	std::list<std::unique_ptr<ConjunctiveRegex>> disjunction;
 
 	void completeReferences(const MachineDefinition& machine) override;
 	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkBuilder* llkBuilder) const override;
 
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 };
 
-struct ConjunctiveRegex : public Regex, public ILLkNonterminal {
+struct ConjunctiveRegex : public Regex, public ILLkBuildable {
 	std::list<std::unique_ptr<RootRegex>> conjunction;
 
 	void completeReferences(const MachineDefinition& machine) override;
 	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkBuilder* llkBuilder) const override;
 
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 };
@@ -80,6 +86,7 @@ struct PrimitiveRegex : public AtomicRegex {
 
 struct EmptyRegex : public PrimitiveRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
 };
 
 struct RegexRange {
@@ -91,17 +98,22 @@ struct AnyRegex : public PrimitiveRegex {
 	std::list<std::string> literals;
 	std::list<RegexRange> ranges;
 
+	SymbolGroupList makeSymbolGroups() const;
+
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
 };
 
 struct ExceptAnyRegex : public AnyRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
 };
 
 struct LiteralRegex : public PrimitiveRegex {
 	std::string literal;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
 };
 
 class MachineStatement;
@@ -115,8 +127,10 @@ struct ReferenceRegex : public PrimitiveRegex {
 	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
 };
 
 struct ArbitrarySymbolRegex : public PrimitiveRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
 };

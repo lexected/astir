@@ -1,8 +1,10 @@
 #pragma once
 
-#include "SyntacticTree.h"
-#include "Regex.h"
 #include "NFA.h"
+
+#include "SyntacticTree.h"
+#include "MachineStatement.h"
+#include "Regex.h"
 
 class NFABuilder {
 public:
@@ -31,10 +33,7 @@ private:
 	const MachineStatement* m_contextStatement;
 	const std::string m_generationContextPath;
 
-	std::list<std::shared_ptr<SymbolGroup>> makeLiteralGroups(const AnyRegex* regex) const;
 	std::pair<NFAActionRegister, NFAActionRegister> computeActionRegisterEntries(const std::list<RegexAction>& actions) const;
 	std::pair<NFAActionRegister, NFAActionRegister> computeActionRegisterEntries(const std::list<RegexAction>& actions, const std::string& payload) const;
-
-	std::shared_ptr<SymbolGroup> createArbitrarySymbolGroup() const;
 };
 

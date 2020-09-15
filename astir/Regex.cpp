@@ -3,6 +3,8 @@
 #include "MachineDefinition.h"
 #include "NFA.h"
 #include "NFABuilder.h"
+#include "LLkBuilder.h"
+#include "LLkFirster.h"
 
 #include "SemanticAnalysisException.h"
 
@@ -16,6 +18,14 @@ IFileLocalizableCPtr RepetitiveRegex::findRecursiveReference(std::list<IReferenc
 
 NFA RepetitiveRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
+}
+
+SymbolGroupList RepetitiveRegex::first(LLkFirster* firster, const SymbolGroupList& prefix) const {
+	return firster->visit(this, prefix);
+}
+
+void RepetitiveRegex::accept(LLkBuilder* llkBuilder) const {
+	llkBuilder->visit(this);
 }
 
 void RepetitiveRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) {
@@ -140,6 +150,14 @@ NFA DisjunctiveRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
+SymbolGroupList DisjunctiveRegex::first(LLkFirster* firster, const SymbolGroupList& prefix) const {
+	return firster->visit(this, prefix);
+}
+
+void DisjunctiveRegex::accept(LLkBuilder* llkBuilder) const {
+	llkBuilder->visit(this);
+}
+
 void DisjunctiveRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) {
 	for (const auto& conjunction : disjunction) {
 		conjunction->checkAndTypeformActionUsage(machine, context, areActionsAllowed);
@@ -165,6 +183,14 @@ IFileLocalizableCPtr ConjunctiveRegex::findRecursiveReference(std::list<IReferen
 
 NFA ConjunctiveRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
+}
+
+SymbolGroupList ConjunctiveRegex::first(LLkFirster* firster, const SymbolGroupList& prefix) const {
+	return firster->visit(this, prefix);
+}
+
+void ConjunctiveRegex::accept(LLkBuilder* llkBuilder) const {
+	llkBuilder->visit(this);
 }
 
 void ConjunctiveRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) {
@@ -208,22 +234,63 @@ NFA ReferenceRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
+SymbolGroupList ReferenceRegex::first(LLkFirster* firster, const SymbolGroupList& prefix) const {
+	return firster->visit(this, prefix);
+}
+
+SymbolGroupList AnyRegex::makeSymbolGroups() const {
+	SymbolGroupList literalGroups;
+
+	for (const auto& literal : literals) {
+		for (const auto& c : literal) {
+			literalGroups.push_back(std::make_shared<ByteSymbolGroup>(c, c));
+		}
+	}
+	for (const auto& range : ranges) {
+		CharType beginning = (CharType)range.start;
+		CharType end = (CharType)range.end;
+		literalGroups.push_back(std::make_shared<ByteSymbolGroup>(beginning, end));
+	}
+
+	return literalGroups;
+}
+
 NFA AnyRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
+}
+
+SymbolGroupList AnyRegex::first(LLkFirster* firster, const SymbolGroupList& prefix) const {
+	return firster->visit(this, prefix);
 }
 
 NFA ExceptAnyRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
+SymbolGroupList ExceptAnyRegex::first(LLkFirster* firster, const SymbolGroupList& prefix) const {
+	return firster->visit(this, prefix);
+}
+
 NFA LiteralRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
+}
+
+SymbolGroupList LiteralRegex::first(LLkFirster* firster, const SymbolGroupList& prefix) const {
+	return firster->visit(this, prefix);
 }
 
 NFA ArbitrarySymbolRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
+SymbolGroupList ArbitrarySymbolRegex::first(LLkFirster* firster, const SymbolGroupList& prefix) const {
+	return firster->visit(this, prefix);
+}
+
 NFA EmptyRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
+}
+
+SymbolGroupList EmptyRegex::first(LLkFirster* firster, const SymbolGroupList& prefix) const {
+	return firster->visit(this, prefix);
 }

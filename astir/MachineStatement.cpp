@@ -3,6 +3,8 @@
 #include "MachineDefinition.h"
 #include "SemanticAnalysisException.h"
 #include "NFABuilder.h"
+#include "LLkFirster.h"
+#include "LLkBuilder.h"
 #include "GenerationVisitor.h"
 
 std::shared_ptr<Field> AttributedStatement::findField(const std::string& name, std::shared_ptr<CategoryStatement>& categoryFoundIn) const {
@@ -89,6 +91,14 @@ NFA CategoryStatement::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
+SymbolGroupList CategoryStatement::first(LLkFirster* firster, const SymbolGroupList& prefix) const {
+	return firster->visit(this, prefix);
+}
+
+void CategoryStatement::accept(LLkBuilder* llkBuilder) const {
+	llkBuilder->visit(this);
+}
+
 void ProductionStatement::verifyContextualValidity(const MachineDefinition& machine) const {
 	regex->checkAndTypeformActionUsage(machine, this, true);
 }
@@ -139,4 +149,12 @@ IFileLocalizableCPtr RuleStatement::findRecursiveReference(std::list<IReferencin
 		return ret;
 	}
 	return nullptr;
+}
+
+void RuleStatement::accept(LLkBuilder* llkBuilder) const {
+	llkBuilder->visit(this);
+}
+
+SymbolGroupList RuleStatement::first(LLkFirster* firster, const SymbolGroupList& prefix) const {
+	return firster->visit(this, prefix);
 }

@@ -23,7 +23,6 @@ struct MachineDefinitionAttribute {
 
 	MachineDefinitionAttribute()
 		: set(false), value(false) { }
-
 	MachineDefinitionAttribute(bool value)
 		: set(false), value(value) { }
 };
@@ -48,7 +47,8 @@ public:
 	TerminalTypeIndex terminalProductionCount() const { return m_terminalCount; };
 
 	void completeCategoryReferences(std::list<std::string> namesEncountered, const std::shared_ptr<AttributedStatement>& attributedStatement, bool mustBeACategory = false) const;
-	const IFileLocalizable* findRecursiveReferenceThroughName(const std::string& referenceName, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+
+	std::shared_ptr<SymbolGroup> computeArbitrarySymbolGroup() const;
 
 protected:
 	MachineDefinition()

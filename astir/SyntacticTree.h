@@ -9,7 +9,7 @@
 #include "Regex.h"
 #include "Field.h"
 #include "NFA.h"
-#include "ILLkNonterminal.h"
+#include "ILLkFirstable.h"
 
 /*
 	As a general rule, avoid creating full insertive constructors for objects, since the container ownership of unique_ptrs then often gets quite tricky.

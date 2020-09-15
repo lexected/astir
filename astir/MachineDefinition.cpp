@@ -86,10 +86,10 @@ void MachineDefinition::initialize() {
 		std::list<IReferencingCPtr> relevantReferencesEncountered;
 		auto recursiveReferenceLocalizableInstance = statementPair.second->findRecursiveReference(relevantReferencesEncountered);
 		if (recursiveReferenceLocalizableInstance != nullptr) {
-			std::string hierarchyPath = relevantReferencesEncountered.front()->name();
+			std::string hierarchyPath = relevantReferencesEncountered.front()->referenceName();
 			relevantReferencesEncountered.pop_front();
 			for (const auto& referenceEncountered : relevantReferencesEncountered) {
-				hierarchyPath += "-" + referenceEncountered->name();
+				hierarchyPath += "-" + referenceEncountered->referenceName();
 			}
 			throw SemanticAnalysisException("Rule/category reference recursion found in the path " + hierarchyPath + "; start at " + statementPair.second->locationString() + ", end at " + recursiveReferenceLocalizableInstance->locationString() + " - no recursion is allowed in finite automata");
 		}
@@ -232,6 +232,14 @@ void MachineDefinition::completeCategoryReferences(std::list<std::string> namesE
 	}
 
 	namesEncountered.pop_back();
+}
+
+std::shared_ptr<SymbolGroup> MachineDefinition::computeArbitrarySymbolGroup() const {
+	if (on.second) {
+		return std::make_shared<TerminalSymbolGroup>(on.second->getUnderlyingProductionsOfRoots());
+	} else {
+		return std::make_shared<ByteSymbolGroup>((CharType)0, (CharType)255);
+	}
 }
 
 MachineDefinition::MachineDefinition(const std::map<MachineFlag, MachineDefinitionAttribute>& attributes)
