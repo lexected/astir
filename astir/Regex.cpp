@@ -1,5 +1,6 @@
 #include "Regex.h"
-#include "SyntacticTree.h"
+#include "MachineStatement.h"
+#include "MachineDefinition.h"
 #include "NFA.h"
 #include "NFABuilder.h"
 

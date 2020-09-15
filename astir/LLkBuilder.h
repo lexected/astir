@@ -50,7 +50,7 @@ public:
 	LLkBuilder(unsigned long k, const MachineDefinition& context);
 
 	void visit(const CategoryStatement* categoryStatement);
-	void visit(const RuleStatement* productionStatement);
+	void visit(const RuleStatement* ruleStatement);
 
 	void visit(const DisjunctiveRegex* regex);
 	void visit(const ConjunctiveRegex* regex);
@@ -64,7 +64,7 @@ public:
 	void visit(const ArbitrarySymbolRegex* regex);
 	void visit(const ReferenceRegex* regex);
 
-	void disambiguate(ILLkNonterminalCPtr parent, const std::list<ILLkNonterminalCPtr>& alternatives, const std::list<ILLkNonterminalCPtr>& followedBy);
+	void disambiguate(const std::list<ILLkNonterminalCPtr>& alternatives);
 	void disambiguatePair(ILLkNonterminalCPtr first, ILLkNonterminalCPtr second);
 	void disambiguateDecisionPoints(ILLkNonterminalCPtr first, ILLkNonterminalCPtr second, LLkDecisionPoint& firstPoint, LLkDecisionPoint& secondPoint, SymbolGroupList& prefix);
 	void fillDisambiguationParent(ILLkNonterminalCPtr parent, const std::list<ILLkNonterminalCPtr>& alternatives);

@@ -6,22 +6,20 @@ LLkBuilder::LLkBuilder(unsigned long k, const MachineDefinition& context)
 	: m_k(k), m_contextMachine(context) { }
 
 void LLkBuilder::visit(const CategoryStatement* categoryStatement) {
-	auto retPair = m_flyweights.emplace(categoryStatement, LLkFlyweight());
-	const auto& iterator = retPair.first;
-	LLkFlyweight& correspondingFlyweight = iterator->second;
+	LLkFlyweight& correspondingFlyweight = m_flyweights[categoryStatement];
 
 	std::list<ILLkNonterminalCPtr> alternatives;
 	for (const auto& categoryReferencePair : categoryStatement->references) {
-		alternatives.push_back(categoryReferencePair.second.statement);
+		ILLkNonterminalCPtr alternative = categoryReferencePair.second.statement;
+		alternatives.push_back(alternative);
+		registerContextAppearance(alternative, categoryStatement, std::list<ILLkNonterminalCPtr>());
 	}
-	disambiguate(categoryStatement, alternatives, std::list<ILLkNonterminalCPtr>());
+	disambiguate(alternatives);
 	fillDisambiguationParent(categoryStatement, alternatives);
 }
 
 void LLkBuilder::visit(const RuleStatement* productionStatement) {
-	auto retPair = m_flyweights.emplace(productionStatement, LLkFlyweight());
-	const auto& iterator = retPair.first;
-	LLkFlyweight& ruleFlyweight = iterator->second;
+	LLkFlyweight& ruleFlyweight = m_flyweights[productionStatement];
 
 	auto regexPtr = productionStatement->regex;
 	auto regexPtrCast = std::dynamic_pointer_cast<ILLkBuildable>(regexPtr);
@@ -32,36 +30,33 @@ void LLkBuilder::visit(const RuleStatement* productionStatement) {
 }
 
 void LLkBuilder::visit(const DisjunctiveRegex* regex) {
-	auto retPair = m_flyweights.emplace(regex, LLkFlyweight());
-	const auto& iterator = retPair.first;
-	LLkFlyweight& correspondingFlyweight = iterator->second;
+	LLkFlyweight& correspondingFlyweight = m_flyweights[regex];
 
 	std::list<ILLkNonterminalCPtr> alternatives;
 	for (const auto& conjunction : regex->disjunction) {
 		ILLkNonterminalCPtr conjunctionCast = conjunction.get();
 		alternatives.push_back(conjunctionCast);
+		registerContextAppearance(conjunctionCast, regex, std::list<ILLkNonterminalCPtr>());
 
 		ILLkBuildableCPtr conjunctionCastAsBuildable = conjunction.get();
 		conjunctionCastAsBuildable->accept(this);
 	}
-	disambiguate(regex, alternatives, std::list<ILLkNonterminalCPtr>());
+	disambiguate(alternatives);
 	fillDisambiguationParent(regex, alternatives);
 }
 
 void LLkBuilder::visit(const ConjunctiveRegex* regex) {
-	auto retPair = m_flyweights.emplace(regex, LLkFlyweight());
-	const auto& iterator = retPair.first;
-	LLkFlyweight& correspondingFlyweight = iterator->second;
+	LLkFlyweight& correspondingFlyweight = m_flyweights[regex];
 
 	std::list<ILLkNonterminalCPtr> conjunctionBits;
 	for (auto it = regex->conjunction.rbegin(); it != regex->conjunction.rend();++it) {
 		const auto& rootRegex = *it;
-		conjunctionBits.push_front(rootRegex.get());
+		ILLkNonterminalCPtr ptr = rootRegex.get();
+		conjunctionBits.push_front(ptr);
+		registerContextAppearance(ptr, regex, conjunctionBits);
 
 		ILLkBuildableCPtr rootRegexCastAsBuildable = rootRegex.get();
 		rootRegexCastAsBuildable->accept(this);
-
-		registerContextAppearance(rootRegex.get(), regex, conjunctionBits);
 	}
 	
 	if (!conjunctionBits.empty()) {
@@ -72,22 +67,7 @@ void LLkBuilder::visit(const ConjunctiveRegex* regex) {
 	}
 }
 
-void LLkBuilder::disambiguate(ILLkNonterminalCPtr parent, const std::list<ILLkNonterminalCPtr>& alternatives, const std::list<ILLkNonterminalCPtr>& followedBy) {
-	for (ILLkNonterminalCPtr alternative : alternatives) {
-		auto pair = m_flyweights.emplace(alternative, LLkFlyweight());
-		const auto& iterator = pair.first;
-		LLkFlyweight& correspondingFlyweight = iterator->second;
-		auto fit = std::find_if(correspondingFlyweight.contexts.begin(), correspondingFlyweight.contexts.end(), [&parent, &followedBy](const LLkNonterminalContext& context) {
-			return context.parent == parent && context.followedBy == followedBy;
-		});
-
-		if (fit == correspondingFlyweight.contexts.end()) {
-			correspondingFlyweight.contexts.emplace_back(parent, followedBy);
-			fit = correspondingFlyweight.contexts.end();
-			--fit;
-		}
-	}
-
+void LLkBuilder::disambiguate(const std::list<ILLkNonterminalCPtr>& alternatives) {
 	auto firstIterator = alternatives.begin();
 	for (; firstIterator != alternatives.end(); ++firstIterator) {
 		auto secondIterator = firstIterator;
@@ -164,8 +144,11 @@ SymbolGroupList LLkBuilder::lookahead(ILLkNonterminalCPtr nonterminal, const Sym
 		auto fit = std::find(currentDecisionPoint->transitions.begin(), currentDecisionPoint->transitions.end(), [&currentLookahead](const LLkTransition& transition) {
 			return currentLookahead->equals(transition.condition.get());
 		});
-		currentDecisionPoint = &(*fit)->point;
+		if (fit == currentDecisionPoint->transitions.end()) {
+			break;
+		}
 
+		currentDecisionPoint = &(*fit)->point;
 		++prefixIt;
 	}
 
@@ -219,8 +202,14 @@ void LLkBuilder::registerContextAppearance(ILLkNonterminalCPtr target, ILLkNonte
 	const auto& iterator = retPair.first;
 	LLkFlyweight& correspondingFlyweight = iterator->second;
 
-	correspondingFlyweight.contexts.emplace_back(parent, followedBy);
+	LLkFlyweight& correspondingFlyweight = m_flyweights[target];
+	auto fit = std::find_if(correspondingFlyweight.contexts.begin(), correspondingFlyweight.contexts.end(), [&parent, &followedBy](const LLkNonterminalContext& context) {
+		return context.parent == parent && context.followedBy == followedBy;
+	});
 
+	if (fit == correspondingFlyweight.contexts.end()) {
+		correspondingFlyweight.contexts.emplace_back(parent, followedBy);
+	}
 }
 
 void LLkBuilder::registerContextAppearance(ILLkNonterminalCPtr target, ILLkNonterminalCPtr parent, std::list<ILLkNonterminalCPtr>::const_iterator followedByIt, std::list<ILLkNonterminalCPtr>::const_iterator followedByEnd) {

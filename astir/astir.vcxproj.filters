@@ -73,6 +73,12 @@
     <Filter Include="Resource Files\Tests\Test07">
       <UniqueIdentifier>{736d7ac8-b856-47b9-86c1-2ed34b80f0c4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Syntactic Analysis\Machines">
+      <UniqueIdentifier>{01fd9503-6d24-47d5-905f-588ff5ddadb1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Syntactic Analysis\Machines">
+      <UniqueIdentifier>{3c70d44d-d731-4db4-a3fa-261aa02eaa37}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -144,6 +150,18 @@
     <ClCompile Include="SymbolGroup.cpp">
       <Filter>Source Files\Semantic Analysis</Filter>
     </ClCompile>
+    <ClCompile Include="MachineDefinition.cpp">
+      <Filter>Source Files\Syntactic Analysis\Machines</Filter>
+    </ClCompile>
+    <ClCompile Include="FiniteAutomatonDefinition.cpp">
+      <Filter>Source Files\Syntactic Analysis\Machines</Filter>
+    </ClCompile>
+    <ClCompile Include="LLkParserDefinition.cpp">
+      <Filter>Source Files\Syntactic Analysis\Machines</Filter>
+    </ClCompile>
+    <ClCompile Include="MachineStatement.cpp">
+      <Filter>Source Files\Syntactic Analysis\Machines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h">
@@ -187,9 +205,6 @@
     </ClInclude>
     <ClInclude Include="LexicalAnalyzer.h">
       <Filter>Header Files\Lexical Analysis</Filter>
-    </ClInclude>
-    <ClInclude Include="IProductionReferencable.h">
-      <Filter>Header Files\Semantic Analysis</Filter>
     </ClInclude>
     <ClInclude Include="INFABuildable.h">
       <Filter>Header Files\Semantic Analysis</Filter>
@@ -265,6 +280,21 @@
     </ClInclude>
     <ClInclude Include="CharType.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FiniteAutomatonDefinition.h">
+      <Filter>Header Files\Syntactic Analysis\Machines</Filter>
+    </ClInclude>
+    <ClInclude Include="LLkParserDefinition.h">
+      <Filter>Header Files\Syntactic Analysis\Machines</Filter>
+    </ClInclude>
+    <ClInclude Include="MachineDefinition.h">
+      <Filter>Header Files\Syntactic Analysis\Machines</Filter>
+    </ClInclude>
+    <ClInclude Include="MachineStatement.h">
+      <Filter>Header Files\Syntactic Analysis\Machines</Filter>
+    </ClInclude>
+    <ClInclude Include="IReferencing.h">
+      <Filter>Header Files\Semantic Analysis</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

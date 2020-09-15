@@ -12,7 +12,7 @@
 #include "ILLkBuildable.h"
 #include "CharType.h"
 
-struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IProductionReferencable, public ILLkBuildable, public ILLkNonterminal { };
+struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IReferencing, public ILLkBuildable, public ILLkNonterminal { };
 
 struct RootRegex : public Regex {
 public:
@@ -95,8 +95,10 @@ struct LiteralRegex : public PrimitiveRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 };
 
+class MachineStatement;
 struct ReferenceRegex : public PrimitiveRegex {
 	std::string referenceName;
+	const MachineStatement* referenceStatement;
 
 	std::string computeItemType(const MachineDefinition& machine, const MachineStatement* context) const override;
 

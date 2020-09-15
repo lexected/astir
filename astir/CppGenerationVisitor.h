@@ -4,6 +4,7 @@
 #include <set>
 
 #include "GenerationVisitor.h"
+#include "FiniteAutomatonDefinition.h"
 
 class CppGenerationVisitor : public GenerationVisitor {
 public:

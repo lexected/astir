@@ -3,6 +3,7 @@
 #include <string>
 #include "Field.h"
 #include "SyntacticTree.h"
+#include "FiniteAutomatonDefinition.h"
 
 #include <filesystem>
 

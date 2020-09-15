@@ -6,12 +6,12 @@
 #include "IFileLocalizable.h"
 
 struct MachineDefinition;
-class IProductionReferencable {
+class IReferencing {
 public:
-	virtual ~IProductionReferencable() = default;
+	virtual ~IReferencing() = default;
 
 	virtual const IFileLocalizable* findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
 	
 protected:
-	IProductionReferencable() = default;
+	IReferencing() = default;
 };
