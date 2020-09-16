@@ -1,7 +1,10 @@
 #pragma once
 
+#include <string>
 #include <list>
 #include <memory>
+
+#include "CharType.h"
 
 using SymbolIndex = size_t;
 

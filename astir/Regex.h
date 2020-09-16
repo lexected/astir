@@ -116,7 +116,7 @@ struct LiteralRegex : public PrimitiveRegex {
 	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
 };
 
-class MachineStatement;
+struct MachineStatement;
 struct ReferenceRegex : public PrimitiveRegex {
 	std::string referenceName;
 	const MachineStatement* referenceStatement;

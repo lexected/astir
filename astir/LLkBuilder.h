@@ -7,6 +7,7 @@
 
 #include "ILLkFirstable.h"
 #include "SymbolGroup.h"
+#include "LLkFirster.h"
 
 struct LLkNonterminalContext {
 	ILLkFirstableCPtr parent;
@@ -22,7 +23,7 @@ struct LLkNonterminalContext {
 
 struct LLkTransition;
 struct LLkDecisionPoint {
-	std::list<std::unique_ptr<LLkTransition>> transitions;
+	std::list<std::shared_ptr<LLkTransition>> transitions;
 
 	SymbolGroupList computeConditionSymbols() const;
 
@@ -70,6 +71,7 @@ private:
 	const unsigned long m_k;
 	const MachineDefinition& m_contextMachine;
 	std::map<ILLkFirstableCPtr, LLkFlyweight> m_flyweights;
+	LLkFirster m_firster;
 
 	SymbolGroupList sequentialLookahead(std::list<ILLkFirstableCPtr>::const_iterator& sequenceIt, const std::list<ILLkFirstableCPtr>::const_iterator& sequenceEnd, const SymbolGroupList& prefix);
 	void registerContextAppearance(ILLkFirstableCPtr target, ILLkFirstableCPtr parent, const std::list<ILLkFirstableCPtr>& followedBy);

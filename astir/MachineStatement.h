@@ -28,6 +28,11 @@ enum class Terminality {
 	Unspecified
 };
 
+/* The following locally supresses the "'X' inherits 'Y' via dominance" warnings */
+#pragma warning( push )
+#pragma warning( disable : 4250 )
+
+
 struct MachineStatement : public ISyntacticEntity, public ISemanticEntity, public IReferencing, public INFABuildable, public ILLkFirstable, public ILLkBuildable {
 	std::string name;
 	virtual ~MachineStatement() = default;
@@ -111,6 +116,9 @@ struct ProductionStatement : public TypeFormingStatement, public RuleStatement {
 	std::list<const ProductionStatement*> calculateInstandingProductions() const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	using RuleStatement::first;
+	using RuleStatement::findRecursiveReference;
+	using RuleStatement::accept;
 };
 
 struct PatternStatement : public AttributedStatement, public RuleStatement {
@@ -119,10 +127,18 @@ struct PatternStatement : public AttributedStatement, public RuleStatement {
 	std::list<const ProductionStatement*> calculateInstandingProductions() const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	using RuleStatement::first;
+	using RuleStatement::findRecursiveReference;
+	using RuleStatement::accept;
 };
 
 struct RegexStatement : public RuleStatement {
 	void verifyContextualValidity(const MachineDefinition& machine) const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	using RuleStatement::first;
+	using RuleStatement::findRecursiveReference;
+	using RuleStatement::accept;
 };
+
+#pragma warning( pop )

@@ -4,8 +4,8 @@
 #include <queue>
 #include "SemanticAnalysisException.h"
 
-LLkFirster::LLkFirster(const LLkBuilder& builder)
-	: m_builder(builder) { }
+LLkFirster::LLkFirster(const MachineDefinition& machine)
+	: m_machine(machine) { }
 
 SymbolGroupList LLkFirster::visit(const CategoryStatement* cs, const SymbolGroupList& prefix) {
 	SymbolGroupList ret;
@@ -127,5 +127,5 @@ SymbolGroupList LLkFirster::visit(const LiteralRegex* lr, const SymbolGroupList&
 }
 
 SymbolGroupList LLkFirster::visit(const ArbitrarySymbolRegex* asr, const SymbolGroupList& prefix) {
-	return SymbolGroupList({ m_builder.contextMachine().computeArbitrarySymbolGroup() });
+	return SymbolGroupList({ m_machine.computeArbitrarySymbolGroup() });
 }
