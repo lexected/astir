@@ -9,7 +9,7 @@ void LLkParserDefinition::initialize() {
 
 	auto roots = this->getRoots();
 	for (const auto& statementPtr : roots) {
-		ILLkBuildableCPtr statementAsBuildable = statementPtr.get();
+		ILLkBuildingCPtr statementAsBuildable = statementPtr.get();
 		statementAsBuildable->accept(&m_builder);
 	}
 }

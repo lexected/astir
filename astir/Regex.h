@@ -9,10 +9,10 @@
 #include "INFABuildable.h"
 #include "IActing.h"
 #include "ILLkFirstable.h"
-#include "ILLkBuildable.h"
+#include "ILLkBuilding.h"
 #include "CharType.h"
 
-struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IReferencing, public ILLkFirstable { };
+struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IReferencing, public ILLkBuilding { };
 
 struct RootRegex : public Regex {
 public:
@@ -22,12 +22,13 @@ public:
 
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 	virtual std::string computeItemType(const MachineDefinition& machine, const MachineStatement* context) const;
+	void accept(LLkBuilder* llkBuilder) const override;
 
 protected:
 };
 
 struct AtomicRegex;
-struct RepetitiveRegex : public RootRegex, public ILLkBuildable {
+struct RepetitiveRegex : public RootRegex, public ILLkNonterminal {
 	std::shared_ptr<AtomicRegex> regex;
 	unsigned long minRepetitions;
 	unsigned long maxRepetitions;
@@ -54,7 +55,7 @@ private:
 struct AtomicRegex : public RootRegex { };
 
 struct ConjunctiveRegex;
-struct DisjunctiveRegex : public AtomicRegex, public ILLkBuildable {
+struct DisjunctiveRegex : public AtomicRegex, public ILLkNonterminal {
 	std::list<std::unique_ptr<ConjunctiveRegex>> disjunction;
 
 	void completeReferences(const MachineDefinition& machine) override;
@@ -67,7 +68,7 @@ struct DisjunctiveRegex : public AtomicRegex, public ILLkBuildable {
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 };
 
-struct ConjunctiveRegex : public Regex, public ILLkBuildable {
+struct ConjunctiveRegex : public Regex, public ILLkNonterminal {
 	std::list<std::unique_ptr<RootRegex>> conjunction;
 
 	void completeReferences(const MachineDefinition& machine) override;
@@ -80,7 +81,7 @@ struct ConjunctiveRegex : public Regex, public ILLkBuildable {
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 };
 
-struct PrimitiveRegex : public AtomicRegex {
+struct PrimitiveRegex : public AtomicRegex, public ILLkFirstable {
 	
 };
 
@@ -119,7 +120,11 @@ struct LiteralRegex : public PrimitiveRegex {
 struct MachineStatement;
 struct ReferenceRegex : public PrimitiveRegex {
 	std::string referenceName;
+	const MachineDefinition* referenceStatementMachine;
 	const MachineStatement* referenceStatement;
+
+	ReferenceRegex()
+		: referenceStatementMachine(nullptr), referenceStatement(nullptr) { }
 
 	std::string computeItemType(const MachineDefinition& machine, const MachineStatement* context) const override;
 
@@ -128,6 +133,7 @@ struct ReferenceRegex : public PrimitiveRegex {
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkBuilder* llkBuilder) const override;
 };
 
 struct ArbitrarySymbolRegex : public PrimitiveRegex {

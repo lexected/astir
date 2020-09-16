@@ -293,9 +293,6 @@
     <ClInclude Include="IReferencing.h">
       <Filter>Header Files\Semantic Analysis</Filter>
     </ClInclude>
-    <ClInclude Include="ILLkBuildable.h">
-      <Filter>Header Files\Semantic Analysis\LLk</Filter>
-    </ClInclude>
     <ClInclude Include="INFABuildable.h">
       <Filter>Header Files\Semantic Analysis\FA</Filter>
     </ClInclude>
@@ -315,6 +312,9 @@
       <Filter>Header Files\Semantic Analysis\LLk</Filter>
     </ClInclude>
     <ClInclude Include="ILLkFirstable.h">
+      <Filter>Header Files\Semantic Analysis\LLk</Filter>
+    </ClInclude>
+    <ClInclude Include="ILLkBuilding.h">
       <Filter>Header Files\Semantic Analysis\LLk</Filter>
     </ClInclude>
   </ItemGroup>

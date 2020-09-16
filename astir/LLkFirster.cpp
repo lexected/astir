@@ -34,7 +34,8 @@ SymbolGroupList LLkFirster::visit(const RepetitiveRegex* rr, const SymbolGroupLi
 	while (!nextQueueOfPrefixEnds.empty() && counter < rr->maxRepetitions) {
 		currentQueueOfPrefixEnds = nextQueueOfPrefixEnds;
 		while (!currentQueueOfPrefixEnds.empty()) {
-			auto thisPartsFirst = atom->first(this, currentPrefix);
+			ILLkFirstableCPtr atomicRegexAsFirstable = dynamic_cast<ILLkFirstableCPtr>(atom.get());
+			auto thisPartsFirst = atomicRegexAsFirstable->first(this, currentPrefix);
 			if (thisPartsFirst.containsEmpty()) {
 				nextQueueOfPrefixEnds.push_back(currentPrefixEnd);
 				if (rr->maxRepetitions == rr->INFINITE_REPETITIONS) {
@@ -82,7 +83,8 @@ SymbolGroupList LLkFirster::visit(const ConjunctiveRegex* cr, const SymbolGroupL
 	while(!nextQueueOfPrefixEnds.empty() && conjunctionIt != cr->conjunction.cend()) {
 		currentQueueOfPrefixEnds = nextQueueOfPrefixEnds;
 		while(!currentQueueOfPrefixEnds.empty()) {
-			auto thisPartsFirst = (*conjunctionIt)->first(this, currentPrefix);
+			ILLkFirstableCPtr rootRegexAsFirstable = dynamic_cast<ILLkFirstableCPtr>(conjunctionIt->get());
+			auto thisPartsFirst = rootRegexAsFirstable->first(this, currentPrefix);
 			if (thisPartsFirst.containsEmpty()) {
 				nextQueueOfPrefixEnds.push_back(currentPrefixEnd);
 			}

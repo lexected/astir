@@ -5,7 +5,7 @@
 #include "IReferencing.h"
 #include "INFABuildable.h"
 #include "ILLkFirstable.h"
-#include "ILLkBuildable.h"
+#include "ILLkBuilding.h"
 #include "IGenerationVisitable.h"
 
 #include "Field.h"
@@ -33,7 +33,7 @@ enum class Terminality {
 #pragma warning( disable : 4250 )
 
 
-struct MachineStatement : public ISyntacticEntity, public ISemanticEntity, public IReferencing, public INFABuildable, public ILLkFirstable, public ILLkBuildable {
+struct MachineStatement : public ISyntacticEntity, public ISemanticEntity, public IReferencing, public INFABuildable, public ILLkNonterminal, public ILLkBuilding {
 	std::string name;
 	virtual ~MachineStatement() = default;
 

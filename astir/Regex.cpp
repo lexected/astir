@@ -129,6 +129,10 @@ std::string RootRegex::computeItemType(const MachineDefinition& machine, const M
 	return "raw";
 }
 
+void RootRegex::accept(LLkBuilder* llkBuilder) const {
+	// noop by default
+}
+
 void DisjunctiveRegex::completeReferences(const MachineDefinition& machine) {
 	for (const auto& conjunction : disjunction) {
 		conjunction->completeReferences(machine);
@@ -206,7 +210,7 @@ std::string ReferenceRegex::computeItemType(const MachineDefinition& machine, co
 }
 
 void ReferenceRegex::completeReferences(const MachineDefinition& machine) {
-	auto ms = machine.findMachineStatement(referenceName);
+	auto ms = machine.findMachineStatement(referenceName, &referenceStatementMachine);
 	if (!ms) {
 		throw SemanticAnalysisException("Name '"+referenceName+"' referenced in regex at " + this->locationString() + " could not be found in the context of the machine '" + machine.name + "' declared at " + machine.locationString());
 	}
@@ -236,6 +240,10 @@ NFA ReferenceRegex::accept(const NFABuilder& nfaBuilder) const {
 
 SymbolGroupList ReferenceRegex::first(LLkFirster* firster, const SymbolGroupList& prefix) const {
 	return firster->visit(this, prefix);
+}
+
+void ReferenceRegex::accept(LLkBuilder* llkBuilder) const {
+	llkBuilder->visit(this);
 }
 
 SymbolGroupList AnyRegex::makeSymbolGroups() const {

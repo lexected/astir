@@ -8,9 +8,9 @@ LLkBuilder::LLkBuilder(unsigned long k, const MachineDefinition& context)
 void LLkBuilder::visit(const CategoryStatement* categoryStatement) {
 	LLkFlyweight& correspondingFlyweight = m_flyweights[categoryStatement];
 
-	std::list<ILLkFirstableCPtr> alternatives;
+	std::list<ILLkNonterminalCPtr> alternatives;
 	for (const auto& categoryReferencePair : categoryStatement->references) {
-		ILLkFirstableCPtr alternative = categoryReferencePair.second.statement;
+		ILLkNonterminalCPtr alternative = categoryReferencePair.second.statement;
 		alternatives.push_back(alternative);
 		registerContextAppearance(alternative, categoryStatement, std::list<ILLkFirstableCPtr>());
 	}
@@ -21,24 +21,24 @@ void LLkBuilder::visit(const CategoryStatement* categoryStatement) {
 void LLkBuilder::visit(const RuleStatement* productionStatement) {
 	LLkFlyweight& ruleFlyweight = m_flyweights[productionStatement];
 
-	auto regexPtr = productionStatement->regex;
-	auto regexPtrCast = std::dynamic_pointer_cast<ILLkBuildable>(regexPtr);
-	regexPtrCast->accept(this);
+	auto disjunctionPtr = productionStatement->regex;
+	auto disjunctionPtrCast = std::dynamic_pointer_cast<ILLkBuilding>(disjunctionPtr);
+	disjunctionPtrCast->accept(this);
 
-	LLkFlyweight& regexFlyweight = m_flyweights[regexPtr.get()];
-	ruleFlyweight.decisions = regexFlyweight.decisions;
+	LLkFlyweight& disjunctionFlyweight = m_flyweights[disjunctionPtr.get()];
+	ruleFlyweight.decisions = disjunctionFlyweight.decisions;
 }
 
 void LLkBuilder::visit(const DisjunctiveRegex* regex) {
 	LLkFlyweight& correspondingFlyweight = m_flyweights[regex];
 
-	std::list<ILLkFirstableCPtr> alternatives;
+	std::list<ILLkNonterminalCPtr> alternatives;
 	for (const auto& conjunction : regex->disjunction) {
-		ILLkFirstableCPtr conjunctionCast = conjunction.get();
+		ILLkNonterminalCPtr conjunctionCast = conjunction.get();
 		alternatives.push_back(conjunctionCast);
 		registerContextAppearance(conjunctionCast, regex, std::list<ILLkFirstableCPtr>());
 
-		ILLkBuildableCPtr conjunctionCastAsBuildable = conjunction.get();
+		ILLkBuildingCPtr conjunctionCastAsBuildable = conjunction.get();
 		conjunctionCastAsBuildable->accept(this);
 	}
 	disambiguate(alternatives);
@@ -51,30 +51,29 @@ void LLkBuilder::visit(const ConjunctiveRegex* regex) {
 	std::list<ILLkFirstableCPtr> conjunctionBits;
 	for (auto it = regex->conjunction.rbegin(); it != regex->conjunction.rend();++it) {
 		const auto& rootRegex = *it;
-		ILLkFirstableCPtr ptr = dynamic_cast<ILLkFirstableCPtr>(rootRegex.get());
-		if(ptr != nullptr) {
-			conjunctionBits.push_front(ptr);
-			registerContextAppearance(ptr, regex, conjunctionBits);
+		ILLkFirstableCPtr firstablePtr = dynamic_cast<ILLkFirstableCPtr>(rootRegex.get());
+		conjunctionBits.push_front(firstablePtr);
+
+		ILLkNonterminalCPtr nonterminalPtr = dynamic_cast<ILLkNonterminalCPtr>(rootRegex.get());
+		if(nonterminalPtr != nullptr) {
+			registerContextAppearance(nonterminalPtr, regex, conjunctionBits);
 		}
 
-		/*ILLkBuildableCPtr rootRegexCastAsBuildable = rootRegex.get();
-		rootRegexCastAsBuildable->accept(this);*/
+		ILLkBuildingCPtr rootRegexCastAsBuildable = rootRegex.get();
+		rootRegexCastAsBuildable->accept(this);
 	}
 	
-	if (!conjunctionBits.empty()) {
-		const auto& startFlyweight = m_flyweights[conjunctionBits.front()];
-		correspondingFlyweight.decisions += startFlyweight.decisions;
-	} else {
+	if (conjunctionBits.empty()) {
 		correspondingFlyweight.decisions.transitions.push_back(std::make_shared<LLkTransition>(std::make_shared<EmptySymbolGroup>()));
 	}
 }
 
 void LLkBuilder::visit(const RepetitiveRegex* regex) {
 	auto& repetitiveFlyweight = m_flyweights[regex];
-	/*ILLkBuildableCPtr atomBuildable = regex->regex.get();
-	atomBuildable->accept(this);*/
+	ILLkBuildingCPtr atomBuildable = regex->regex.get();
+	atomBuildable->accept(this);
 
-	ILLkFirstableCPtr atomAsNonterminal = dynamic_cast<ILLkFirstableCPtr>(regex->regex.get());
+	ILLkNonterminalCPtr atomAsNonterminal = dynamic_cast<ILLkNonterminalCPtr>(regex->regex.get());
 	if(atomAsNonterminal != nullptr) {
 		auto& atomFlyweight = m_flyweights[atomAsNonterminal];
 
@@ -91,7 +90,16 @@ void LLkBuilder::visit(const RepetitiveRegex* regex) {
 	}
 }
 
-void LLkBuilder::disambiguate(const std::list<ILLkFirstableCPtr>& alternatives) {
+void LLkBuilder::visit(const ReferenceRegex* regex) {
+	if (regex->referenceStatementMachine != &m_contextMachine) {
+		return;
+	}
+
+	ILLkBuildingCPtr regexStatementAsBuilding = regex->referenceStatement;
+	regexStatementAsBuilding->accept(this);
+}
+
+void LLkBuilder::disambiguate(const std::list<ILLkNonterminalCPtr>& alternatives) {
 	auto firstIterator = alternatives.begin();
 	for (; firstIterator != alternatives.end(); ++firstIterator) {
 		auto secondIterator = firstIterator;
@@ -102,7 +110,7 @@ void LLkBuilder::disambiguate(const std::list<ILLkFirstableCPtr>& alternatives) 
 	}
 }
 
-void LLkBuilder::disambiguatePair(ILLkFirstableCPtr first, ILLkFirstableCPtr second) {
+void LLkBuilder::disambiguatePair(ILLkNonterminalCPtr first, ILLkNonterminalCPtr second) {
 	std::list<std::shared_ptr<SymbolGroup>> currentPrefix;
 	LLkFlyweight &firstFlyweight = m_flyweights[first], &secondFlyweight = m_flyweights[second];
 	LLkDecisionPoint &currentFirstPoint = firstFlyweight.decisions, &currentSecondPoint = secondFlyweight.decisions;
@@ -111,7 +119,7 @@ void LLkBuilder::disambiguatePair(ILLkFirstableCPtr first, ILLkFirstableCPtr sec
 	disambiguateDecisionPoints(first, second, currentFirstPoint, currentSecondPoint, prefix);
 }
 
-void LLkBuilder::disambiguateDecisionPoints(ILLkFirstableCPtr first, ILLkFirstableCPtr second, LLkDecisionPoint& firstPoint, LLkDecisionPoint& secondPoint, SymbolGroupList& prefix) {
+void LLkBuilder::disambiguateDecisionPoints(ILLkNonterminalCPtr first, ILLkNonterminalCPtr second, LLkDecisionPoint& firstPoint, LLkDecisionPoint& secondPoint, SymbolGroupList& prefix) {
 	if (firstPoint.transitions.empty()) {
 		lookahead(first, prefix);
 	}
@@ -146,7 +154,7 @@ void LLkBuilder::disambiguateDecisionPoints(ILLkFirstableCPtr first, ILLkFirstab
 	}
 }
 
-void LLkBuilder::fillDisambiguationParent(ILLkFirstableCPtr parent, const std::list<ILLkFirstableCPtr>& alternatives) {
+void LLkBuilder::fillDisambiguationParent(ILLkNonterminalCPtr parent, const std::list<ILLkNonterminalCPtr>& alternatives) {
 	auto& parentFlyweight = m_flyweights[parent];
 	for (auto alternative : alternatives) {
 		const auto& alternativeFlyweight = m_flyweights[alternative];
@@ -154,11 +162,17 @@ void LLkBuilder::fillDisambiguationParent(ILLkFirstableCPtr parent, const std::l
 	}
 }
 
-SymbolGroupList LLkBuilder::lookahead(ILLkFirstableCPtr nonterminal, const SymbolGroupList& prefix) {
+SymbolGroupList LLkBuilder::lookahead(ILLkFirstableCPtr firstable, const SymbolGroupList& prefix) {
 	if (prefix.size() >= m_k) {
 		throw SemanticAnalysisException("Lookahead of " + std::to_string(m_k) + " is insufficient, need to look further ahead");
 	}
 
+	auto nonterminal = dynamic_cast<ILLkNonterminalCPtr>(firstable);
+	if (nonterminal == nullptr) {
+		return firstable->first(&m_firster, prefix);
+	}
+
+	// TODO: check it from here
 	auto& flyweight = m_flyweights[nonterminal];
 	LLkDecisionPoint* currentDecisionPoint = &flyweight.decisions;
 
@@ -167,7 +181,7 @@ SymbolGroupList LLkBuilder::lookahead(ILLkFirstableCPtr nonterminal, const Symbo
 		const auto& currentLookahead = prefix.front();
 		auto fit = std::find_if(currentDecisionPoint->transitions.begin(), currentDecisionPoint->transitions.end(), [&currentLookahead](const auto& transitionPtr) {
 			return currentLookahead->equals(transitionPtr->condition.get());
-		});
+			});
 		if (fit == currentDecisionPoint->transitions.end()) {
 			break;
 		}
@@ -180,7 +194,7 @@ SymbolGroupList LLkBuilder::lookahead(ILLkFirstableCPtr nonterminal, const Symbo
 		return currentDecisionPoint->computeConditionSymbols();
 	}
 
-	auto lookaheadSymbols = nonterminal->first(&m_firster, prefix);
+	auto lookaheadSymbols = firstable->first(&m_firster, prefix);
 	if (lookaheadSymbols.containsEmpty()) {
 		SymbolGroupList emptyPrefix;
 		lookaheadSymbols.removeEmpty();
@@ -223,7 +237,7 @@ SymbolGroupList LLkBuilder::sequentialLookahead(std::list<ILLkFirstableCPtr>::co
 	return ret;
 }
 
-void LLkBuilder::registerContextAppearance(ILLkFirstableCPtr target, ILLkFirstableCPtr parent, const std::list<ILLkFirstableCPtr>& followedBy) {
+void LLkBuilder::registerContextAppearance(ILLkNonterminalCPtr target, ILLkNonterminalCPtr parent, const std::list<ILLkFirstableCPtr>& followedBy) {
 	LLkFlyweight& correspondingFlyweight = m_flyweights[target];
 	auto fit = std::find_if(correspondingFlyweight.contexts.begin(), correspondingFlyweight.contexts.end(), [&parent, &followedBy](const LLkNonterminalContext& context) {
 		return context.parent == parent && context.followedBy == followedBy;
@@ -234,7 +248,7 @@ void LLkBuilder::registerContextAppearance(ILLkFirstableCPtr target, ILLkFirstab
 	}
 }
 
-void LLkBuilder::registerContextAppearance(ILLkFirstableCPtr target, ILLkFirstableCPtr parent, std::list<ILLkFirstableCPtr>::const_iterator followedByIt, std::list<ILLkFirstableCPtr>::const_iterator followedByEnd) {
+void LLkBuilder::registerContextAppearance(ILLkNonterminalCPtr target, ILLkNonterminalCPtr parent, std::list<ILLkFirstableCPtr>::const_iterator followedByIt, std::list<ILLkFirstableCPtr>::const_iterator followedByEnd) {
 	registerContextAppearance(target, parent, std::list<ILLkFirstableCPtr>(followedByIt, followedByEnd));
 }
 

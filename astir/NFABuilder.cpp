@@ -98,7 +98,8 @@ NFA NFABuilder::visit(const ConjunctiveRegex* regex) const {
 	base.finalStates.insert(0);
 
 	for (const auto& rootRegex : regex->conjunction) {
-		base &= rootRegex->accept(*this);
+		const INFABuildable* rootAsBuildable = rootRegex.get();
+		base &= rootAsBuildable->accept(*this);
 	}
 	return base;
 }
@@ -119,7 +120,8 @@ NFA NFABuilder::visit(const RepetitiveRegex* regex) const {
 		base.finalStates.insert(0);
 	}
 
-	NFA atomMachine = regex->regex->accept(*this);
+	const INFABuildable* atomicAsBuildable = regex->regex.get();
+	NFA atomMachine = atomicAsBuildable->accept(*this);
 	if (regex->minRepetitions <= 1 && regex->maxRepetitions > 0) {
 		base.orNFA(atomMachine, true);
 	}

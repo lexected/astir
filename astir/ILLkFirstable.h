@@ -14,3 +14,11 @@ protected:
 };
 
 typedef const ILLkFirstable* ILLkFirstableCPtr;
+
+class ILLkNonterminal : public ILLkFirstable {
+public:
+protected:
+	ILLkNonterminal() = default;
+};
+
+typedef const ILLkNonterminal* ILLkNonterminalCPtr;

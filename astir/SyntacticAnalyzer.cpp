@@ -223,6 +223,8 @@ std::unique_ptr<MachineDefinition> SyntacticAnalyzer::parseMachineType(std::list
 			throw UnexpectedTokenException(*it, "the keyword 'parser'", "for LL(k) parser declaration", *savedIt);
 		}
 		++it;
+
+		return llDef;
 	} else {
 		return nullptr;
 	}

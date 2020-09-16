@@ -192,7 +192,7 @@
     <ClInclude Include="IActing.h" />
     <ClInclude Include="IFileLocalizable.h" />
     <ClInclude Include="IGenerationVisitable.h" />
-    <ClInclude Include="ILLkBuildable.h" />
+    <ClInclude Include="ILLkBuilding.h" />
     <ClInclude Include="ILLkFirstable.h" />
     <ClInclude Include="INFABuildable.h" />
     <ClInclude Include="LexicalAnalysisException.h" />
