@@ -15,6 +15,7 @@ public:
 
 	void visit(const SyntacticTree* tree) override;
 	void visit(const FiniteAutomatonDefinition* tree) override;
+	void visit(const LLkParserDefinition* llkParserDefinition) override;
 
 	void visit(const TypeFormingStatement* component) override;
 	void visit(const FlagField* flagField) override;

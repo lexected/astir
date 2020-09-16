@@ -4,6 +4,8 @@
 #include "Field.h"
 #include "SyntacticTree.h"
 #include "FiniteAutomatonDefinition.h"
+#include "LLkParserDefinition.h"
+#include "MachineStatement.h"
 
 #include <filesystem>
 
@@ -12,7 +14,8 @@ public:
 	virtual void setup() const = 0;
 
 	virtual void visit(const SyntacticTree* tree) = 0;
-	virtual void visit(const FiniteAutomatonDefinition* tree) = 0;
+	virtual void visit(const FiniteAutomatonDefinition* fad) = 0;
+	virtual void visit(const LLkParserDefinition* llkParserDefinition) = 0;
 
 	virtual void visit(const TypeFormingStatement* statement) = 0;
 	virtual void visit(const FlagField* flagField) = 0;

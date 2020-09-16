@@ -142,6 +142,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CppGenerationVisitor.cpp" />
+    <ClCompile Include="CppLLkParserGenerator.h" />
     <ClCompile Include="CppNFAGenerationHelper.cpp" />
     <ClCompile Include="dimcli\libs\dimcli\cli.cpp" />
     <ClCompile Include="Field.cpp" />

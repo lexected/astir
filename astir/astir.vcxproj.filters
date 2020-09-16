@@ -94,13 +94,16 @@
     <Filter Include="Source Files\Semantic Analysis\LLk">
       <UniqueIdentifier>{7d95de19-8397-4f6d-bbfc-fcd999a9f79a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Generation\Cpp">
+      <UniqueIdentifier>{00948196-10c7-4792-8c3c-9ec22662f9ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Generation\Cpp">
+      <UniqueIdentifier>{a320fb5f-fab8-4d1e-94f5-cd0e5310eb27}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CppGenerationVisitor.cpp">
-      <Filter>Source Files\Generation</Filter>
     </ClCompile>
     <ClCompile Include="ISyntacticEntity.cpp">
       <Filter>Source Files\Syntactic Analysis</Filter>
@@ -125,9 +128,6 @@
     </ClCompile>
     <ClCompile Include="Field.cpp">
       <Filter>Source Files\Syntactic Analysis</Filter>
-    </ClCompile>
-    <ClCompile Include="CppNFAGenerationHelper.cpp">
-      <Filter>Source Files\Generation</Filter>
     </ClCompile>
     <ClCompile Include="Resources\Location.cpp">
       <Filter>Resource Files\Resources</Filter>
@@ -180,6 +180,15 @@
     <ClCompile Include="SemanticAnalysisException.cpp">
       <Filter>Source Files\Semantic Analysis</Filter>
     </ClCompile>
+    <ClCompile Include="CppGenerationVisitor.cpp">
+      <Filter>Source Files\Generation\Cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="CppNFAGenerationHelper.cpp">
+      <Filter>Source Files\Generation\Cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="CppLLkParserGenerator.h">
+      <Filter>Header Files\Generation\Cpp</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h">
@@ -190,9 +199,6 @@
     </ClInclude>
     <ClInclude Include="FileLocation.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CppGenerationVisitor.h">
-      <Filter>Header Files\Generation</Filter>
     </ClInclude>
     <ClInclude Include="GenerationVisitor.h">
       <Filter>Header Files\Generation</Filter>
@@ -232,9 +238,6 @@
     </ClInclude>
     <ClInclude Include="Field.h">
       <Filter>Header Files\Syntactic Analysis</Filter>
-    </ClInclude>
-    <ClInclude Include="CppNFAGenerationHelper.h">
-      <Filter>Header Files\Generation</Filter>
     </ClInclude>
     <ClInclude Include="Resources\ProductionStream.h">
       <Filter>Resource Files\Resources</Filter>
@@ -316,6 +319,12 @@
     </ClInclude>
     <ClInclude Include="ILLkBuilding.h">
       <Filter>Header Files\Semantic Analysis\LLk</Filter>
+    </ClInclude>
+    <ClInclude Include="CppGenerationVisitor.h">
+      <Filter>Header Files\Generation\Cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="CppNFAGenerationHelper.h">
+      <Filter>Header Files\Generation\Cpp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
