@@ -172,7 +172,6 @@ SymbolGroupList LLkBuilder::lookahead(ILLkFirstableCPtr firstable, const SymbolG
 		return firstable->first(&m_firster, prefix);
 	}
 
-	// TODO: check it from here
 	auto& flyweight = m_flyweights[nonterminal];
 	LLkDecisionPoint* currentDecisionPoint = &flyweight.decisions;
 
@@ -180,10 +179,12 @@ SymbolGroupList LLkBuilder::lookahead(ILLkFirstableCPtr firstable, const SymbolG
 	while (prefixIt != prefix.end()) {
 		const auto& currentLookahead = prefix.front();
 		auto fit = std::find_if(currentDecisionPoint->transitions.begin(), currentDecisionPoint->transitions.end(), [&currentLookahead](const auto& transitionPtr) {
-			return currentLookahead->equals(transitionPtr->condition.get());
-			});
+			return !currentLookahead->disjoint(transitionPtr->condition.get());
+		});
 		if (fit == currentDecisionPoint->transitions.end()) {
-			break;
+			if(!currentDecisionPoint->transitions.empty()) {
+				throw SemanticAnalysisException("Unrecognized prefix element sought in the decision point tree");
+			}
 		}
 
 		currentDecisionPoint = &(*fit)->point;
@@ -202,11 +203,11 @@ SymbolGroupList LLkBuilder::lookahead(ILLkFirstableCPtr firstable, const SymbolG
 			const auto& followedBy = context.followedBy;
 			auto followedByIt = followedBy.begin();
 			auto furtherLookaheadDueToFollows = sequentialLookahead(followedByIt, followedBy.end(), emptyPrefix);
-			lookaheadSymbols.insert(lookaheadSymbols.end(), furtherLookaheadDueToFollows.cbegin(), furtherLookaheadDueToFollows.cend());
+			lookaheadSymbols += furtherLookaheadDueToFollows;
 			
 			if (followedByIt == followedBy.end()) {
 				auto furtherLookaheadDueToParent = this->lookahead(context.parent, emptyPrefix);
-				lookaheadSymbols.insert(lookaheadSymbols.end(), furtherLookaheadDueToParent.cbegin(), furtherLookaheadDueToParent.cend());
+				lookaheadSymbols += furtherLookaheadDueToParent;
 			}
 		}
 	}

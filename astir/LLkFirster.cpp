@@ -109,7 +109,11 @@ SymbolGroupList LLkFirster::visit(const ConjunctiveRegex* cr, const SymbolGroupL
 }
 
 SymbolGroupList LLkFirster::visit(const EmptyRegex* er, const SymbolGroupList& prefix) {
-	return SymbolGroupList({ std::make_shared<EmptySymbolGroup>() });
+	if (prefix.empty()) {
+		return SymbolGroupList({ std::make_shared<EmptySymbolGroup>() });
+	} else {
+		return SymbolGroupList();
+	}
 }
 
 SymbolGroupList LLkFirster::visit(const ReferenceRegex* rr, const SymbolGroupList& prefix) {
@@ -117,17 +121,41 @@ SymbolGroupList LLkFirster::visit(const ReferenceRegex* rr, const SymbolGroupLis
 }
 
 SymbolGroupList LLkFirster::visit(const AnyRegex* ar, const SymbolGroupList& prefix) {
-	return ar->makeSymbolGroups();
+	if (prefix.empty()) {
+		return ar->makeSymbolGroups();
+	} else if (prefix.size() == 1) {
+		return SymbolGroupList({ std::make_shared<EmptySymbolGroup>() });
+	} else {
+		return SymbolGroupList();
+	}
 }
 
 SymbolGroupList LLkFirster::visit(const ExceptAnyRegex* ar, const SymbolGroupList& prefix) {
-	return ar->makeSymbolGroups();
+	if (prefix.empty()) {
+		return ar->makeSymbolGroups();
+	} else if (prefix.size() == 1) {
+		return SymbolGroupList({ std::make_shared<EmptySymbolGroup>() });
+	} else {
+		return SymbolGroupList();
+	}
 }
 
 SymbolGroupList LLkFirster::visit(const LiteralRegex* lr, const SymbolGroupList& prefix) {
-	return SymbolGroupList({ std::make_shared<LiteralSymbolGroup>(lr->literal) });
+	if (prefix.empty()) {
+		return SymbolGroupList({ std::make_shared<LiteralSymbolGroup>(lr->literal) });
+	} else if (prefix.size() == 1) {
+		return SymbolGroupList({ std::make_shared<EmptySymbolGroup>() });
+	} else {
+		return SymbolGroupList();
+	}
 }
 
 SymbolGroupList LLkFirster::visit(const ArbitrarySymbolRegex* asr, const SymbolGroupList& prefix) {
-	return SymbolGroupList({ m_machine.computeArbitrarySymbolGroup() });
+	if (prefix.empty()) {
+		return SymbolGroupList({ m_machine.computeArbitrarySymbolGroup() });
+	} else if (prefix.size() == 1) {
+		return SymbolGroupList({ std::make_shared<EmptySymbolGroup>()  });
+	} else {
+		return SymbolGroupList();
+	}
 }
