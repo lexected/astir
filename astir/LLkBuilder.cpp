@@ -155,11 +155,12 @@ void LLkBuilder::disambiguateDecisionPoints(ILLkNonterminalCPtr first, ILLkNonte
 }
 
 void LLkBuilder::fillDisambiguationParent(ILLkNonterminalCPtr parent, const std::list<ILLkNonterminalCPtr>& alternatives) {
-	auto& parentFlyweight = m_flyweights[parent];
+	// actually, most of the time, we don't want to do the following, so I am just commenting it out in case I later on realize that I need it
+	/*auto& parentFlyweight = m_flyweights[parent];
 	for (auto alternative : alternatives) {
 		const auto& alternativeFlyweight = m_flyweights[alternative];
 		parentFlyweight.decisions += alternativeFlyweight.decisions;
-	}
+	}*/
 }
 
 SymbolGroupList LLkBuilder::lookahead(ILLkFirstableCPtr firstable, const SymbolGroupList& prefix) {
@@ -217,6 +218,22 @@ SymbolGroupList LLkBuilder::lookahead(ILLkFirstableCPtr firstable, const SymbolG
 	}
 
 	return lookaheadSymbols;
+}
+
+LLkDecisionPoint LLkBuilder::getDecisionTree(ILLkFirstableCPtr firstable) {
+	auto nonterminal = dynamic_cast<ILLkNonterminalCPtr>(firstable);
+	if (nonterminal == nullptr) {
+		auto symbols = firstable->first(&m_firster, SymbolGroupList());
+
+		LLkDecisionPoint ret;
+		for (const auto& lookaheadSymbol : symbols) {
+			ret.transitions.push_back(std::make_shared<LLkTransition>(lookaheadSymbol));
+		}
+		return ret;
+	} else {
+		lookahead(firstable, SymbolGroupList());
+		return m_flyweights[nonterminal].decisions;
+	}
 }
 
 SymbolGroupList LLkBuilder::sequentialLookahead(std::list<ILLkFirstableCPtr>::const_iterator& sequenceIt, const std::list<ILLkFirstableCPtr>::const_iterator& sequenceEnd, const SymbolGroupList& prefix) {

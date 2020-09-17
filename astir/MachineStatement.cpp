@@ -5,6 +5,7 @@
 #include "NFABuilder.h"
 #include "LLkFirster.h"
 #include "LLkBuilder.h"
+#include "LLkParserGenerator.h"
 #include "GenerationVisitor.h"
 
 std::shared_ptr<Field> AttributedStatement::findField(const std::string& name, std::shared_ptr<CategoryStatement>& categoryFoundIn) const {
@@ -76,6 +77,21 @@ IFileLocalizableCPtr CategoryStatement::findRecursiveReference(std::list<IRefere
 	return nullptr;
 }
 
+std::set<const AttributedStatement*> CategoryStatement::unpickReferal(const AttributedStatement* statement) const {
+	if (!categoricallyRefersTo(statement)) {
+		return std::set<const AttributedStatement*>({ this });
+	} else {
+		std::set<const AttributedStatement*> ret;
+		for (const auto& referencePair : this->references) {
+			if (referencePair.second.statement != statement) {
+				auto subUnpicked = referencePair.second.statement->unpickReferal(statement);
+				ret.insert(subUnpicked.cbegin(), subUnpicked.cend());
+			}
+		}
+		return ret;
+	}
+}
+
 std::list<const ProductionStatement*> CategoryStatement::calculateInstandingProductions() const {
 	std::list<const ProductionStatement*> ret;
 
@@ -99,8 +115,30 @@ void CategoryStatement::accept(LLkBuilder* llkBuilder) const {
 	llkBuilder->visit(this);
 }
 
+void CategoryStatement::accept(LLkParserGenerator* generator) const {
+	generator->visit(this);
+}
+
+bool CategoryStatement::categoricallyRefersTo(const AttributedStatement* statement) const {
+	for (const auto& catRefPair : references) {
+		if (catRefPair.second.statement->categoricallyRefersTo(statement)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void ProductionStatement::verifyContextualValidity(const MachineDefinition& machine) const {
 	regex->checkAndTypeformActionUsage(machine, this, true);
+}
+
+bool ProductionStatement::categoricallyRefersTo(const AttributedStatement* statement) const {
+	return this == statement;
+}
+
+std::set<const AttributedStatement*> ProductionStatement::unpickReferal(const AttributedStatement* statement) const {
+	return std::set<const AttributedStatement*>({ this });
 }
 
 std::list<const ProductionStatement*> ProductionStatement::calculateInstandingProductions() const {
@@ -111,8 +149,20 @@ NFA ProductionStatement::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
+void ProductionStatement::accept(LLkParserGenerator* generator) const {
+	generator->visit(this);
+}
+
 void PatternStatement::verifyContextualValidity(const MachineDefinition& machine) const {
 	regex->checkAndTypeformActionUsage(machine, this, true);
+}
+
+bool PatternStatement::categoricallyRefersTo(const AttributedStatement* statement) const {
+	return this == statement;
+}
+
+std::set<const AttributedStatement*> PatternStatement::unpickReferal(const AttributedStatement* statement) const {
+	return std::set<const AttributedStatement*>({ this });
 }
 
 std::list<const ProductionStatement*> PatternStatement::calculateInstandingProductions() const {
@@ -123,12 +173,20 @@ NFA PatternStatement::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
+void PatternStatement::accept(LLkParserGenerator* generator) const {
+	generator->visit(this);
+}
+
 void RegexStatement::verifyContextualValidity(const MachineDefinition& machine) const {
 	regex->checkAndTypeformActionUsage(machine, this, false);
 }
 
 NFA RegexStatement::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
+}
+
+void RegexStatement::accept(LLkParserGenerator* generator) const {
+	generator->visit(this);
 }
 
 void TypeFormingStatement::accept(GenerationVisitor* visitor) const {

@@ -5,6 +5,7 @@
 #include "NFABuilder.h"
 #include "LLkBuilder.h"
 #include "LLkFirster.h"
+#include "LLkParserGenerator.h"
 
 #include "SemanticAnalysisException.h"
 
@@ -26,6 +27,10 @@ SymbolGroupList RepetitiveRegex::first(LLkFirster* firster, const SymbolGroupLis
 
 void RepetitiveRegex::accept(LLkBuilder* llkBuilder) const {
 	llkBuilder->visit(this);
+}
+
+void RepetitiveRegex::accept(LLkParserGenerator* generator) const {
+	generator->visit(this);
 }
 
 void RepetitiveRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) {
@@ -162,6 +167,10 @@ void DisjunctiveRegex::accept(LLkBuilder* llkBuilder) const {
 	llkBuilder->visit(this);
 }
 
+void DisjunctiveRegex::accept(LLkParserGenerator* generator) const {
+	generator->visit(this);
+}
+
 void DisjunctiveRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) {
 	for (const auto& conjunction : disjunction) {
 		conjunction->checkAndTypeformActionUsage(machine, context, areActionsAllowed);
@@ -246,6 +255,10 @@ void ReferenceRegex::accept(LLkBuilder* llkBuilder) const {
 	llkBuilder->visit(this);
 }
 
+void ReferenceRegex::accept(LLkParserGenerator* generator) const {
+	generator->visit(this);
+}
+
 SymbolGroupList AnyRegex::makeSymbolGroups() const {
 	SymbolGroupList literalGroups;
 
@@ -271,12 +284,20 @@ SymbolGroupList AnyRegex::first(LLkFirster* firster, const SymbolGroupList& pref
 	return firster->visit(this, prefix);
 }
 
+void AnyRegex::accept(LLkParserGenerator* generator) const {
+	generator->visit(this);
+}
+
 NFA ExceptAnyRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
 SymbolGroupList ExceptAnyRegex::first(LLkFirster* firster, const SymbolGroupList& prefix) const {
 	return firster->visit(this, prefix);
+}
+
+void ExceptAnyRegex::accept(LLkParserGenerator* generator) const {
+	generator->visit(this);
 }
 
 NFA LiteralRegex::accept(const NFABuilder& nfaBuilder) const {
@@ -287,6 +308,10 @@ SymbolGroupList LiteralRegex::first(LLkFirster* firster, const SymbolGroupList& 
 	return firster->visit(this, prefix);
 }
 
+void LiteralRegex::accept(LLkParserGenerator* generator) const {
+	generator->visit(this);
+}
+
 NFA ArbitrarySymbolRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
@@ -295,10 +320,18 @@ SymbolGroupList ArbitrarySymbolRegex::first(LLkFirster* firster, const SymbolGro
 	return firster->visit(this, prefix);
 }
 
+void ArbitrarySymbolRegex::accept(LLkParserGenerator* generator) const {
+	generator->visit(this);
+}
+
 NFA EmptyRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
 
 SymbolGroupList EmptyRegex::first(LLkFirster* firster, const SymbolGroupList& prefix) const {
 	return firster->visit(this, prefix);
+}
+
+void EmptyRegex::accept(LLkParserGenerator* generator) const {
+	generator->visit(this);
 }

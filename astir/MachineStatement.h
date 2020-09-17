@@ -7,11 +7,13 @@
 #include "ILLkFirstable.h"
 #include "ILLkBuilding.h"
 #include "IGenerationVisitable.h"
+#include "ILLkParserGenerable.h"
 
 #include "Field.h"
 #include "Regex.h"
 
 #include <map>
+#include <set>
 
 struct MachineDefinition;
 using TerminalTypeIndex = size_t;
@@ -33,7 +35,8 @@ enum class Terminality {
 #pragma warning( disable : 4250 )
 
 
-struct MachineStatement : public ISyntacticEntity, public ISemanticEntity, public IReferencing, public INFABuildable, public ILLkNonterminal, public ILLkBuilding {
+struct MachineStatement : public ISyntacticEntity, public ISemanticEntity, public IReferencing,
+	public INFABuildable, public ILLkNonterminal, public ILLkBuilding, ILLkParserGenerable {
 	std::string name;
 	virtual ~MachineStatement() = default;
 
@@ -55,6 +58,9 @@ struct AttributedStatement : public virtual MachineStatement {
 
 	virtual std::list<const ProductionStatement*> calculateInstandingProductions() const = 0;
 
+	virtual bool categoricallyRefersTo(const AttributedStatement* statement) const = 0;
+	virtual std::set<const AttributedStatement*> unpickReferal(const AttributedStatement* statement) const = 0;
+
 private:
 	std::shared_ptr<Field> findCategoryField(const std::string& name, std::shared_ptr<CategoryStatement>& categoryFoundIn) const;
 };
@@ -68,6 +74,7 @@ protected:
 		: rootness(Rootness::Unspecified) { }
 	TypeFormingStatement(Rootness rootness)
 		: rootness(rootness) { }
+
 };
 
 struct RuleStatement : public virtual MachineStatement {
@@ -97,11 +104,14 @@ struct CategoryStatement : public TypeFormingStatement {
 
 	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
 
+	bool categoricallyRefersTo(const AttributedStatement* statement) const override;
+	std::set<const AttributedStatement*> unpickReferal(const AttributedStatement* statement) const override;
 	std::list<const ProductionStatement*> calculateInstandingProductions() const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
 	void accept(LLkBuilder* llkBuilder) const override;
+	void accept(LLkParserGenerator* generator) const override;
 };
 
 struct ProductionStatement : public TypeFormingStatement, public RuleStatement {
@@ -113,23 +123,27 @@ struct ProductionStatement : public TypeFormingStatement, public RuleStatement {
 
 	void verifyContextualValidity(const MachineDefinition& machine) const override;
 
+	bool categoricallyRefersTo(const AttributedStatement* statement) const override;
+	std::set<const AttributedStatement*> unpickReferal(const AttributedStatement* statement) const override;
 	std::list<const ProductionStatement*> calculateInstandingProductions() const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 	using RuleStatement::first;
 	using RuleStatement::findRecursiveReference;
-	using RuleStatement::accept;
+	void accept(LLkParserGenerator* generator) const override;
 };
 
 struct PatternStatement : public AttributedStatement, public RuleStatement {
 	void verifyContextualValidity(const MachineDefinition& machine) const override;
 
+	bool categoricallyRefersTo(const AttributedStatement* statement) const override;
+	std::set<const AttributedStatement*> unpickReferal(const AttributedStatement* statement) const override;
 	std::list<const ProductionStatement*> calculateInstandingProductions() const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 	using RuleStatement::first;
 	using RuleStatement::findRecursiveReference;
-	using RuleStatement::accept;
+	void accept(LLkParserGenerator* generator) const override;
 };
 
 struct RegexStatement : public RuleStatement {
@@ -138,7 +152,7 @@ struct RegexStatement : public RuleStatement {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 	using RuleStatement::first;
 	using RuleStatement::findRecursiveReference;
-	using RuleStatement::accept;
+	void accept(LLkParserGenerator* generator) const override;
 };
 
 #pragma warning( pop )

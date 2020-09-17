@@ -142,11 +142,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CppGenerationVisitor.cpp" />
+    <ClCompile Include="CppLLkParserGenerator.cpp" />
     <ClCompile Include="CppLLkParserGenerator.h" />
     <ClCompile Include="CppNFAGenerationHelper.cpp" />
     <ClCompile Include="dimcli\libs\dimcli\cli.cpp" />
     <ClCompile Include="Field.cpp" />
     <ClCompile Include="FiniteAutomatonDefinition.cpp" />
+    <ClCompile Include="IndentedStringStream.cpp" />
     <ClCompile Include="LLkFirster.cpp" />
     <ClCompile Include="GenerationException.cpp" />
     <ClCompile Include="GenerationHelper.cpp" />
@@ -186,6 +188,8 @@
     <ClInclude Include="Field.h" />
     <ClInclude Include="FileLocation.h" />
     <ClInclude Include="FiniteAutomatonDefinition.h" />
+    <ClInclude Include="ILLkParserGenerable.h" />
+    <ClInclude Include="IndentedStringStream.h" />
     <ClInclude Include="LLkFirster.h" />
     <ClInclude Include="GenerationException.h" />
     <ClInclude Include="GenerationHelper.h" />
@@ -199,6 +203,7 @@
     <ClInclude Include="LexicalAnalysisException.h" />
     <ClInclude Include="LLkBuilder.h" />
     <ClInclude Include="LLkParserDefinition.h" />
+    <ClInclude Include="LLkParserGenerator.h" />
     <ClInclude Include="MachineDefinition.h" />
     <ClInclude Include="MachineStatement.h" />
     <ClInclude Include="NFAAction.h" />
@@ -236,6 +241,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Grammar.astir" />
+    <None Include="Resources\SpecimenLLkParser.sh">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
     <None Include="Tests\Test01\Test01.alex" />
     <None Include="Tests\Test02\Test02.alex" />
     <None Include="Tests\Test03\Test03.alex" />

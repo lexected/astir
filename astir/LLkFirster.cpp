@@ -117,7 +117,11 @@ SymbolGroupList LLkFirster::visit(const EmptyRegex* er, const SymbolGroupList& p
 }
 
 SymbolGroupList LLkFirster::visit(const ReferenceRegex* rr, const SymbolGroupList& prefix) {
-	return rr->referenceStatement->first(this, prefix);
+	if (rr->referenceStatementMachine == &this->m_machine) {
+		return rr->referenceStatement->first(this, prefix);
+	} else {
+		return SymbolGroupList({ std::make_shared<StatementSymbolGroup>(rr->referenceStatement, rr->referenceStatementMachine) });
+	}
 }
 
 SymbolGroupList LLkFirster::visit(const AnyRegex* ar, const SymbolGroupList& prefix) {

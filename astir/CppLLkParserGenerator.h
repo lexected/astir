@@ -1,29 +1,34 @@
 #pragma once
 
-#include "LLkParserDefinition.h"
-#include "MachineStatement.h"
+#include "LLkParserGenerator.h"
+#include "IndentedStringStream.h"
 
-class CppLLkParserGenerator {
+class CppLLkParserGenerator : public LLkParserGenerator {
 public:
-	CppLLkParserGenerator(const LLkBuilder& builder);
+	CppLLkParserGenerator(LLkBuilder& builder);
 
-	NFA visit(const CategoryStatement* category) const;
-	NFA visit(const PatternStatement* rule) const;
-	NFA visit(const ProductionStatement* rule) const;
-	NFA visit(const RegexStatement* rule) const;
+	void visit(const CategoryStatement* category) override;
+	void visit(const PatternStatement* rule) override;
+	void visit(const ProductionStatement* rule) override;
+	void visit(const RegexStatement* rule) override;
 
-	NFA visit(const DisjunctiveRegex* regex) const;
-	NFA visit(const ConjunctiveRegex* regex) const;
+	void visit(const DisjunctiveRegex* regex) override;
+	void visit(const ConjunctiveRegex* regex) override;
 
-	NFA visit(const RepetitiveRegex* regex) const;
+	void visit(const RepetitiveRegex* regex) override;
 
-	NFA visit(const EmptyRegex* regex) const;
-	NFA visit(const AnyRegex* regex) const;
-	NFA visit(const ExceptAnyRegex* regex) const;
-	NFA visit(const LiteralRegex* regex) const;
-	NFA visit(const ArbitrarySymbolRegex* regex) const;
-	NFA visit(const ReferenceRegex* regex) const;
+	void visit(const EmptyRegex* regex) override;
+	void visit(const AnyRegex* regex) override;
+	void visit(const ExceptAnyRegex* regex) override;
+	void visit(const LiteralRegex* regex) override;
+	void visit(const ArbitrarySymbolRegex* regex) override;
+	void visit(const ReferenceRegex* regex) override;
 
 private:
-	const LLkBuilder& m_builder;
+	void handleRuleBody(const RuleStatement* rule);
+	void outputConditionTesting(const LLkDecisionPoint& dp, unsigned long depth = 0);
+	void outputCondition(const std::shared_ptr<SymbolGroup>& sgPtr, unsigned long depth);
+
+	IndentedStringStream m_output;
+	std::list<std::string> m_declarations;
 };

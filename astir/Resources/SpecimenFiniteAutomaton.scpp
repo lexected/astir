@@ -149,6 +149,14 @@ namespace ${{MachineName}} {
 		return tokenToReturn;
 	}
 
+	bool ${{MachineName}}::tryApply(InputStream& rs, std::shared_ptr<OutputProduction>& opPtr) {
+		opPtr = apply(rs);
+		if(!lastApplicationSuccessful) {
+			rs.resetToPin();
+		}
+		return bool { opPtr };
+	}
+
 	std::list<std::shared_ptr<OutputProduction>> ${{MachineName}}::process(InputStream& rs) {
 		std::list<std::shared_ptr<OutputProduction>> ret;
 

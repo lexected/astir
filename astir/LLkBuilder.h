@@ -66,6 +66,8 @@ public:
 
 	SymbolGroupList lookahead(ILLkFirstableCPtr nonterminal, const SymbolGroupList& prefix);
 
+	LLkDecisionPoint getDecisionTree(ILLkFirstableCPtr firstable);
+
 	const MachineDefinition& contextMachine() const { return m_contextMachine; }
 	const std::map<ILLkNonterminalCPtr, LLkFlyweight>& flyweights() const { return m_flyweights; }
 private:

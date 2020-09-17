@@ -65,20 +65,6 @@ namespace ${{MachineName}} {
 		void reset();
 
 	private:
-		// state-switching internals
-		State m_currentState;
-		static std::vector<State> m_stateMap[${{StateCount}}][${{TransitionSymbolCount}}];
-		static bool m_stateFinality[${{StateCount}}];
-		static std::vector<void (${{MachineName}}::*)(size_t, const std::deque<InputTerminalPtr>&, const std::shared_ptr<Location>&)> m_transitionActions[${{StateCount}}][${{TransitionSymbolCount}}];
-		static void (${{MachineName}}::* m_stateActions[${{StateCount}}])(size_t, const std::deque<InputTerminalPtr>&, const std::shared_ptr<Location>&);
-
-		// raw-capture internals
-		std::stack<size_t> m_captureStack;
-
-		// action contexts
-		std::shared_ptr<OutputProduction> m_token;
-		${{ActionContextsDeclarations}}
-		// actions
-		${{ActionDeclarations}}
+		
 	};
 };

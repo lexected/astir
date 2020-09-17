@@ -98,3 +98,16 @@ struct LiteralSymbolGroup : public SymbolGroup {
 
 	std::string literal;
 };
+
+struct StatementSymbolGroup : public SymbolGroup {
+	StatementSymbolGroup() = default;
+	StatementSymbolGroup(const TypeFormingStatement* statement, const MachineDefinition* statementMachine)
+		: SymbolGroup(), statement(statement), statementMachine(statementMachine) { }
+
+	bool equals(const SymbolGroup* rhs) const override;
+	bool disjoint(const SymbolGroup* rhs) const override;
+	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
+
+	const TypeFormingStatement* statement;
+	const MachineDefinition* statementMachine;
+};

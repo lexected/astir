@@ -189,6 +189,12 @@
     <ClCompile Include="CppLLkParserGenerator.h">
       <Filter>Header Files\Generation\Cpp</Filter>
     </ClCompile>
+    <ClCompile Include="CppLLkParserGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IndentedStringStream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h">
@@ -326,6 +332,15 @@
     <ClInclude Include="CppNFAGenerationHelper.h">
       <Filter>Header Files\Generation\Cpp</Filter>
     </ClInclude>
+    <ClInclude Include="IndentedStringStream.h">
+      <Filter>Header Files\Generation\Cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="LLkParserGenerator.h">
+      <Filter>Header Files\Generation</Filter>
+    </ClInclude>
+    <ClInclude Include="ILLkParserGenerable.h">
+      <Filter>Header Files\Generation</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Grammar.astir">
@@ -363,6 +378,9 @@
     </None>
     <None Include="Tests\Test08\Test08.astir">
       <Filter>Resource Files\Tests\Test08</Filter>
+    </None>
+    <None Include="Resources\SpecimenLLkParser.sh">
+      <Filter>Resource Files\Resources</Filter>
     </None>
   </ItemGroup>
 </Project>

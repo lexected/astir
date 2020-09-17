@@ -10,9 +10,10 @@
 #include "IActing.h"
 #include "ILLkFirstable.h"
 #include "ILLkBuilding.h"
+#include "ILLkParserGenerable.h"
 #include "CharType.h"
 
-struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IReferencing, public ILLkBuilding { };
+struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IReferencing, public ILLkBuilding, public ILLkParserGenerable { };
 
 struct RootRegex : public Regex {
 public:
@@ -23,8 +24,6 @@ public:
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 	virtual std::string computeItemType(const MachineDefinition& machine, const MachineStatement* context) const;
 	void accept(LLkBuilder* llkBuilder) const override;
-
-protected:
 };
 
 struct AtomicRegex;
@@ -44,6 +43,7 @@ struct RepetitiveRegex : public RootRegex, public ILLkNonterminal {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
 	void accept(LLkBuilder* llkBuilder) const override;
+	void accept(LLkParserGenerator* generator) const override;
 
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 
@@ -64,6 +64,7 @@ struct DisjunctiveRegex : public AtomicRegex, public ILLkNonterminal {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
 	void accept(LLkBuilder* llkBuilder) const override;
+	void accept(LLkParserGenerator* generator) const override;
 
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 };
@@ -77,6 +78,7 @@ struct ConjunctiveRegex : public Regex, public ILLkNonterminal {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
 	void accept(LLkBuilder* llkBuilder) const override;
+	void accept(LLkParserGenerator* generator) const override;
 
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 };
@@ -88,6 +90,7 @@ struct PrimitiveRegex : public AtomicRegex, public ILLkFirstable {
 struct EmptyRegex : public PrimitiveRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkParserGenerator* generator) const override;
 };
 
 struct RegexRange {
@@ -103,11 +106,13 @@ struct AnyRegex : public PrimitiveRegex {
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkParserGenerator* generator) const override;
 };
 
 struct ExceptAnyRegex : public AnyRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkParserGenerator* generator) const override;
 };
 
 struct LiteralRegex : public PrimitiveRegex {
@@ -115,6 +120,7 @@ struct LiteralRegex : public PrimitiveRegex {
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkParserGenerator* generator) const override;
 };
 
 struct MachineStatement;
@@ -134,9 +140,11 @@ struct ReferenceRegex : public PrimitiveRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
 	void accept(LLkBuilder* llkBuilder) const override;
+	void accept(LLkParserGenerator* generator) const override;
 };
 
 struct ArbitrarySymbolRegex : public PrimitiveRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
 	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkParserGenerator* generator) const override;
 };

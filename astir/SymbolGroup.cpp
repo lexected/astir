@@ -241,3 +241,81 @@ std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> LiteralSymbolGroup::dis
 		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhs, true } });
 	}
 }
+
+bool StatementSymbolGroup::equals(const SymbolGroup* rhs) const {
+	const StatementSymbolGroup* ssgPtr = dynamic_cast<const StatementSymbolGroup*>(rhs);
+	if (ssgPtr == nullptr) {
+		return false;
+	}
+
+	return ssgPtr->statement == statement;
+}
+
+bool StatementSymbolGroup::disjoint(const SymbolGroup* rhs) const {
+	if (rhs == this) {
+		return false;
+	}
+
+	const StatementSymbolGroup* ssg = dynamic_cast<const StatementSymbolGroup*>(rhs);
+	if (ssg == nullptr) {
+		return true;
+	}
+
+	const CategoryStatement* cs = dynamic_cast<const CategoryStatement*>(ssg->statement);
+	if (cs != nullptr) {
+		if (cs->categoricallyRefersTo(this->statement)) {
+			return false;
+		}
+	}
+
+	const CategoryStatement* thisCs = dynamic_cast<const CategoryStatement*>(statement);
+	if (thisCs == nullptr) {
+		return true;
+	}
+
+	if (thisCs->categoricallyRefersTo(ssg->statement)) {
+		return false;
+	}
+
+	return true;
+}
+
+std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> StatementSymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) {
+	if (rhs.get() == this) {
+		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhs, true } });
+	}
+
+	const StatementSymbolGroup* ssg = dynamic_cast<const StatementSymbolGroup*>(rhs.get());
+	if (ssg == nullptr) {
+		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhs, true } });
+	}
+
+	const CategoryStatement* cs = dynamic_cast<const CategoryStatement*>(ssg->statement);
+	if (cs != nullptr) {
+		std::set<const AttributedStatement*> disjoined = cs->unpickReferal(statement);
+		std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> ret;
+		for (const AttributedStatement* as : disjoined) {
+			ret.emplace_back(std::make_shared<StatementSymbolGroup>(as, ssg->statementMachine), true); // comes from rhs, hence true
+		}
+		return ret;
+	}
+
+	const CategoryStatement* thisCs = dynamic_cast<const CategoryStatement*>(statement);
+	if (thisCs == nullptr) {
+		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhs, true } });
+	}
+
+	if (thisCs->categoricallyRefersTo(ssg->statement)) {
+		std::set<const AttributedStatement*> disjoined = thisCs->unpickReferal(ssg->statement);
+		this->statement = ssg->statement;
+		this->statementMachine = ssg->statementMachine;
+
+		std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> ret;
+		for (const AttributedStatement* as : disjoined) {
+			ret.emplace_back(std::make_shared<StatementSymbolGroup>(as, ssg->statementMachine), false); // comes from lhs, hence false
+		}
+		return ret;
+	}
+
+	return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhs, true } });
+}
