@@ -63,44 +63,46 @@ void CppLLkParserGenerator::visitRootDisjunction(const std::list<std::shared_ptr
 void CppLLkParserGenerator::visit(const CategoryStatement* category) {
 	m_declarations.push_back("std::shared_ptr<" + category->name + "> parse_" + category->name + "(InputStream& is) const;");
 
-	// TODO: Handle the case when category.references.empty() == true!!!
-
 	// definition preamble
 	m_output.put("std::shared_ptr<");
 	m_output << category->name << "> " << m_builder.contextMachine().name << "::parse_" << category->name << "(InputStream& is) const {" << std::endl;
 	m_output.increaseIndentation();
 
 	// core
-	bool isFirst = true;
-	m_output.put(""); // to indent
-	for (const auto& categoryReferencePair : category->references) {
-		auto decisionPoint = m_builder.getDecisionTree(categoryReferencePair.second.statement);
-		if (isFirst) {
-			isFirst = false;
-		} else {
-			m_output << " else ";
+	if (category->references.empty()) {
+		m_output.putln("return std::make_shared<" + category->name + ">();");
+	} else {
+		bool isFirst = true;
+		m_output.put(""); // to indent
+		for (const auto& categoryReferencePair : category->references) {
+			auto decisionPoint = m_builder.getDecisionTree(categoryReferencePair.second.statement);
+			if (isFirst) {
+				isFirst = false;
+			} else {
+				m_output << " else ";
+			}
+
+			// if header
+			m_output << "if(";
+			outputConditionTesting(decisionPoint);
+			m_output << ") {" << std::endl;
+			m_output.increaseIndentation();
+
+			// core handling
+			m_output.putln("return parse_" + categoryReferencePair.first + "(is);");
+
+			// if footer
+			m_output.decreaseIndentation();
+			m_output.put("}");
 		}
-		
-		// if header
-		m_output << "if(";
-		outputConditionTesting(decisionPoint);
-		m_output << ") {" << std::endl;
+
+		// else error
+		m_output << " else {" << std::endl;
 		m_output.increaseIndentation();
-
-		// core handling
-		m_output.putln("return parse_" + categoryReferencePair.first + "(is);");
-
-		// if footer
+		m_output.putln("error();");
 		m_output.decreaseIndentation();
-		m_output.put("}");
+		m_output.putln("}");
 	}
-
-	// else error
-	m_output << " else {" << std::endl;
-	m_output.increaseIndentation();
-	m_output.putln("error();");
-	m_output.decreaseIndentation();
-	m_output.putln("}");
 
 	// definition postamble
 	m_output.decreaseIndentation();
@@ -117,7 +119,7 @@ void CppLLkParserGenerator::visit(const ProductionStatement* production) {
 
 	// definition preamble
 	m_output.put("std::shared_ptr<");
-	m_output << production->name << "> " << m_builder.contextMachine().name << "::parse_" << production->name << "(InputStream& is) const {" << std::endl;
+	m_output << m_builder.contextMachine().name << "::" << production->name << "> " << m_builder.contextMachine().name << "::parse_" << production->name << "(InputStream& is) const {" << std::endl;
 	m_output.increaseIndentation();
 
 	handleRuleBody(production);

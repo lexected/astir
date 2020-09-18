@@ -15,6 +15,8 @@ public:
 	typedef std::shared_ptr<StreamElement> StreamElementPtr;
 
 	bool get(StreamElementPtr& c);
+	StreamElementPtr peek(size_t ahead = 0);
+	bool consume();
 	bool good() const;
 
 	void pin();
@@ -76,6 +78,29 @@ inline bool ProductionStream<ProductionType>::get(StreamElementPtr& c) {
 
 		return ret;
 	}
+}
+
+template<class ProductionType>
+inline ProductionStream<ProductionType>::StreamElementPtr ProductionStream<ProductionType>::peek(size_t ahead) {
+	while (m_nextProductionToGive+ahead >= m_buffer.size()) { 
+		bool status = streamGet(c);
+
+		if (status) {
+			m_buffer.push_back(c);
+			++m_nextProductionToGive;
+			m_lastLocation = c->location();
+		} else {
+			return nullptr;
+		}
+	}
+
+	return m_buffer[m_nextProductionToGive];
+}
+
+template<class ProductionType>
+inline bool ProductionStream<ProductionType>::consume() {
+	StreamElementPtr __discard;
+	return get(discard);
 }
 
 template<class ProductionType>
