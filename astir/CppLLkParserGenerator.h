@@ -7,7 +7,8 @@ class CppLLkParserGenerator : public LLkParserGenerator {
 public:
 	CppLLkParserGenerator(LLkBuilder& builder);
 
-	void visitRootDisjunction(const std::list<std::shared_ptr<TypeFormingStatement>>& rootDisjunction) override;
+	void visitTypeFormingStatements(const std::list<std::shared_ptr<TypeFormingStatement>>& rootDisjunction) override;
+	void visitRootDisjunction(const std::list<std::shared_ptr<TypeFormingStatement>>& typeFormingStatements) override;
 
 	void visit(const CategoryStatement* category) override;
 	void visit(const PatternStatement* rule) override;

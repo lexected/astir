@@ -8,6 +8,11 @@ void LLkParserDefinition::initialize() {
 
 	this->MachineDefinition::initialize();
 
+	for (const auto& statementPair : statements) {
+		auto statementAsLLkBuilding = dynamic_cast<ILLkBuildingCPtr>(statementPair.second.get());
+		statementAsLLkBuilding->accept(m_builder.get());
+	}
+
 	auto roots = this->getRoots();
 	m_builder->visitRootDisjunction(roots);
 }

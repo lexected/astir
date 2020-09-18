@@ -94,6 +94,7 @@ void CppGenerationVisitor::visit(const LLkParserDefinition* llkParserDefinition)
 	// do the LL(k)-specific constructive magic
 	auto roots = llkParserDefinition->getRoots();
 	CppLLkParserGenerator generator(llkParserDefinition->builder());
+	generator.visitTypeFormingStatements(llkParserDefinition->getTypeFormingStatements());
 	generator.visitRootDisjunction(roots);
 	macros.emplace("ParsingDeclarations", generator.parsingDeclarations());
 	macros.emplace("ParsingDefinitions", generator.parsingDefinitions());

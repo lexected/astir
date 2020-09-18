@@ -73,25 +73,13 @@ void MachineDefinition::initialize() {
 		}
 	}
 
-	// TODO: every rule statement needs to complete its regex references
-
 	// then, once the basic field and rule/category reference verifications have been conducted, we need to check whether the actions of individual rules are contextually valid
 	// wasFoundInUnderlyingMachine the rule and category level we need to check that there is no disallowed recursion within the productions themselves
 	for (const auto& statementPair : statements) {
 		auto ruleStatement = std::dynamic_pointer_cast<RuleStatement>(statementPair.second);
 		if (ruleStatement) {
+			ruleStatement->completeReferences(*this);
 			ruleStatement->verifyContextualValidity(*this);
-		}
-
-		std::list<IReferencingCPtr> relevantReferencesEncountered;
-		auto recursiveReferenceLocalizableInstance = statementPair.second->findRecursiveReference(relevantReferencesEncountered);
-		if (recursiveReferenceLocalizableInstance != nullptr) {
-			std::string hierarchyPath = relevantReferencesEncountered.front()->referenceName();
-			relevantReferencesEncountered.pop_front();
-			for (const auto& referenceEncountered : relevantReferencesEncountered) {
-				hierarchyPath += "-" + referenceEncountered->referenceName();
-			}
-			throw SemanticAnalysisException("Rule/category reference recursion found in the path " + hierarchyPath + "; start at " + statementPair.second->locationString() + ", end at " + recursiveReferenceLocalizableInstance->locationString() + " - no recursion is allowed in finite automata");
 		}
 	}
 }

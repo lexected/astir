@@ -4,6 +4,13 @@
 CppLLkParserGenerator::CppLLkParserGenerator(LLkBuilder& builder)
 	: LLkParserGenerator(builder) { }
 
+void CppLLkParserGenerator::visitTypeFormingStatements(const std::list<std::shared_ptr<TypeFormingStatement>>& typeFormingStatements) {
+	for (const auto& typeFormingStatementSPtr : typeFormingStatements) {
+		auto tfsAsParserGenerable = std::dynamic_pointer_cast<ILLkParserGenerable>(typeFormingStatementSPtr);
+		tfsAsParserGenerable->accept(this);
+	}
+}
+
 void CppLLkParserGenerator::visitRootDisjunction(const std::list<std::shared_ptr<TypeFormingStatement>>& rootDisjunction) {
 	m_declarations.push_back("std::shared_ptr<OutputProduction> parse_root(InputStream& is) const;");
 
@@ -30,7 +37,7 @@ void CppLLkParserGenerator::visitRootDisjunction(const std::list<std::shared_ptr
 		// if header
 		m_output << "if(";
 		outputConditionTesting(decisionPoint);
-		m_output << ") {";
+		m_output << ") {" << std::endl;
 		m_output.increaseIndentation();
 
 		// core handling
@@ -77,7 +84,7 @@ void CppLLkParserGenerator::visit(const CategoryStatement* category) {
 		// if header
 		m_output << "if(";
 		outputConditionTesting(decisionPoint);
-		m_output << ") {";
+		m_output << ") {" << std::endl;
 		m_output.increaseIndentation();
 
 		// core handling
@@ -98,6 +105,7 @@ void CppLLkParserGenerator::visit(const CategoryStatement* category) {
 	// definition postamble
 	m_output.decreaseIndentation();
 	m_output.putln("}");
+	m_output.putln("");
 }
 
 void CppLLkParserGenerator::visit(const PatternStatement* rule) {
@@ -115,16 +123,8 @@ void CppLLkParserGenerator::visit(const ProductionStatement* production) {
 	handleRuleBody(production);
 
 	m_output.decreaseIndentation();
-	// else error
-	m_output.putln("} else {");
-	m_output.increaseIndentation();
-	m_output.putln("error();");
-	m_output.decreaseIndentation();
 	m_output.putln("}");
-
-	// definition postamble
-	m_output.decreaseIndentation();
-	m_output.putln("}");
+	m_output.putln("");
 }
 
 void CppLLkParserGenerator::visit(const RegexStatement* rule) {
@@ -146,7 +146,7 @@ void CppLLkParserGenerator::visit(const DisjunctiveRegex* regex) {
 		// if header
 		m_output << "if(";
 		outputConditionTesting(decisionPoint);
-		m_output << ") {";
+		m_output << ") {" << std::endl;
 		m_output.increaseIndentation();
 
 		// core handling
@@ -166,14 +166,21 @@ void CppLLkParserGenerator::visit(const DisjunctiveRegex* regex) {
 }
 
 void CppLLkParserGenerator::visit(const ConjunctiveRegex* regex) {
-	for (const auto& rootRegexPtr : regex->conjunction) {
+	const auto end = regex->conjunction.cend();
+	const auto begin = regex->conjunction.cbegin();
+	for (auto it = begin; it != end; ++it) {
+		if (it != begin) {
+			m_output.putln("");
+		}
+
+		const auto& rootRegexPtr = *it;
 		ILLkFirstableCPtr rootRegexAsFirstablePtr = dynamic_cast<ILLkFirstableCPtr>(rootRegexPtr.get());
 		auto decisionPoint = m_builder.getDecisionTree(rootRegexAsFirstablePtr);
 
 		// if header
-		m_output << "if(";
+		m_output.put("if(");
 		outputConditionTesting(decisionPoint);
-		m_output << ") {";
+		m_output << ") {" << std::endl;
 		m_output.increaseIndentation();
 
 		// core handling
@@ -298,9 +305,12 @@ void CppLLkParserGenerator::outputConditionTesting(const LLkDecisionPoint& dp, u
 
 		const auto& transitionPtr = *it;
 		outputCondition(transitionPtr->condition, depth);
-		m_output << " && (";
-		outputConditionTesting(transitionPtr->point, depth+1);
-		m_output << ")";
+
+		if(!transitionPtr->point.transitions.empty()) {
+			m_output << " && (";
+			outputConditionTesting(transitionPtr->point, depth+1);
+			m_output << ")";
+		}
 	}
 }
 
@@ -309,7 +319,7 @@ void CppLLkParserGenerator::outputCondition(const std::shared_ptr<SymbolGroup>& 
 	
 	const LiteralSymbolGroup* literalPtr = dynamic_cast<const LiteralSymbolGroup*>(rawPtr);
 	if (literalPtr != nullptr) {
-		m_output << "is.peek(" << depth << ")->raw() == " << literalPtr->literal;
+		m_output << "is.peek(" << depth << ")->raw() == \"" << literalPtr->literal << "\"";
 		return;
 	}
 

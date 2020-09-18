@@ -203,7 +203,7 @@ SymbolGroupList SymbolGroupList::allButEmpty() const {
 }
 
 void SymbolGroupList::removeEmpty() {
-	auto newEndIt = std::remove_if(this->begin(), this->end(), [](const auto& ptr) {
+	auto newEndIt = this->remove_if([](const auto& ptr) {
 		return dynamic_cast<const EmptySymbolGroup*>(ptr.get()) != nullptr;
 	});
 }

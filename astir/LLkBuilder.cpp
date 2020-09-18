@@ -64,8 +64,9 @@ void LLkBuilder::visit(const ConjunctiveRegex* regex) {
 		ILLkFirstableCPtr firstablePtr = dynamic_cast<ILLkFirstableCPtr>(rootRegex.get());
 		conjunctionBits.push_front(firstablePtr);
 
-		ILLkNonterminalCPtr nonterminalPtr = dynamic_cast<ILLkNonterminalCPtr>(rootRegex.get());
-		if(nonterminalPtr != nullptr) {
+		const ReferenceRegex* referenceRegexPtr = dynamic_cast<const ReferenceRegex*>(rootRegex.get());
+		if(referenceRegexPtr != nullptr && referenceRegexPtr->referenceStatementMachine == &m_contextMachine) {
+			ILLkNonterminalCPtr nonterminalPtr = referenceRegexPtr->referenceStatement;
 			registerContextAppearance(nonterminalPtr, regex, conjunctionBits);
 		}
 
@@ -101,12 +102,12 @@ void LLkBuilder::visit(const RepetitiveRegex* regex) {
 }
 
 void LLkBuilder::visit(const ReferenceRegex* regex) {
-	if (regex->referenceStatementMachine != &m_contextMachine) {
+	/*if (regex->referenceStatementMachine != &m_contextMachine) {
 		return;
 	}
 
 	ILLkBuildingCPtr regexStatementAsBuilding = regex->referenceStatement;
-	regexStatementAsBuilding->accept(this);
+	regexStatementAsBuilding->accept(this);*/
 }
 
 void LLkBuilder::disambiguate(const std::list<ILLkNonterminalCPtr>& alternatives) {

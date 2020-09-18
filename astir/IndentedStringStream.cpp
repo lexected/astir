@@ -1,11 +1,11 @@
 #include "IndentedStringStream.h"
 
 void IndentedStringStream::put(const std::string& s) {
-	*this << s;
+	*this << m_indentation << s;
 }
 
 void IndentedStringStream::putln(const std::string& s) {
-	*this << s << std::endl;
+	*this << m_indentation << s << std::endl;
 }
 
 void IndentedStringStream::increaseIndentation() {

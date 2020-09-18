@@ -76,31 +76,35 @@ SymbolGroupList LLkFirster::visit(const ConjunctiveRegex* cr, const SymbolGroupL
 	auto conjunctionIt = cr->conjunction.cbegin();
 
 	SymbolGroupList ret;
-	std::list<SymbolGroupList::const_iterator> currentQueueOfPrefixEnds, nextQueueOfPrefixEnds({ prefix.cbegin() });
+	std::list<std::pair<SymbolGroupList::const_iterator, SymbolGroupList::const_iterator>> currentQueueOfPrefixEnds, nextQueueOfPrefixEnds({ {prefix.cbegin(), prefix.cbegin() } });
 
-	auto& currentPrefixEnd = currentQueueOfPrefixEnds.front();
-	auto currentPrefix = SymbolGroupList(prefix.cbegin(), currentPrefixEnd);
 	while(!nextQueueOfPrefixEnds.empty() && conjunctionIt != cr->conjunction.cend()) {
 		currentQueueOfPrefixEnds = nextQueueOfPrefixEnds;
+		nextQueueOfPrefixEnds.clear();
 		while(!currentQueueOfPrefixEnds.empty()) {
+			auto currentPrefixPair = currentQueueOfPrefixEnds.front();
+			auto currentPrefix = SymbolGroupList(currentPrefixPair.first, currentPrefixPair.second);
+
 			ILLkFirstableCPtr rootRegexAsFirstable = dynamic_cast<ILLkFirstableCPtr>(conjunctionIt->get());
 			auto thisPartsFirst = rootRegexAsFirstable->first(this, currentPrefix);
 			if (thisPartsFirst.containsEmpty()) {
-				nextQueueOfPrefixEnds.push_back(currentPrefixEnd);
+				nextQueueOfPrefixEnds.emplace_back(currentPrefixPair.second, currentPrefixPair.second);
+				thisPartsFirst.removeEmpty();
 			}
-			thisPartsFirst.removeEmpty();
 			
 			if (!thisPartsFirst.empty()) {
-				if (currentPrefixEnd != prefix.cend()) {
-					if (thisPartsFirst.contains(*currentPrefixEnd)) {
-						auto advancedCurrentPrefixEnd = currentPrefixEnd;
+				if (currentPrefixPair.second != prefix.cend()) {
+					if (thisPartsFirst.contains(*currentPrefixPair.second)) {
+						auto advancedCurrentPrefixEnd = currentPrefixPair.second;
 						++advancedCurrentPrefixEnd;
-						currentQueueOfPrefixEnds.push_back(advancedCurrentPrefixEnd);
+						currentQueueOfPrefixEnds.emplace_back(currentPrefixPair.first, advancedCurrentPrefixEnd);
 					}
 				} else {
 					ret += thisPartsFirst;
 				}
 			}
+
+			currentQueueOfPrefixEnds.pop_front();
 		}
 		++conjunctionIt;
 	}

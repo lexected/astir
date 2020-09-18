@@ -44,8 +44,6 @@ namespace ${{MachineName}} {
 	};
 
 	${{TypeDeclarations}}
-	using State = size_t;
-
 	typedef ${{InputStreamTypeName}} InputStream;
 	typedef ${{InputTerminalTypeName}} InputTerminal;
 	typedef std::shared_ptr<${{InputTerminalTypeName}}> InputTerminalPtr;
@@ -54,8 +52,7 @@ namespace ${{MachineName}} {
 	typedef void (${{MachineName}}::* ActionMethodPointer)(size_t, const std::deque<InputTerminalPtr>&, const std::shared_ptr<Location>&);
 	class ${{MachineName}} {
 	public:
-		${{MachineName}}()
-			: m_currentState(0) { }
+		${{MachineName}}() = default;
 
 		std::shared_ptr<OutputProduction> apply(InputStream& rs);
 		bool tryApply(InputStream& rs, std::shared_ptr<OutputProduction>& opPtr);
