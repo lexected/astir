@@ -295,7 +295,10 @@ std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> StatementSymbolGroup::d
 		std::set<const AttributedStatement*> disjoined = cs->unpickReferal(statement);
 		std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> ret;
 		for (const AttributedStatement* as : disjoined) {
-			ret.emplace_back(std::make_shared<StatementSymbolGroup>(as, ssg->statementMachine), true); // comes from rhs, hence true
+			auto asAsTypeForming = dynamic_cast<const TypeFormingStatement*>(as);
+			if (asAsTypeForming != nullptr) {
+				ret.emplace_back(std::make_shared<StatementSymbolGroup>(asAsTypeForming, ssg->statementMachine), true); // comes from rhs, hence true
+			}
 		}
 		return ret;
 	}
@@ -312,7 +315,10 @@ std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> StatementSymbolGroup::d
 
 		std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> ret;
 		for (const AttributedStatement* as : disjoined) {
-			ret.emplace_back(std::make_shared<StatementSymbolGroup>(as, ssg->statementMachine), false); // comes from lhs, hence false
+			auto asAsTypeForming = dynamic_cast<const TypeFormingStatement*>(as);
+			if (asAsTypeForming != nullptr) {
+				ret.emplace_back(std::make_shared<StatementSymbolGroup>(asAsTypeForming, ssg->statementMachine), false); // comes from lhs, hence false
+			}
 		}
 		return ret;
 	}

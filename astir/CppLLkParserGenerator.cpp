@@ -4,6 +4,55 @@
 CppLLkParserGenerator::CppLLkParserGenerator(LLkBuilder& builder)
 	: LLkParserGenerator(builder) { }
 
+void CppLLkParserGenerator::visitRootDisjunction(const std::list<std::shared_ptr<TypeFormingStatement>>& rootDisjunction) {
+	m_declarations.push_back("std::shared_ptr<OutputProduction> parse_root(InputStream& is) const;");
+
+	if (rootDisjunction.empty()) {
+		throw GenerationException("A machine with no root productions can not be generated");
+	}
+
+	// definition preamble
+	m_output.put("std::shared_ptr<OutputProduction> ");
+	m_output << m_builder.contextMachine().name << "::parse_root(InputStream& is) const {" << std::endl;
+	m_output.increaseIndentation();
+
+	// core
+	bool isFirst = true;
+	m_output.put(""); // to indent
+	for (const auto& tfsSPtr : rootDisjunction) {
+		auto decisionPoint = m_builder.getDecisionTree(tfsSPtr.get());
+		if (isFirst) {
+			isFirst = false;
+		} else {
+			m_output << " else ";
+		}
+
+		// if header
+		m_output << "if(";
+		outputConditionTesting(decisionPoint);
+		m_output << ") {";
+		m_output.increaseIndentation();
+
+		// core handling
+		m_output.putln("return parse_" + tfsSPtr->name + "(is);");
+
+		// if footer
+		m_output.decreaseIndentation();
+		m_output.put("}");
+	}
+
+	// else error
+	m_output << " else {" << std::endl;
+	m_output.increaseIndentation();
+	m_output.putln("error();");
+	m_output.decreaseIndentation();
+	m_output.putln("}");
+
+	// definition postamble
+	m_output.decreaseIndentation();
+	m_output.putln("}");
+}
+
 void CppLLkParserGenerator::visit(const CategoryStatement* category) {
 	m_declarations.push_back("std::shared_ptr<" + category->name + "> parse_" + category->name + "(InputStream& is) const;");
 
@@ -142,10 +191,41 @@ void CppLLkParserGenerator::visit(const ConjunctiveRegex* regex) {
 }
 
 void CppLLkParserGenerator::visit(const RepetitiveRegex* regex) {
-	ILLkFirstableCPtr repRegexAsFirstablePtr = dynamic_cast<ILLkFirstableCPtr>(regex);
-	auto decisionPoint = m_builder.getDecisionTree(repRegexAsFirstablePtr);
+	ILLkParserGenerableCPtr repeatedRegexAsGenerablePtr = dynamic_cast<ILLkParserGenerableCPtr>(regex->regex.get());
 
-	//TODO: repetitive core
+	for (unsigned long it = 0; it < regex->minRepetitions; ++it) {
+		repeatedRegexAsGenerablePtr->accept(this);
+	}
+
+	if (regex->minRepetitions == regex->maxRepetitions) {
+		return;
+	}
+
+	ILLkFirstableCPtr repeatedRegexAsFirstablePtr = dynamic_cast<ILLkFirstableCPtr>(regex->regex.get());
+	auto decisionPoint = m_builder.getDecisionTree(repeatedRegexAsFirstablePtr);
+	if (regex->minRepetitions != regex->INFINITE_REPETITIONS) {
+		m_output.putln("{");
+		m_output.increaseIndentation();
+		m_output.putln("unsigned long counter = " + std::to_string(regex->maxRepetitions - regex->minRepetitions) + ";");
+		m_output.put("while(counter > 0 && (");
+		outputConditionTesting(decisionPoint);
+		m_output << ")) {" << std::endl;
+		m_output.increaseIndentation(); 
+		repeatedRegexAsGenerablePtr->accept(this);
+		m_output.putln("--counter;");
+		m_output.decreaseIndentation();
+		m_output.putln("}");
+		m_output.decreaseIndentation();
+		m_output.putln("}");
+	} else {
+		m_output.put("while(");
+		outputConditionTesting(decisionPoint);
+		m_output << ") {" << std::endl;
+		m_output.increaseIndentation();
+		repeatedRegexAsGenerablePtr->accept(this);
+		m_output.decreaseIndentation();
+		m_output.putln("}");
+	}
 }
 
 void CppLLkParserGenerator::visit(const EmptyRegex* regex) {
@@ -178,6 +258,15 @@ void CppLLkParserGenerator::visit(const ReferenceRegex* regex) {
 		// it comes from an "on" machine
 		m_output.putln("is.consume();");
 	}
+}
+
+std::string CppLLkParserGenerator::parsingDeclarations() const {
+	std::stringstream ss;
+	for (const auto& declarationString : m_declarations) {
+		ss << declarationString << std::endl;
+	}
+
+	return ss.str();
 }
 
 void CppLLkParserGenerator::handleRuleBody(const RuleStatement* rule) {

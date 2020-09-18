@@ -5,6 +5,8 @@
 
 class LLkParserGenerator {
 public:
+	virtual void visitRootDisjunction(const std::list<std::shared_ptr<TypeFormingStatement>>& rootDisjunction) = 0;
+
 	virtual void visit(const CategoryStatement* category) = 0;
 	virtual void visit(const PatternStatement* rule) = 0;
 	virtual void visit(const ProductionStatement* rule) = 0;

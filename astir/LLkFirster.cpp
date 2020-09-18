@@ -120,7 +120,8 @@ SymbolGroupList LLkFirster::visit(const ReferenceRegex* rr, const SymbolGroupLis
 	if (rr->referenceStatementMachine == &this->m_machine) {
 		return rr->referenceStatement->first(this, prefix);
 	} else {
-		return SymbolGroupList({ std::make_shared<StatementSymbolGroup>(rr->referenceStatement, rr->referenceStatementMachine) });
+		auto statementAsTypeForming = dynamic_cast<const TypeFormingStatement*>(rr->referenceStatement); // if it does not originate from this machine then it must be type-forming as it is a root!
+		return SymbolGroupList({ std::make_shared<StatementSymbolGroup>(statementAsTypeForming, rr->referenceStatementMachine) });
 	}
 }
 

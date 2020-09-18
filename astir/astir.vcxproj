@@ -241,6 +241,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Grammar.astir" />
+    <None Include="Resources\SpecimenLLkParser.scpp" />
     <None Include="Resources\SpecimenLLkParser.sh">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </None>

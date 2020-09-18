@@ -2,8 +2,18 @@
 
 #include "SemanticAnalysisException.h"
 
+#include <algorithm>
+
 LLkBuilder::LLkBuilder(unsigned long k, const MachineDefinition& context)
 	: m_k(k), m_contextMachine(context), m_firster(context) {}
+
+void LLkBuilder::visitRootDisjunction(const std::list<std::shared_ptr<TypeFormingStatement>>& rootDisjunction) {
+	std::list<ILLkNonterminalCPtr> disjunction;
+	std::transform(rootDisjunction.cbegin(), rootDisjunction.cend(), std::back_inserter(disjunction), [](const auto& sptr) {
+		return sptr.get();
+	});
+	disambiguate(disjunction);
+}
 
 void LLkBuilder::visit(const CategoryStatement* categoryStatement) {
 	LLkFlyweight& correspondingFlyweight = m_flyweights[categoryStatement];

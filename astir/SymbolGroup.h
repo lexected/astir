@@ -99,6 +99,8 @@ struct LiteralSymbolGroup : public SymbolGroup {
 	std::string literal;
 };
 
+struct TypeFormingStatement;
+struct MachineDefinition;
 struct StatementSymbolGroup : public SymbolGroup {
 	StatementSymbolGroup() = default;
 	StatementSymbolGroup(const TypeFormingStatement* statement, const MachineDefinition* statementMachine)

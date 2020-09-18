@@ -206,6 +206,10 @@ void ConjunctiveRegex::accept(LLkBuilder* llkBuilder) const {
 	llkBuilder->visit(this);
 }
 
+void ConjunctiveRegex::accept(LLkParserGenerator* generator) const {
+	generator->visit(this);
+}
+
 void ConjunctiveRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) {
 	for (const auto& rootRegex : conjunction) {
 		rootRegex->checkAndTypeformActionUsage(machine, context, areActionsAllowed);

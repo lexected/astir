@@ -65,6 +65,6 @@ namespace ${{MachineName}} {
 		void reset();
 
 	private:
-		
+		${{ParsingDeclarations}}
 	};
 };

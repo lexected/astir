@@ -50,6 +50,8 @@ class LLkBuilder {
 public:
 	LLkBuilder(unsigned long k, const MachineDefinition& context);
 
+	void visitRootDisjunction(const std::list<std::shared_ptr<TypeFormingStatement>>& rootDisjunction);
+
 	void visit(const CategoryStatement* categoryStatement);
 	void visit(const RuleStatement* ruleStatement);
 

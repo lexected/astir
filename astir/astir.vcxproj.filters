@@ -382,5 +382,8 @@
     <None Include="Resources\SpecimenLLkParser.sh">
       <Filter>Resource Files\Resources</Filter>
     </None>
+    <None Include="Resources\SpecimenLLkParser.scpp">
+      <Filter>Resource Files\Resources</Filter>
+    </None>
   </ItemGroup>
 </Project>

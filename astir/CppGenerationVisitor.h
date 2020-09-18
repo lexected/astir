@@ -24,6 +24,8 @@ public:
 	void visit(const ListField * listField) override;
 
 private:
+	void buildUniversalMachineMacros(std::map<std::string, std::string>& macros, const MachineDefinition* machine);
+
 	std::stringstream m_output;
 	void resetOutput();
 	std::string outputAndReset();

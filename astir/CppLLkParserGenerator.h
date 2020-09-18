@@ -7,6 +7,8 @@ class CppLLkParserGenerator : public LLkParserGenerator {
 public:
 	CppLLkParserGenerator(LLkBuilder& builder);
 
+	void visitRootDisjunction(const std::list<std::shared_ptr<TypeFormingStatement>>& rootDisjunction) override;
+
 	void visit(const CategoryStatement* category) override;
 	void visit(const PatternStatement* rule) override;
 	void visit(const ProductionStatement* rule) override;
@@ -24,6 +26,8 @@ public:
 	void visit(const ArbitrarySymbolRegex* regex) override;
 	void visit(const ReferenceRegex* regex) override;
 
+	std::string parsingDeclarations() const;
+	std::string parsingDefinitions() const { return m_output.str(); }
 private:
 	void handleRuleBody(const RuleStatement* rule);
 	void outputConditionTesting(const LLkDecisionPoint& dp, unsigned long depth = 0);

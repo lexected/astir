@@ -6,6 +6,7 @@
 
 #include "GenerationHelper.h"
 #include "CppNFAGenerationHelper.h"
+#include "CppLLkParserGenerator.h"
 
 void CppGenerationVisitor::setup() const {
 	// TODO: improve error handling here... what if m_folderPath is actually a file?? throw an exception
@@ -36,47 +37,7 @@ void CppGenerationVisitor::visit(const FiniteAutomatonDefinition* machine) {
 
 	// do constructive magic
 	std::map<std::string, std::string> macros;
-	// in particular, we need to
-	//  - register all the name macros
-	macros.emplace("MachineName", machine->name);
-	//	- choose appropriate input stream type
-	if (!machine->on.second) {
-		if(!m_hasIncludedRawStreamFiles) {
-			std::filesystem::copy_file("Resources/RawStream.h", m_folderPath / "RawStream.h", std::filesystem::copy_options::overwrite_existing);
-			std::filesystem::copy_file("Resources/RawStream.cpp", m_folderPath / "RawStream.cpp", std::filesystem::copy_options::overwrite_existing);
-
-			m_hasIncludedRawStreamFiles = true;
-		}
-		macros.emplace("AppropriateStreamHeader", "RawStream.h");
-		macros.emplace("InputTerminalTypeName", "RawTerminal");
-		macros.emplace("InputStreamTypeName", "RawStream");
-		macros.emplace("DependencyHeaderInclude", "");
-	} else {
-		const std::string& onName = machine->on.first;
-		macros.emplace("AppropriateStreamHeader", "ProductionStream.h");
-		macros.emplace("InputTerminalTypeName", onName + "::OutputTerminal");
-		macros.emplace("InputStreamTypeName", "ProductionStream<" + onName + "::OutputTerminal>");
-		macros.emplace("DependencyHeaderInclude", "#include \"" + onName + ".h\"");
-	}
-	
-	//  - enumerate all the production roots
-	auto terminalRootProductions = machine->getTerminalRoots();
-	std::stringstream ss;
-	for (auto productionPtr : terminalRootProductions) {
-		ss << productionPtr->name << " = " << productionPtr->terminalTypeIndex << "," << std::endl;
-	}
-	macros.emplace("OutputTerminalTypesEnumerated", ss.str());
-	macros.emplace("OutputTerminalTypeCount", std::to_string(machine->terminalProductionCount()));
-
-	//  - generate type declarations
-	for (const auto& machineStatementPair : machine->statements) {
-		auto machineStatementCast = std::dynamic_pointer_cast<IGenerationVisitable>(machineStatementPair.second);
-		machineStatementCast->accept(this);
-	}
-	macros.emplace("TypeDeclarations", this->outputAndReset());
-
-	//	- set the type of out the output to the highest resolution possible
-	macros.emplace("OutputType", machine->hasPurelyTerminalRoots() ? "OutputTerminal" : "Production");
+	buildUniversalMachineMacros(macros, machine);
 
 	//  - set the DFA table parameter macros
 	macros.emplace("StateCount", std::to_string(machine->getNFA().states.size()));
@@ -117,6 +78,31 @@ void CppGenerationVisitor::visit(const FiniteAutomatonDefinition* machine) {
 
 	GenerationHelper::macroWrite(specimenFaHeaderContents, macros, faHeader);
 	GenerationHelper::macroWrite(specimenFaCodeContents, macros, faCode);
+}
+
+void CppGenerationVisitor::visit(const LLkParserDefinition* llkParserDefinition) {
+	std::ifstream specimenParserHeader("Resources/SpecimenLLkParser.sh");
+	std::string specimenParserHeaderContents((std::istreambuf_iterator<char>(specimenParserHeader)), (std::istreambuf_iterator<char>()));
+
+	std::ifstream specimenParserCode("Resources/SpecimenLLkParser.scpp");
+	std::string specimenParserCodeContents((std::istreambuf_iterator<char>(specimenParserCode)), (std::istreambuf_iterator<char>()));
+
+	// do the universal constructive magic
+	std::map<std::string, std::string> macros;
+	buildUniversalMachineMacros(macros, llkParserDefinition);
+
+	// do the LL(k)-specific constructive magic
+	auto roots = llkParserDefinition->getRoots();
+	CppLLkParserGenerator generator(llkParserDefinition->builder());
+	generator.visitRootDisjunction(roots);
+	macros.emplace("ParsingDeclarations", generator.parsingDeclarations());
+	macros.emplace("ParsingDefinitions", generator.parsingDefinitions());
+
+	// write it all out
+	std::ofstream parserHeader(m_folderPath / (llkParserDefinition->name + ".h"));
+	std::ofstream parserCode(m_folderPath / (llkParserDefinition->name + ".cpp"));
+	GenerationHelper::macroWrite(specimenParserHeaderContents, macros, parserHeader);
+	GenerationHelper::macroWrite(specimenParserCodeContents, macros, parserCode);
 }
 
 void CppGenerationVisitor::visit(const TypeFormingStatement* tfs) {
@@ -166,6 +152,52 @@ void CppGenerationVisitor::visit(const ItemField* itemField) {
 
 void CppGenerationVisitor::visit(const ListField* listField) {
 	m_output << "std::list<std::shared_ptr<" << listField->machineOfTheType->name << "::" << listField->type << ">> " << listField->name << ";" << std::endl;
+}
+
+void CppGenerationVisitor::buildUniversalMachineMacros(std::map<std::string, std::string>& macros, const MachineDefinition* machine) {
+	// do constructive magic
+	// in particular, we need to
+	//  - register all the name macros
+	macros.emplace("MachineName", machine->name);
+
+	//	- choose appropriate input stream type
+	if (!machine->on.second) {
+		if (!m_hasIncludedRawStreamFiles) {
+			std::filesystem::copy_file("Resources/RawStream.h", m_folderPath / "RawStream.h", std::filesystem::copy_options::overwrite_existing);
+			std::filesystem::copy_file("Resources/RawStream.cpp", m_folderPath / "RawStream.cpp", std::filesystem::copy_options::overwrite_existing);
+
+			m_hasIncludedRawStreamFiles = true;
+		}
+		macros.emplace("AppropriateStreamHeader", "RawStream.h");
+		macros.emplace("InputTerminalTypeName", "RawTerminal");
+		macros.emplace("InputStreamTypeName", "RawStream");
+		macros.emplace("DependencyHeaderInclude", "");
+	} else {
+		const std::string& onName = machine->on.first;
+		macros.emplace("AppropriateStreamHeader", "ProductionStream.h");
+		macros.emplace("InputTerminalTypeName", onName + "::OutputTerminal");
+		macros.emplace("InputStreamTypeName", "ProductionStream<" + onName + "::OutputTerminal>");
+		macros.emplace("DependencyHeaderInclude", "#include \"" + onName + ".h\"");
+	}
+
+	//  - enumerate all the production roots
+	auto terminalRootProductions = machine->getTerminalRoots();
+	std::stringstream ss;
+	for (auto productionPtr : terminalRootProductions) {
+		ss << productionPtr->name << " = " << productionPtr->terminalTypeIndex << "," << std::endl;
+	}
+	macros.emplace("OutputTerminalTypesEnumerated", ss.str());
+	macros.emplace("OutputTerminalTypeCount", std::to_string(machine->terminalProductionCount()));
+
+	//  - generate type declarations
+	for (const auto& machineStatementPair : machine->statements) {
+		auto machineStatementCast = std::dynamic_pointer_cast<IGenerationVisitable>(machineStatementPair.second);
+		machineStatementCast->accept(this);
+	}
+	macros.emplace("TypeDeclarations", this->outputAndReset());
+
+	//	- set the type of out the output to the highest resolution possible
+	macros.emplace("OutputType", machine->hasPurelyTerminalRoots() ? "OutputTerminal" : "Production");
 }
 
 void CppGenerationVisitor::resetOutput() {
