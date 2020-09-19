@@ -261,6 +261,10 @@ bool StatementSymbolGroup::disjoint(const SymbolGroup* rhs) const {
 		return true;
 	}
 
+	if (this->statement == ssg->statement) {
+		return false;
+	}
+
 	const CategoryStatement* cs = dynamic_cast<const CategoryStatement*>(ssg->statement);
 	if (cs != nullptr) {
 		if (cs->categoricallyRefersTo(this->statement)) {

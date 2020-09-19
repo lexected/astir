@@ -107,14 +107,30 @@ void CppGenerationVisitor::visit(const LLkParserDefinition* llkParserDefinition)
 }
 
 void CppGenerationVisitor::visit(const TypeFormingStatement* tfs) {
+	auto insertionResult = m_typeFormingStatementsVisited.insert(tfs->name);
+	if (!insertionResult.second) { // if already inserted - already visited
+		return;
+	}
+
+	// this needs to be here at the top!!
+	for (const auto& categoryReferencedPair : tfs->categories) {
+		auto catAsTfStatement = std::dynamic_pointer_cast<TypeFormingStatement>(categoryReferencedPair.second);
+		catAsTfStatement->accept(this);
+	}
+
 	auto productionPtr = dynamic_cast<const ProductionStatement*>(tfs);
 	const bool isTerminal = productionPtr != nullptr && productionPtr->terminality == Terminality::Terminal;
+	const bool referencesCategories = !tfs->categories.empty();
 
 	m_output << "class " << tfs->name << " : ";
 	if (isTerminal) {
 		m_output << "public OutputTerminal";
 	} else {
-		m_output << "public Production";
+		if (!productionPtr || referencesCategories) {
+			m_output << "public virtual Production";
+		} else {
+			m_output << "public Production";
+		}
 	}
 	for (auto categoryPair : tfs->categories) {
 		m_output << ", public " << categoryPair.first;
@@ -122,7 +138,7 @@ void CppGenerationVisitor::visit(const TypeFormingStatement* tfs) {
 	m_output << " {" << std::endl;
 	m_output << "public:" << std::endl;
 
-	// the constructor
+	// the location-ed constructor
 	m_output << '\t' << tfs->name << "(const std::shared_ptr<Location>& location)" << std::endl;
 	m_output << "\t\t: ";
 	if (isTerminal) {
@@ -130,7 +146,11 @@ void CppGenerationVisitor::visit(const TypeFormingStatement* tfs) {
 	} else {
 		m_output << "Production(location)";
 	}
+	for (auto categoryPair : tfs->categories) {
+		m_output << ", " << categoryPair.first << "(location)";
+	}
 	m_output << " { }" << std::endl;
+	
 
 	// fields
 	if(!tfs->fields.empty()) {
@@ -149,6 +169,7 @@ void CppGenerationVisitor::visit(const TypeFormingStatement* tfs) {
 		m_output << "return \"" + tfs->name + "\";";
 		m_output << " }" << std::endl;
 	}
+
 	m_output << "};" << std::endl;
 }
 
@@ -209,9 +230,19 @@ void CppGenerationVisitor::buildUniversalMachineMacros(std::map<std::string, std
 		machineStatementCast->accept(this);
 	}
 	macros.emplace("TypeDeclarations", this->outputAndReset());
+	macros.emplace("TypeForwardDeclarations", this->combineForwardDeclarationsAndClear());
 
 	//	- set the type of out the output to the highest resolution possible
 	macros.emplace("OutputType", machine->hasPurelyTerminalRoots() ? "OutputTerminal" : "Production");
+}
+
+std::string CppGenerationVisitor::combineForwardDeclarationsAndClear() {
+	std::stringstream ss;
+	for (const auto& forwardDeclaration : m_typeFormingStatementsVisited) {
+		ss << "class " << forwardDeclaration << ';' << std::endl;
+	}
+	m_typeFormingStatementsVisited.clear();
+	return ss.str();
 }
 
 void CppGenerationVisitor::resetOutput() {

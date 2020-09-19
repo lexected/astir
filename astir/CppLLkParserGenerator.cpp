@@ -242,8 +242,11 @@ void CppLLkParserGenerator::visit(const RepetitiveRegex* regex) {
 	if (regex->minRepetitions == regex->maxRepetitions) {
 		return;
 	}
+	if (regex->minRepetitions > 0) {
+		m_output.putln(""); // nothing to see here, just some formatting :)
+	}
 
-	if (regex->minRepetitions != regex->INFINITE_REPETITIONS) {
+	if (regex->maxRepetitions != regex->INFINITE_REPETITIONS) {
 		m_output.putln("{");
 		m_output.increaseIndentation();
 		m_output.putln("unsigned long counter = " + std::to_string(regex->maxRepetitions - regex->minRepetitions) + ";");
@@ -436,6 +439,12 @@ std::string CppLLkParserGenerator::makeExpectationGrammar(const LLkDecisionPoint
 void CppLLkParserGenerator::outputCondition(const std::shared_ptr<SymbolGroup>& sgPtr, unsigned long depth) {
 	const SymbolGroup* rawPtr = sgPtr.get();
 	
+	const ByteSymbolGroup* bytePtr = dynamic_cast<const ByteSymbolGroup*>(rawPtr);
+	if (bytePtr != nullptr) {
+		m_output << "is.peek(" << depth << ")->raw.length() == 1 && is.peek(" << depth << ")->raw[0] >= " << bytePtr->rangeStart << " && is.peek(" << depth << ")->raw[0] <= " << bytePtr->rangeEnd;
+		return;
+	}
+
 	const LiteralSymbolGroup* literalPtr = dynamic_cast<const LiteralSymbolGroup*>(rawPtr);
 	if (literalPtr != nullptr) {
 		m_output << "is.peek(" << depth << ")->raw == \"" << literalPtr->literal << "\"";
@@ -443,8 +452,8 @@ void CppLLkParserGenerator::outputCondition(const std::shared_ptr<SymbolGroup>& 
 	}
 
 	const StatementSymbolGroup* ssgPtr = dynamic_cast<const StatementSymbolGroup*>(rawPtr);
-	if (ssgPtr != nullptr) {
-		m_output << "dynamic_cast<" << ssgPtr->statement->name << ">(is.peek(" << depth << ")) != nullptr";
+	if (ssgPtr != nullptr)  {
+		m_output << "std::dynamic_pointer_cast<" << (ssgPtr->statementMachine != &m_builder.contextMachine() ? ssgPtr->statementMachine->name + "::" : "") << ssgPtr->statement->name << ">(is.peek(" << depth << "))";
 		return;
 	}
 

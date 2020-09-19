@@ -25,8 +25,10 @@ public:
 
 private:
 	void buildUniversalMachineMacros(std::map<std::string, std::string>& macros, const MachineDefinition* machine);
+	std::string combineForwardDeclarationsAndClear();
 
 	std::stringstream m_output;
+	std::set<std::string> m_typeFormingStatementsVisited;
 	void resetOutput();
 	std::string outputAndReset();
 

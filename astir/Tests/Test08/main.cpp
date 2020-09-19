@@ -4,7 +4,6 @@
 
 int main() {
 	std::ifstream f("input.txt");
-
 	TextFileStream tfs("input.txt", f);
 
 	TreeParser::TreeParser treeParser;

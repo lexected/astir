@@ -42,7 +42,8 @@ namespace ${{MachineName}} {
 		EOS(const std::shared_ptr<Location>& location)
 			: OutputTerminal(OutputTerminalType::EOS, location) { }
 	};
-
+	
+	${{TypeForwardDeclarations}}
 	${{TypeDeclarations}}
 	using State = size_t;
 

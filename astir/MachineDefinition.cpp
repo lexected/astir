@@ -189,9 +189,9 @@ std::list<std::shared_ptr<ProductionStatement>> MachineDefinition::getTerminalRo
 
 	for (const auto& statementPair : statements) {
 		auto typeFormingStatementPtr = std::dynamic_pointer_cast<TypeFormingStatement>(statementPair.second);
-		if (typeFormingStatementPtr && typeFormingStatementPtr->rootness == Rootness::AcceptRoot) {
+		if (typeFormingStatementPtr && typeFormingStatementPtr->rootness != Rootness::Unspecified) {
 			auto productionPtr = std::dynamic_pointer_cast<ProductionStatement>(typeFormingStatementPtr);
-			if (productionPtr && productionPtr->terminality != Terminality::Terminal) {
+			if (productionPtr && productionPtr->terminality == Terminality::Terminal) {
 				ret.push_back(productionPtr);
 			}
 		}
@@ -220,7 +220,20 @@ void MachineDefinition::completeCategoryReferences(std::list<std::string> namesE
 		throw SemanticAnalysisException(nameConsidered + "' was found in the present context at " + attributedStatement->locationString() + " but not as a category, though it was referenced as such in the declaration of " + namesEncountered.back());
 	}
 
-	for (const auto& categoryReferencePair : attributedStatement->categories) {
+	for (auto& categoryReferencePair : attributedStatement->categories) {
+		if (!categoryReferencePair.second) {
+			auto soNamedStatement = this->findMachineStatement(categoryReferencePair.first);
+			if (!soNamedStatement) {
+				throw SemanticAnalysisException("'" + nameConsidered + "' was not found in the present context, though it was referenced as a category in the declaration of '" + attributedStatement->name + "'", *attributedStatement);
+			}
+
+			auto soNamedCategory = std::dynamic_pointer_cast<CategoryStatement>(soNamedStatement);
+			if (!soNamedCategory) {
+				throw SemanticAnalysisException("'" + nameConsidered + "' was found in the present context at " + soNamedStatement->locationString() + " but not as a category, though it was referenced as such in the declaration of '" + attributedStatement->name + "' at " + attributedStatement->locationString());
+			}
+
+			categoryReferencePair.second = soNamedCategory;
+		}
 		categoryReferencePair.second->references.emplace(attributedStatement->name, CategoryReference(attributedStatement.get(), false));
 		completeCategoryReferences(namesEncountered, categoryReferencePair.second, true);
 	}
@@ -230,7 +243,12 @@ void MachineDefinition::completeCategoryReferences(std::list<std::string> namesE
 
 std::shared_ptr<SymbolGroup> MachineDefinition::computeArbitrarySymbolGroup() const {
 	if (on.second) {
-		return std::make_shared<TerminalSymbolGroup>(on.second->getUnderlyingProductionsOfRoots());
+		if(on.second->hasPurelyTerminalRoots()) {
+			return std::make_shared<TerminalSymbolGroup>(on.second->getUnderlyingProductionsOfRoots());
+		} else {
+			// return std::make_shared<StatementSymbolGroup>(on.second->getRoots());
+			// TODO: sort this out when the merge of TerminalSymbolGroup and StatementSymbolGroup has been done
+		}
 	} else {
 		return std::make_shared<ByteSymbolGroup>((CharType)0, (CharType)255);
 	}

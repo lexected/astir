@@ -95,7 +95,7 @@ struct CategoryReference {
 
 	CategoryReference()
 		: statement(nullptr), isAReferenceFromUnderlyingMachine(false) { }
-	CategoryReference(const MachineStatement* component, bool isAReferenceFromUnderlyingMachine)
+	CategoryReference(const AttributedStatement* statement, bool isAReferenceFromUnderlyingMachine)
 		: statement(statement), isAReferenceFromUnderlyingMachine(isAReferenceFromUnderlyingMachine) { }
 };
 

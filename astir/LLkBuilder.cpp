@@ -146,19 +146,22 @@ void LLkBuilder::disambiguateDecisionPoints(ILLkNonterminalCPtr first, ILLkNonte
 		for (; secondIterator != secondPoint.transitions.end(); ++secondIterator) {
 			if (!(*firstIterator)->condition->disjoint((*secondIterator)->condition.get())) {
 				auto disjoinmentOutcome = (*firstIterator)->condition->disjoinFrom((*secondIterator)->condition);
-				auto& firstDecisionPoint = (*firstIterator)->point;
-				auto& secondDecisionPoint = (*secondIterator)->point;
 				for (const auto& djPair : disjoinmentOutcome) {
 					if (!djPair.second) {
-						firstPoint.transitions.push_back(std::make_shared<LLkTransition>(djPair.first, firstDecisionPoint));
+						firstPoint.transitions.push_back(std::make_shared<LLkTransition>(djPair.first, (*firstIterator)->point));
 					} else {
-						secondPoint.transitions.push_back(std::make_shared<LLkTransition>(djPair.first, secondDecisionPoint));
+						secondPoint.transitions.push_back(std::make_shared<LLkTransition>(djPair.first, (*secondIterator)->point));
 					}
+				}
+				secondIterator = secondPoint.transitions.erase(secondIterator);
+				if (secondIterator == secondPoint.transitions.end()) {
+					continue;
+					// should never, ever happen.
 				}
 
 				// now, at this point, the challenge is to handle the deeper-level difference
 				prefix.push_back((*firstIterator)->condition); // firstIterator->condition is guaranteed to be modified by the above to be the overlap symbol group
-				disambiguateDecisionPoints(first, second, firstDecisionPoint, secondDecisionPoint, prefix);
+				disambiguateDecisionPoints(first, second, (*firstIterator)->point, (*secondIterator)->point, prefix);
 				prefix.pop_back();
 			}
 		}

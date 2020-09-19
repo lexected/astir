@@ -50,8 +50,9 @@ int main(int argc, char* argv[]) {
 		{ "Test04", "Test04" },
 		{ "Test05", "Test05" },
 		{ "Test06", "Test06" },
-		{ "Test07", "Test07" },*/
-		{ "Test08", "Test08" },
+		{ "Test07", "Test07" },
+		{ "Test08", "Test08" },*/
+		{ "Test09", "Test09" },
 		//{ "Hello Binary", "BinaryRecognizer" },
 	};
 	for (const auto& folderFilePair : testsToRun) {
@@ -59,6 +60,7 @@ int main(int argc, char* argv[]) {
 
 		LexicalAnalyzer analyzer;
 		auto tokenList = analyzer.process(inputFile);
+		// printTokenList(tokenList);
 
 		SyntacticAnalyzer parser;
 		std::shared_ptr<SyntacticTree> syntacticTree = parser.process(tokenList);

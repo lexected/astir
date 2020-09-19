@@ -151,7 +151,7 @@ namespace ${{MachineName}} {
 
 	bool ${{MachineName}}::tryApply(InputStream& rs, std::shared_ptr<OutputProduction>& opPtr) {
 		opPtr = apply(rs);
-		if(!lastApplicationSuccessful) {
+		if(!lastApplicationSuccessful()) {
 			rs.resetToPin();
 		}
 		return bool { opPtr };

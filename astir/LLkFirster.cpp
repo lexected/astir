@@ -23,38 +23,41 @@ SymbolGroupList LLkFirster::visit(const RuleStatement* rs, const SymbolGroupList
 
 SymbolGroupList LLkFirster::visit(const RepetitiveRegex* rr, const SymbolGroupList& prefix) {
 	const auto& atom = rr->regex;
-
 	unsigned long counter = 0;
 
 	SymbolGroupList ret;
-	std::list<SymbolGroupList::const_iterator> currentQueueOfPrefixEnds, nextQueueOfPrefixEnds({ prefix.cbegin() });
+	std::list<std::pair<SymbolGroupList::const_iterator, SymbolGroupList::const_iterator>> currentQueueOfPrefixEnds, nextQueueOfPrefixEnds({ {prefix.cbegin(), prefix.cbegin() } });
 
-	auto& currentPrefixEnd = currentQueueOfPrefixEnds.front();
-	auto currentPrefix = SymbolGroupList(prefix.cbegin(), currentPrefixEnd);
 	while (!nextQueueOfPrefixEnds.empty() && counter < rr->maxRepetitions) {
 		currentQueueOfPrefixEnds = nextQueueOfPrefixEnds;
+		nextQueueOfPrefixEnds.clear();
 		while (!currentQueueOfPrefixEnds.empty()) {
+			auto currentPrefixPair = currentQueueOfPrefixEnds.front();
+			auto currentPrefix = SymbolGroupList(currentPrefixPair.first, currentPrefixPair.second);
+
 			ILLkFirstableCPtr atomicRegexAsFirstable = dynamic_cast<ILLkFirstableCPtr>(atom.get());
 			auto thisPartsFirst = atomicRegexAsFirstable->first(this, currentPrefix);
 			if (thisPartsFirst.containsEmpty()) {
-				nextQueueOfPrefixEnds.push_back(currentPrefixEnd);
+				nextQueueOfPrefixEnds.emplace_back(currentPrefixPair.second, currentPrefixPair.second);
+				thisPartsFirst.removeEmpty();
 				if (rr->maxRepetitions == rr->INFINITE_REPETITIONS) {
 					throw SemanticAnalysisException("The repetitive regex used at " + rr->locationString() + " permits infinite repetition of a regex that may derive to empty production -- this may lead to infinite loop of the program, hence the error");
 				}
 			}
-			thisPartsFirst.removeEmpty();
 
 			if (!thisPartsFirst.empty()) {
-				if (currentPrefixEnd != prefix.cend()) {
-					if (thisPartsFirst.contains(*currentPrefixEnd)) {
-						auto advancedCurrentPrefixEnd = currentPrefixEnd;
+				if (currentPrefixPair.second != prefix.cend()) {
+					if (thisPartsFirst.contains(*currentPrefixPair.second)) {
+						auto advancedCurrentPrefixEnd = currentPrefixPair.second;
 						++advancedCurrentPrefixEnd;
-						currentQueueOfPrefixEnds.push_back(advancedCurrentPrefixEnd);
+						currentQueueOfPrefixEnds.emplace_back(currentPrefixPair.first, advancedCurrentPrefixEnd);
 					}
 				} else {
 					ret += thisPartsFirst;
 				}
 			}
+
+			currentQueueOfPrefixEnds.pop_front();
 		}
 		++counter;
 	}
@@ -124,8 +127,14 @@ SymbolGroupList LLkFirster::visit(const ReferenceRegex* rr, const SymbolGroupLis
 	if (rr->referenceStatementMachine == &this->m_machine) {
 		return rr->referenceStatement->first(this, prefix);
 	} else {
-		auto statementAsTypeForming = dynamic_cast<const TypeFormingStatement*>(rr->referenceStatement); // if it does not originate from this machine then it must be type-forming as it is a root!
-		return SymbolGroupList({ std::make_shared<StatementSymbolGroup>(statementAsTypeForming, rr->referenceStatementMachine) });
+		if (prefix.empty()) {
+			auto statementAsTypeForming = dynamic_cast<const TypeFormingStatement*>(rr->referenceStatement); // if it does not originate from this machine then it must be type-forming as it is a root!
+			return SymbolGroupList({ std::make_shared<StatementSymbolGroup>(statementAsTypeForming, rr->referenceStatementMachine) });
+		} else if (prefix.size() == 1) {
+			return SymbolGroupList({ std::make_shared<EmptySymbolGroup>() });
+		} else {
+			return SymbolGroupList();
+		}
 	}
 }
 

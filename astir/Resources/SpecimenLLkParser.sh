@@ -43,6 +43,7 @@ namespace ${{MachineName}} {
 			: OutputTerminal(OutputTerminalType::EOS, location) { }
 	};
 
+	${{TypeForwardDeclarations}}
 	${{TypeDeclarations}}
 	typedef ${{InputStreamTypeName}} InputStream;
 	typedef ${{InputTerminalTypeName}} InputTerminal;
