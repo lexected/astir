@@ -1,0 +1,17 @@
+// Test10 - a context-free grammar LL(1) parser test
+// This time, the parser 'uses' finite automaton that does the tokenizing, referring to it whenever a token is needed
+
+finite automaton TreeTokenizer {
+    ignored root WhiteSpace = [' ' '\n' '\r' '\t']+;
+    root PAR_LEFT = '(';
+    root PAR_RIGHT = ')';
+    root LEAF = ['a'-'z' 'A'-'Z' '_' '0' - '9']+;
+}
+
+LL(1) parser TreeParser uses TreeTokenizer {
+    root category Node;
+
+    production EmptyNode : Node = PAR_LEFT PAR_RIGHT;
+    production BranchingNode : Node = PAR_LEFT Node+ PAR_RIGHT;
+    production Leaf : Node = LEAF;
+}
