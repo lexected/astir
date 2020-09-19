@@ -57,6 +57,7 @@ void CppLLkParserGenerator::visitRootDisjunction(const std::list<std::shared_ptr
 	m_output << " else {" << std::endl;
 	m_output.increaseIndentation();
 	m_output.putln("error(\"" + makeExpectationMessage(decisionPoints) + "\");");
+	m_output.putln("return nullptr; // to suppress the warning");
 	m_output.decreaseIndentation();
 	m_output.putln("}");
 
@@ -72,10 +73,11 @@ void CppLLkParserGenerator::visit(const CategoryStatement* category) {
 	m_output.put("std::shared_ptr<");
 	m_output << category->name << "> " << m_builder.contextMachine().name << "::parse_" << category->name << "(InputStream& is) const {" << std::endl;
 	m_output.increaseIndentation();
+	m_output.putln("auto productionStartLocation = is.peek(0)->location()->clone();");
 
 	// core
 	if (category->references.empty()) {
-		m_output.putln("return std::make_shared<" + category->name + ">();");
+		m_output.putln("return std::make_shared<" + category->name + ">(productionStartLocation);");
 	} else {
 		std::vector<LLkDecisionPoint> decisionPoints;
 		decisionPoints.reserve(category->references.size());
@@ -127,12 +129,13 @@ void CppLLkParserGenerator::visit(const ProductionStatement* production) {
 
 	// definition preamble
 	m_output.put("std::shared_ptr<");
-	m_output << m_builder.contextMachine().name << "::" << production->name << "> " << m_builder.contextMachine().name << "::parse_" << production->name << "(InputStream& is) const {" << std::endl;
+	m_output << production->name << "> " << m_builder.contextMachine().name << "::parse_" << production->name << "(InputStream& is) const {" << std::endl;
 	m_output.increaseIndentation();
+	m_output.putln("auto productionStartLocation = is.peek(0)->location()->clone();");
 
 	handleRuleBody(production);
 
-	m_output.putln("return std::make_shared<" + production->name + ">();");
+	m_output.putln("return std::make_shared<" + production->name + ">(productionStartLocation);");
 
 	m_output.decreaseIndentation();
 	m_output.putln("}");
@@ -307,19 +310,19 @@ std::string CppLLkParserGenerator::parsingDeclarations() const {
 }
 
 void CppLLkParserGenerator::handleRuleBody(const RuleStatement* rule) {
-	m_output.put("if(");
+	/*m_output.put("if(");
 	outputConditionTesting(m_builder.getDecisionTree(rule));
 	m_output << ") {" << std::endl;
-	m_output.increaseIndentation();
+	m_output.increaseIndentation();*/
 
 	rule->regex->accept(this);
 
-	m_output.decreaseIndentation();
+	/*m_output.decreaseIndentation();
 	m_output.putln("} else {");
 	m_output.increaseIndentation();
 	m_output.putln("error();");
 	m_output.decreaseIndentation();
-	m_output.putln("}");
+	m_output.putln("}");*/
 }
 
 void CppLLkParserGenerator::outputConditionTesting(const LLkDecisionPoint& dp, unsigned long depth) {
@@ -337,9 +340,17 @@ void CppLLkParserGenerator::outputConditionTesting(const LLkDecisionPoint& dp, u
 		outputCondition(transitionPtr->condition, depth);
 
 		if(!transitionPtr->point.transitions.empty()) {
-			m_output << " && (";
+			m_output << " && ";
+			const bool needParentheses = transitionPtr->point.transitions.size() > 1;
+			if (needParentheses) {
+				m_output << '(';
+			}
+			
 			outputConditionTesting(transitionPtr->point, depth+1);
-			m_output << ")";
+			
+			if (needParentheses) {
+				m_output << ')';
+			}
 		}
 	}
 }
@@ -365,9 +376,9 @@ std::string CppLLkParserGenerator::makeExpectationMessage(const std::vector<LLkD
 		if (it > 0) {
 			ss << " + \" \"";
 		}
-		ss << " + is.peek(" << it << ").stringForError()";
+		ss << " + is.peek(" << it << ")->stringForError()";
 	}
-	ss << " + \"\\\" encountered at \" + is.peek(0).locationString() + \"; expected ";
+	ss << " + \"\\\" encountered at \" + is.peek(0)->locationString() + \"; expected ";
 	for (auto dpIt = dps.cbegin(); dpIt != dps.cend();++dpIt) {
 		if (dpIt != dps.cbegin()) {
 			ss << ", or ";
@@ -427,7 +438,7 @@ void CppLLkParserGenerator::outputCondition(const std::shared_ptr<SymbolGroup>& 
 	
 	const LiteralSymbolGroup* literalPtr = dynamic_cast<const LiteralSymbolGroup*>(rawPtr);
 	if (literalPtr != nullptr) {
-		m_output << "is.peek(" << depth << ")->raw() == \"" << literalPtr->literal << "\"";
+		m_output << "is.peek(" << depth << ")->raw == \"" << literalPtr->literal << "\"";
 		return;
 	}
 

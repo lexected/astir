@@ -120,8 +120,9 @@ void CppGenerationVisitor::visit(const TypeFormingStatement* tfs) {
 		m_output << ", public " << categoryPair.first;
 	}
 	m_output << " {" << std::endl;
-
 	m_output << "public:" << std::endl;
+
+	// the constructor
 	m_output << '\t' << tfs->name << "(const std::shared_ptr<Location>& location)" << std::endl;
 	m_output << "\t\t: ";
 	if (isTerminal) {
@@ -130,14 +131,20 @@ void CppGenerationVisitor::visit(const TypeFormingStatement* tfs) {
 		m_output << "Production(location)";
 	}
 	m_output << " { }" << std::endl;
-	m_output << '\t' << std::endl;
+
+	// fields
+	if(!tfs->fields.empty()) {
+		m_output << '\t' << std::endl;
+	}
 	for (auto fieldPtr : tfs->fields) {
 		m_output << '\t';
 		fieldPtr->accept(this);
 		// m_output << outputAndReset(); not needed actually since we are working on m_output atm
 	}
+
+	// stringForError override
 	if (!isTerminal) {
-		m_output << std::endl;
+		m_output << '\t' << std::endl;
 		m_output << "\tstd::string stringForError() const override { ";
 		m_output << "return \"" + tfs->name + "\";";
 		m_output << " }" << std::endl;

@@ -11,6 +11,7 @@ namespace ${{MachineName}} {
 			return parse_root(rs);
 		} catch(const Exception& ex) {
 			m_lastApplicationSuccessful = false;
+			return nullptr;
 		}
 	}
 
@@ -35,7 +36,7 @@ namespace ${{MachineName}} {
 		m_lastApplicationSuccessful = false;
 	}
 
-	void ${{MachineName}}::error(const std::string& message) {
+	void ${{MachineName}}::error(const std::string& message) const {
 		throw Exception(message);
 	}
 

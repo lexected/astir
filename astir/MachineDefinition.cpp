@@ -13,7 +13,13 @@ void MachineDefinition::initialize() {
 	// Note that since at this point we are guaranteed that there are no recursions assumed the process is consequently also guaranteed to terminated
 	if (on.second) {
 		on.second->initialize();
+		if (on.second->hasPurelyTerminalRoots()) {
+			this->m_isOnTerminalInput = true;
+		}
+	} else {
+		this->m_isOnTerminalInput = true;
 	}
+	
 
 	for (const auto& usedPair : uses) {
 		usedPair.second->initialize();

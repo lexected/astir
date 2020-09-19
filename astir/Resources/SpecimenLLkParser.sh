@@ -71,7 +71,7 @@ namespace ${{MachineName}} {
 		
 	private:
 		bool m_lastApplicationSuccessful;
-		void error(const std::string& message);
+		void error(const std::string& message) const;
 
 		${{ParsingDeclarations}}
 	};

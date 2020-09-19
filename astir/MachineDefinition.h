@@ -49,6 +49,7 @@ public:
 	void completeCategoryReferences(std::list<std::string> namesEncountered, const std::shared_ptr<AttributedStatement>& attributedStatement, bool mustBeACategory = false) const;
 
 	std::shared_ptr<SymbolGroup> computeArbitrarySymbolGroup() const;
+	bool isOnTerminalInput() const { return m_isOnTerminalInput; }
 
 protected:
 	MachineDefinition()
@@ -56,7 +57,7 @@ protected:
 			{ MachineFlag::ProductionsTerminalByDefault, MachineDefinitionAttribute(false) },
 			{ MachineFlag::ProductionsRootByDefault, MachineDefinitionAttribute(false) },
 			{ MachineFlag::CategoriesRootByDefault, MachineDefinitionAttribute(false) }
-			}), m_terminalCount((TerminalTypeIndex)0) { }
+			}), m_terminalCount((TerminalTypeIndex)0), m_isOnTerminalInput(false) { }
 
 	MachineDefinition(const std::map<MachineFlag, MachineDefinitionAttribute>& attributes);
 
@@ -64,4 +65,5 @@ private:
 	TerminalTypeIndex m_terminalCount;
 
 	void mergeInAttributes(const std::map<MachineFlag, MachineDefinitionAttribute>& attributes);
+	bool m_isOnTerminalInput;
 };

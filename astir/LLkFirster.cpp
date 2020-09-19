@@ -150,6 +150,10 @@ SymbolGroupList LLkFirster::visit(const ExceptAnyRegex* ar, const SymbolGroupLis
 }
 
 SymbolGroupList LLkFirster::visit(const LiteralRegex* lr, const SymbolGroupList& prefix) {
+	if (!m_machine.isOnTerminalInput()) {
+		throw SemanticAnalysisException("Attemtping to capture the literal '" + lr->literal + "' at " + lr->locationString() + " within the context of machine '" + m_machine.name + "' that may see non-terminal productions on its input ('" + m_machine.name + "' is on '" + m_machine.on.second->name + "')");
+	}
+
 	if (prefix.empty()) {
 		return SymbolGroupList({ std::make_shared<LiteralSymbolGroup>(lr->literal) });
 	} else if (prefix.size() == 1) {

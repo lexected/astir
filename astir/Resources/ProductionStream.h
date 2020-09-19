@@ -93,7 +93,7 @@ inline std::shared_ptr<ProductionType> ProductionStream<ProductionType>::peek(si
 		}
 	}
 
-	return m_buffer[m_nextProductionToGive];
+	return m_buffer[m_nextProductionToGive+ahead];
 }
 
 template<class ProductionType>
