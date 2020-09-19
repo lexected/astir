@@ -32,6 +32,9 @@ public:
 private:
 	void handleRuleBody(const RuleStatement* rule);
 	void outputConditionTesting(const LLkDecisionPoint& dp, unsigned long depth = 0);
+	std::string makeExpectationMessage(const LLkDecisionPoint& dp);
+	std::string makeExpectationMessage(const std::vector<LLkDecisionPoint>& dps);
+	std::string makeExpectationGrammar(const LLkDecisionPoint& dp);
 	void outputCondition(const std::shared_ptr<SymbolGroup>& sgPtr, unsigned long depth);
 
 	IndentedStringStream m_output;

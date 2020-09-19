@@ -5,5 +5,39 @@
 #include "${{MachineName}}.h"
 
 namespace ${{MachineName}} {
+	std::shared_ptr<OutputProduction> ${{MachineName}}::apply(InputStream& rs) {
+		try {
+			m_lastApplicationSuccessful = true;
+			return parse_root(rs);
+		} catch(const Exception& ex) {
+			m_lastApplicationSuccessful = false;
+		}
+	}
+
+	bool ${{MachineName}}::tryApply(InputStream& rs, std::shared_ptr<OutputProduction>& opPtr) {
+		try {
+			opPtr = parse_root(rs);
+			return true;
+		} catch(const Exception& ex) {
+			return false;
+		}
+	}
+	
+	std::list<std::shared_ptr<OutputProduction>> ${{MachineName}}::process(InputStream& rs) {
+		std::list<std::shared_ptr<OutputProduction>> ret;
+		while(rs.good()) {
+			ret.push_back(parse_root(rs));
+		}
+		return ret;
+	}
+
+	void ${{MachineName}}::reset() {
+		m_lastApplicationSuccessful = false;
+	}
+
+	void ${{MachineName}}::error(const std::string& message) {
+		throw Exception(message);
+	}
+
 	${{ParsingDefinitions}}
 }

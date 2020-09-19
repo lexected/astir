@@ -136,6 +136,12 @@ void CppGenerationVisitor::visit(const TypeFormingStatement* tfs) {
 		fieldPtr->accept(this);
 		// m_output << outputAndReset(); not needed actually since we are working on m_output atm
 	}
+	if (!isTerminal) {
+		m_output << std::endl;
+		m_output << "\tstd::string stringForError() const override { ";
+		m_output << "return \"" + tfs->name + "\";";
+		m_output << " }" << std::endl;
+	}
 	m_output << "};" << std::endl;
 }
 

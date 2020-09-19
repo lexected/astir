@@ -307,3 +307,11 @@ LLkDecisionPoint& LLkDecisionPoint::operator+=(const LLkDecisionPoint& rhs) {
 
 	return *this;
 }
+
+size_t LLkDecisionPoint::maxDepth() const {
+	size_t tmpMax = 0;
+	for (const auto& transition : transitions) {
+		tmpMax = std::max(tmpMax, transition->point.maxDepth() + 1);
+	}
+	return tmpMax;
+}

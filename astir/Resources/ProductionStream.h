@@ -81,14 +81,13 @@ inline bool ProductionStream<ProductionType>::get(StreamElementPtr& c) {
 }
 
 template<class ProductionType>
-inline ProductionStream<ProductionType>::StreamElementPtr ProductionStream<ProductionType>::peek(size_t ahead) {
+inline std::shared_ptr<ProductionType> ProductionStream<ProductionType>::peek(size_t ahead) {
 	while (m_nextProductionToGive+ahead >= m_buffer.size()) { 
+		std::shared_ptr<ProductionType> c;
 		bool status = streamGet(c);
 
 		if (status) {
 			m_buffer.push_back(c);
-			++m_nextProductionToGive;
-			m_lastLocation = c->location();
 		} else {
 			return nullptr;
 		}
@@ -100,7 +99,7 @@ inline ProductionStream<ProductionType>::StreamElementPtr ProductionStream<Produ
 template<class ProductionType>
 inline bool ProductionStream<ProductionType>::consume() {
 	StreamElementPtr __discard;
-	return get(discard);
+	return get(__discard);
 }
 
 template<class ProductionType>

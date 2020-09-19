@@ -48,20 +48,31 @@ namespace ${{MachineName}} {
 	typedef ${{InputTerminalTypeName}} InputTerminal;
 	typedef std::shared_ptr<${{InputTerminalTypeName}}> InputTerminalPtr;
 
+	class Exception : public std::exception {
+	public:
+		Exception(const std::string& message)
+			: std::exception(message.c_str()) {}
+		virtual ~Exception() = default;
+	};
+
 	class ${{MachineName}};
 	typedef void (${{MachineName}}::* ActionMethodPointer)(size_t, const std::deque<InputTerminalPtr>&, const std::shared_ptr<Location>&);
 	class ${{MachineName}} {
 	public:
-		${{MachineName}}() = default;
+		${{MachineName}}()
+			: m_lastApplicationSuccessful(false) { }
 
 		std::shared_ptr<OutputProduction> apply(InputStream& rs);
 		bool tryApply(InputStream& rs, std::shared_ptr<OutputProduction>& opPtr);
 		std::list<std::shared_ptr<OutputProduction>> process(InputStream& rs);
 
-		bool lastApplicationSuccessful() const { return m_stateFinality[m_currentState]; }
+		bool lastApplicationSuccessful() const { return m_lastApplicationSuccessful; }
 		void reset();
-
+		
 	private:
+		bool m_lastApplicationSuccessful;
+		void error(const std::string& message);
+
 		${{ParsingDeclarations}}
 	};
 };

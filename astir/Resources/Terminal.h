@@ -10,6 +10,7 @@ public:
 	TerminalTypeType type;
 	std::string raw;
 
+	std::string stringForError() const override { return '\'' + raw + '\''; };
 protected:
 	Terminal(TerminalTypeType type, const std::shared_ptr<Location>& occurenceLocation)
 		: type(type), raw(), Production(occurenceLocation) { }

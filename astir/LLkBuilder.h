@@ -28,6 +28,7 @@ struct LLkDecisionPoint {
 	SymbolGroupList computeConditionSymbols() const;
 
 	LLkDecisionPoint& operator+=(const LLkDecisionPoint& rhs);
+	size_t maxDepth() const;
 };
 
 struct LLkTransition {

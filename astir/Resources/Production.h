@@ -21,6 +21,8 @@ public:
 	Production(const ILocalizable& underlyingEntity)
 		: m_location(underlyingEntity.location()) { }
 
+	virtual std::string stringForError() const = 0;
+
 	const std::shared_ptr<Location>& location() const override { return m_location; }
 private:
 	std::shared_ptr<Location> m_location;
