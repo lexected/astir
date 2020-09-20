@@ -341,6 +341,9 @@
     <ClInclude Include="ILLkParserGenerable.h">
       <Filter>Header Files\Generation</Filter>
     </ClInclude>
+    <ClInclude Include="Resources\Machine.h">
+      <Filter>Resource Files\Resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Grammar.astir">

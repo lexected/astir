@@ -115,6 +115,8 @@ void CppLLkParserGenerator::visit(const CategoryStatement* category) {
 	}
 
 	// definition postamble
+	m_output.putln("");
+	m_output.putln("return nullptr; // to suppress the warning");
 	m_output.decreaseIndentation();
 	m_output.putln("}");
 	m_output.putln("");
@@ -296,7 +298,8 @@ void CppLLkParserGenerator::visit(const ReferenceRegex* regex) {
 		m_output.putln("parse_" + regex->referenceName + "(is);");
 	} else if (regex->referenceStatementMachine != m_builder.contextMachine().on.second.get()) {
 		// i.e. if this comes from a "uses" machine
-		// TODO
+		// TODO: would like to avoid doing the same parse twice - see if we can figure out exactly how many tokens to skip *ehm* consume
+		m_output.putln("m_" + regex->referenceStatementMachine->name + ".tryApplyWithIgnorance(is);");
 	} else {
 		// it comes from an "on" machine
 		m_output.putln("is.consume();");
@@ -453,8 +456,16 @@ void CppLLkParserGenerator::outputCondition(const std::shared_ptr<SymbolGroup>& 
 
 	const StatementSymbolGroup* ssgPtr = dynamic_cast<const StatementSymbolGroup*>(rawPtr);
 	if (ssgPtr != nullptr)  {
-		m_output << "std::dynamic_pointer_cast<" << (ssgPtr->statementMachine != &m_builder.contextMachine() ? ssgPtr->statementMachine->name + "::" : "") << ssgPtr->statement->name << ">(is.peek(" << depth << "))";
+		if(ssgPtr->statementMachine == this->m_builder.contextMachine().on.second.get()) {
+			// the input comes from "on"
+			m_output << "std::dynamic_pointer_cast<" << (ssgPtr->statementMachine != &m_builder.contextMachine() ? ssgPtr->statementMachine->name + "::" : "") << ssgPtr->statement->name << ">(is.peek(" << depth << "))";
 		return;
+		} else {
+			// the input comes from an "uses" machine
+			m_output << "std::dynamic_pointer_cast<" << ssgPtr->statementMachine->name << "::";
+			m_output << ssgPtr->statement->name << ">(m_" << ssgPtr->statementMachine->name;
+			m_output << ".tryApplyWithIgnorance(is))";
+		}
 	}
 
 	throw GenerationException("Unknown symbol group encountered");

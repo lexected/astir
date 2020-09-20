@@ -10,6 +10,7 @@
 #include "${{AppropriateStreamHeader}}"
 ${{DependencyHeaderInclude}}
 #include "Terminal.h"
+#include "Machine.h"
 
 namespace ${{MachineName}} {
 	enum class ${{MachineName}}TerminalType {
@@ -58,22 +59,30 @@ namespace ${{MachineName}} {
 
 	class ${{MachineName}};
 	typedef void (${{MachineName}}::* ActionMethodPointer)(size_t, const std::deque<InputTerminalPtr>&, const std::shared_ptr<Location>&);
-	class ${{MachineName}} {
+	class ${{MachineName}} : public Machine<InputStream, OutputProduction> {
 	public:
 		${{MachineName}}()
-			: m_lastApplicationSuccessful(false) { }
+			: m_lastApplicationSuccessful(false), m_lastException(nullptr) { }
 
-		std::shared_ptr<OutputProduction> apply(InputStream& rs);
-		bool tryApply(InputStream& rs, std::shared_ptr<OutputProduction>& opPtr);
-		std::list<std::shared_ptr<OutputProduction>> process(InputStream& rs);
+		std::shared_ptr<OutputProduction> apply(InputStream& rs) override;
 
-		bool lastApplicationSuccessful() const { return m_lastApplicationSuccessful; }
-		void reset();
+		std::shared_ptr<OutputProduction> parse(InputStream& rs);
+		std::shared_ptr<OutputProduction> parseWithIgnorance(InputStream& rs);
+		std::list<std::shared_ptr<OutputProduction>> parseStream(InputStream& rs);
+		std::list<std::shared_ptr<OutputProduction>> parseStreamWithIgnorance(InputStream& rs);
+
+		bool lastApplicationSuccessful() const override { return m_lastApplicationSuccessful; }
+		void reset() override;
+		std::string lastError() const;
 		
 	private:
 		bool m_lastApplicationSuccessful;
+		std::unique_ptr<Exception> m_lastException;
 		void error(const std::string& message) const;
-
+		
+		// dependency machines
+		${{DependencyMachineFields}}
+		// parsing declarations
 		${{ParsingDeclarations}}
 	};
 };

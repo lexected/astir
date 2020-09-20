@@ -213,6 +213,7 @@
     <ClInclude Include="IReferencing.h" />
     <ClInclude Include="LexicalAnalyzer.h" />
     <ClInclude Include="NFA.h" />
+    <ClInclude Include="Resources\Machine.h" />
     <ClInclude Include="SymbolGroup.h" />
     <ClInclude Include="SyntacticAnalysisException.h" />
     <ClInclude Include="SyntacticAnalyzer.h" />

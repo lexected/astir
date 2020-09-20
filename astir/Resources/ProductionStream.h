@@ -7,6 +7,16 @@
 #include "Production.h"
 #include "Terminal.h"
 
+#include <stack>
+#include <exception>
+
+class ProductionStreamException : public std::exception {
+public:
+	ProductionStreamException() = default;
+	ProductionStreamException(const std::string& message)
+		: std::exception(message.c_str()) { }
+};
+
 template <class ProductionType>
 class ProductionStream {
 	static_assert(std::is_base_of<Production, ProductionType>::value);
@@ -27,20 +37,30 @@ public:
 	size_t currentPosition() const;
 	void resetToPosition(size_t newPosition);
 
-	const std::shared_ptr<Location>& pinLocation() const { return m_pinLocation; }
+	std::shared_ptr<Location> lastPinLocation() const;
 	const std::shared_ptr<Location>& lastLocation() const { return m_lastLocation; }
+
 protected:
 	ProductionStream(const std::shared_ptr<Location>& startingStreamLocation)
-		: m_buffer(), m_nextProductionToGive(0), m_pinLocation(startingStreamLocation), m_lastLocation(startingStreamLocation) { }
+		: m_buffer(), m_nextProductionToGive(0), m_lastLocation(startingStreamLocation), m_bufferStartLocation(startingStreamLocation) { }
 
 	virtual bool streamGet(StreamElementPtr& c) = 0;
 	virtual bool streamGood() const = 0;
+
 private:
 	size_t m_nextProductionToGive;
 	std::deque<std::shared_ptr<ProductionType>> m_buffer;
+	struct Pin {
+		size_t bufferOffset;
+		std::shared_ptr<Location> location;
 
-	std::shared_ptr<Location> m_pinLocation;
+		Pin(size_t offset, const std::shared_ptr<Location>& location)
+			: bufferOffset(offset), location(location) { }
+	};
+	std::stack<Pin> m_pins;
+	
 	std::shared_ptr<Location> m_lastLocation;
+	std::shared_ptr<Location> m_bufferStartLocation;
 };
 
 template <class ProductionType>
@@ -109,12 +129,7 @@ inline bool ProductionStream<ProductionType>::good() const {
 
 template<class ProductionType>
 inline void ProductionStream<ProductionType>::pin() {
-	if (m_nextProductionToGive > 0) {
-		m_buffer.erase(m_buffer.cbegin(), m_buffer.cbegin() + m_nextProductionToGive);
-		m_nextProductionToGive = 0;
-	}
-
-	m_pinLocation = m_lastLocation;
+	m_pins.push(Pin(m_nextProductionToGive, m_lastLocation));
 }
 
 template<class ProductionType>
@@ -124,15 +139,41 @@ inline std::deque<std::shared_ptr<ProductionType>> ProductionStream<ProductionTy
 
 template<class ProductionType>
 inline void ProductionStream<ProductionType>::resetToPin() {
-	m_nextProductionToGive = 0;
-	m_lastLocation = m_pinLocation;
+	if (m_pins.empty()) {
+		throw ProductionStreamException("Invalid resetToPin -- the pin stack is empty");
+	}
+
+	const auto& top = m_pins.top();
+	m_nextProductionToGive = top.bufferOffset;
+	m_lastLocation = top.location;
+	auto newBufferStartLocation__atLeastMaybe = top.location;
+	m_pins.pop();
+
+	if (m_pins.empty()) {
+		if (m_nextProductionToGive > 0) {
+			m_buffer.erase(m_buffer.cbegin(), m_buffer.cbegin() + m_nextProductionToGive);
+			m_nextProductionToGive = 0;
+			m_bufferStartLocation = newBufferStartLocation__atLeastMaybe;
+		}
+	}
 }
 
 template<class ProductionType>
 inline void ProductionStream<ProductionType>::unpin() {
-	m_buffer.clear();
-	m_nextProductionToGive = 0;
-	m_pinLocation = nullptr;
+	if (m_pins.empty()) {
+		throw ProductionStreamException("Invalid unpin -- the pin stack is empty");
+	}
+
+	auto newBufferStartLocation = m_pins.top().location;
+	m_pins.pop();
+
+	if (m_pins.empty()) {
+		if (m_nextProductionToGive > 0) {
+			m_buffer.erase(m_buffer.cbegin(), m_buffer.cbegin() + m_nextProductionToGive);
+			m_nextProductionToGive = 0;
+			m_bufferStartLocation = newBufferStartLocation;
+		}
+	}
 }
 
 template<class ProductionType>
@@ -147,8 +188,18 @@ inline void ProductionStream<ProductionType>::resetToPosition(size_t newPosition
 	if (newPosition > 0) {
 		m_lastLocation = m_buffer[newPosition-1]->location();
 	} else {
-		m_lastLocation = m_pinLocation;
+		m_lastLocation = m_bufferStartLocation;
 	}
+}
+
+template<class ProductionType>
+inline std::shared_ptr<Location> ProductionStream<ProductionType>::lastPinLocation() const {
+	if (m_pins.empty()) {
+		return nullptr;
+	}
+
+	const Pin& topPin = m_pins.top();
+	return topPin.location;
 }
 
 template<class ProductionType>

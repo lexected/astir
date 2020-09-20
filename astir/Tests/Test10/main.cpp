@@ -8,7 +8,7 @@ int main() {
 	TextFileStream tfs("input.txt", f);
 
 	TreeTokenizer::TreeTokenizer treeTokenizer;
-	auto primaryStreamProcessed = treeTokenizer.processStream(tfs);
+	auto primaryStreamProcessed = treeTokenizer.process(tfs);
 
 	ListProductionStream<TreeTokenizer::OutputTerminal> lcs(primaryStreamProcessed);
 

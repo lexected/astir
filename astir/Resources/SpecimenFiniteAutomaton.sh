@@ -10,6 +10,7 @@
 #include "${{AppropriateStreamHeader}}"
 ${{DependencyHeaderInclude}}
 #include "Terminal.h"
+#include "Machine.h"
 
 namespace ${{MachineName}} {
 	enum class ${{MachineName}}TerminalType {
@@ -53,17 +54,15 @@ namespace ${{MachineName}} {
 
 	class ${{MachineName}};
 	typedef void (${{MachineName}}::* ActionMethodPointer)(size_t, const std::deque<InputTerminalPtr>&, const std::shared_ptr<Location>&);
-	class ${{MachineName}} {
+	class ${{MachineName}} : public Machine<InputStream, OutputProduction> {
 	public:
 		${{MachineName}}()
 			: m_currentState(0) { }
 
-		std::shared_ptr<OutputProduction> apply(InputStream& rs);
-		bool tryApply(InputStream& rs, std::shared_ptr<OutputProduction>& opPtr);
-		std::list<std::shared_ptr<OutputProduction>> process(InputStream& rs);
+		std::shared_ptr<OutputProduction> apply(InputStream& rs) override;
 
-		bool lastApplicationSuccessful() const { return m_stateFinality[m_currentState]; }
-		void reset();
+		bool lastApplicationSuccessful() const override { return m_stateFinality[m_currentState]; }
+		void reset() override;
 
 	private:
 		// state-switching internals
@@ -76,6 +75,8 @@ namespace ${{MachineName}} {
 		// raw-capture internals
 		std::stack<size_t> m_captureStack;
 
+		// dependency machines
+		${{DependencyMachineFields}}
 		// action contexts
 		std::shared_ptr<OutputProduction> m_token;
 		${{ActionContextsDeclarations}}

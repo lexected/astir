@@ -9,7 +9,7 @@
 #include "CppLLkParserGenerator.h"
 
 void CppGenerationVisitor::setup() const {
-	// TODO: improve error handling here... what if m_folderPath is actually a file?? throw an exception
+	// TODO: improve the error handling here... what if m_folderPath is actually a file?? throw an exception
 	if(!std::filesystem::is_directory(m_folderPath)) {
 		std::filesystem::create_directory(m_folderPath);
 	}
@@ -18,6 +18,7 @@ void CppGenerationVisitor::setup() const {
 	std::filesystem::copy_file("Resources/Production.h", m_folderPath / "Production.h", std::filesystem::copy_options::overwrite_existing);
 	std::filesystem::copy_file("Resources/Terminal.h", m_folderPath / "Terminal.h", std::filesystem::copy_options::overwrite_existing);
 	std::filesystem::copy_file("Resources/ProductionStream.h", m_folderPath / "ProductionStream.h", std::filesystem::copy_options::overwrite_existing);
+	std::filesystem::copy_file("Resources/Machine.h", m_folderPath / "Machine.h", std::filesystem::copy_options::overwrite_existing);
 }
 
 void CppGenerationVisitor::visit(const SyntacticTree* tree) {
@@ -222,6 +223,7 @@ void CppGenerationVisitor::buildUniversalMachineMacros(std::map<std::string, std
 		ss << productionPtr->name << " = " << productionPtr->terminalTypeIndex << "," << std::endl;
 	}
 	macros.emplace("OutputTerminalTypesEnumerated", ss.str());
+	ss.str("");
 	macros.emplace("OutputTerminalTypeCount", std::to_string(machine->terminalProductionCount()));
 
 	//  - generate type declarations
@@ -234,6 +236,13 @@ void CppGenerationVisitor::buildUniversalMachineMacros(std::map<std::string, std
 
 	//	- set the type of out the output to the highest resolution possible
 	macros.emplace("OutputType", machine->hasPurelyTerminalRoots() ? "OutputTerminal" : "Production");
+
+	//	- prepare the declarations for dependency machines
+	for (const auto& usesPair : machine->uses) {
+		ss << usesPair.first << "::" << usesPair.first << " m_" << usesPair.first << ";" << std::endl;
+	}
+	macros.emplace("DependencyMachineFields", ss.str());
+	ss.str("");
 }
 
 std::string CppGenerationVisitor::combineForwardDeclarationsAndClear() {
