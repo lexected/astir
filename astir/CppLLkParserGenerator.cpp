@@ -48,7 +48,12 @@ void CppLLkParserGenerator::visitRootDisjunction(const std::list<std::shared_ptr
 		m_output.increaseIndentation();
 
 		// core handling
-		m_output.putln("return parse_" + tfsSPtr->name + "(is);");
+		if (tfsSPtr->rootness == Rootness::IgnoreRoot) {
+			m_output.putln("parse_" + tfsSPtr->name + "(is);");
+			m_output.putln("return nullptr;");
+		} else if (tfsSPtr->rootness == Rootness::AcceptRoot) {
+			m_output.putln("return parse_" + tfsSPtr->name + "(is);");
+		}
 
 		// if footer
 		m_output.decreaseIndentation();
