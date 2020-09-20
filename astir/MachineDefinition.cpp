@@ -93,7 +93,7 @@ void MachineDefinition::initialize() {
 std::shared_ptr<MachineStatement> MachineDefinition::findMachineStatement(const std::string& name, const MachineDefinition** sourceMachine) const {
 	std::shared_ptr<MachineStatement> ret;
 	for (const auto& used : uses) {
-		if (ret = used.second->findMachineStatement(name)) {
+		if (ret = used.second->findMachineStatement(name, sourceMachine)) {
 			return ret;
 		}
 	}

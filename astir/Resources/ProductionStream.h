@@ -26,7 +26,7 @@ public:
 
 	bool get(StreamElementPtr& c);
 	StreamElementPtr peek(size_t ahead = 0);
-	bool consume();
+	size_t consume(size_t howMany = 1);
 	bool good() const;
 
 	void pin();
@@ -34,6 +34,7 @@ public:
 	void resetToPin();
 	void unpin();
 
+	void setBufferFixed(bool bufferFixed = true) { m_bufferFixed = bufferFixed; }
 	size_t currentPosition() const;
 	void resetToPosition(size_t newPosition);
 
@@ -42,12 +43,13 @@ public:
 
 protected:
 	ProductionStream(const std::shared_ptr<Location>& startingStreamLocation)
-		: m_buffer(), m_nextProductionToGive(0), m_lastLocation(startingStreamLocation), m_bufferStartLocation(startingStreamLocation) { }
+		: m_buffer(), m_nextProductionToGive(0), m_bufferFixed(false), m_lastLocation(startingStreamLocation), m_bufferStartLocation(startingStreamLocation) { }
 
 	virtual bool streamGet(StreamElementPtr& c) = 0;
 	virtual bool streamGood() const = 0;
 
 private:
+	bool m_bufferFixed;
 	size_t m_nextProductionToGive;
 	std::deque<std::shared_ptr<ProductionType>> m_buffer;
 	struct Pin {
@@ -117,9 +119,16 @@ inline std::shared_ptr<ProductionType> ProductionStream<ProductionType>::peek(si
 }
 
 template<class ProductionType>
-inline bool ProductionStream<ProductionType>::consume() {
-	StreamElementPtr __discard;
-	return get(__discard);
+inline size_t ProductionStream<ProductionType>::consume(size_t howMany) {
+	size_t counter = 0;
+	for(; counter < howMany;++counter) {
+		StreamElementPtr __discard;
+		auto ret = get(__discard);
+		if (!ret) {
+			break;
+		}
+	}
+	return counter;
 }
 
 template<class ProductionType>
@@ -149,7 +158,7 @@ inline void ProductionStream<ProductionType>::resetToPin() {
 	auto newBufferStartLocation__atLeastMaybe = top.location;
 	m_pins.pop();
 
-	if (m_pins.empty()) {
+	if (m_pins.empty() && !m_bufferFixed) {
 		if (m_nextProductionToGive > 0) {
 			m_buffer.erase(m_buffer.cbegin(), m_buffer.cbegin() + m_nextProductionToGive);
 			m_nextProductionToGive = 0;
@@ -167,7 +176,7 @@ inline void ProductionStream<ProductionType>::unpin() {
 	auto newBufferStartLocation = m_pins.top().location;
 	m_pins.pop();
 
-	if (m_pins.empty()) {
+	if (m_pins.empty() && !m_bufferFixed) {
 		if (m_nextProductionToGive > 0) {
 			m_buffer.erase(m_buffer.cbegin(), m_buffer.cbegin() + m_nextProductionToGive);
 			m_nextProductionToGive = 0;

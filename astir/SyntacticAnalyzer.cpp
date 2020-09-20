@@ -109,6 +109,7 @@ std::unique_ptr<MachineDefinition> SyntacticAnalyzer::parseMachineDefinition(std
 			throw UnexpectedTokenException(*it, "an identifier for the machine to \"use\" to follow the 'uses' keyword", "for machine declaration", *savedIt);
 		}
 		machineDefinition->uses.emplace(it->string, nullptr);
+		++it;
 
 		while (it->type == TokenType::OP_COMMA) {
 			++it;

@@ -30,12 +30,14 @@ public:
 	std::string parsingDeclarations() const;
 	std::string parsingDefinitions() const { return m_output.str(); }
 private:
+	void handleTypeFormingPreamble(const std::string& typeName);
+	void handleTypeFormingPostamble();
 	void handleRuleBody(const RuleStatement* rule);
-	void outputConditionTesting(const LLkDecisionPoint& dp, unsigned long depth = 0);
+	std::string makeConditionTesting(const LLkDecisionPoint& dp, unsigned long depth = 0, bool needsUnpeeking = false) const;
+	std::string makeCondition(const std::shared_ptr<SymbolGroup>& sgPtr, std::string& postamble, unsigned long depth) const;
 	std::string makeExpectationMessage(const LLkDecisionPoint& dp);
 	std::string makeExpectationMessage(const std::vector<LLkDecisionPoint>& dps);
 	std::string makeExpectationGrammar(const LLkDecisionPoint& dp);
-	void outputCondition(const std::shared_ptr<SymbolGroup>& sgPtr, unsigned long depth);
 
 	IndentedStringStream m_output;
 	std::list<std::string> m_declarations;

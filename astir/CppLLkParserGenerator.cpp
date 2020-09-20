@@ -14,7 +14,7 @@ void CppLLkParserGenerator::visitTypeFormingStatements(const std::list<std::shar
 }
 
 void CppLLkParserGenerator::visitRootDisjunction(const std::list<std::shared_ptr<TypeFormingStatement>>& rootDisjunction) {
-	m_declarations.push_back("std::shared_ptr<OutputProduction> parse_root(InputStream& is) const;");
+	m_declarations.push_back("std::shared_ptr<OutputProduction> parse_root(InputStream& is);");
 
 	if (rootDisjunction.empty()) {
 		throw GenerationException("A machine with no root productions can not be generated");
@@ -22,8 +22,10 @@ void CppLLkParserGenerator::visitRootDisjunction(const std::list<std::shared_ptr
 
 	// definition preamble
 	m_output.put("std::shared_ptr<OutputProduction> ");
-	m_output << m_builder.contextMachine().name << "::parse_root(InputStream& is) const {" << std::endl;
+	m_output << m_builder.contextMachine().name << "::parse_root(InputStream & is) {" << std::endl;
 	m_output.increaseIndentation();
+	m_output.putln("auto productionStartLocation = is.peek(0)->location()->clone();");
+	m_output.putln("size_t cumulativePeekCorrection = 0;");
 
 	// core
 	std::vector<LLkDecisionPoint> decisionPoints;
@@ -41,7 +43,7 @@ void CppLLkParserGenerator::visitRootDisjunction(const std::list<std::shared_ptr
 
 		// if header
 		m_output << "if(";
-		outputConditionTesting(decisionPoints.back());
+		m_output << makeConditionTesting(decisionPoints.back());
 		m_output << ") {" << std::endl;
 		m_output.increaseIndentation();
 
@@ -62,18 +64,14 @@ void CppLLkParserGenerator::visitRootDisjunction(const std::list<std::shared_ptr
 	m_output.putln("}");
 
 	// definition postamble
-	m_output.decreaseIndentation();
-	m_output.putln("}");
+	handleTypeFormingPostamble();
 }
 
 void CppLLkParserGenerator::visit(const CategoryStatement* category) {
-	m_declarations.push_back("std::shared_ptr<" + category->name + "> parse_" + category->name + "(InputStream& is) const;");
+	m_declarations.push_back("std::shared_ptr<" + category->name + "> parse_" + category->name + "(InputStream& is);");
 
 	// definition preamble
-	m_output.put("std::shared_ptr<");
-	m_output << category->name << "> " << m_builder.contextMachine().name << "::parse_" << category->name << "(InputStream& is) const {" << std::endl;
-	m_output.increaseIndentation();
-	m_output.putln("auto productionStartLocation = is.peek(0)->location()->clone();");
+	handleTypeFormingPreamble(category->name);
 
 	// core
 	if (category->references.empty()) {
@@ -94,7 +92,7 @@ void CppLLkParserGenerator::visit(const CategoryStatement* category) {
 
 			// if header
 			m_output << "if(";
-			outputConditionTesting(decisionPoints.back());
+			m_output << makeConditionTesting(decisionPoints.back());
 			m_output << ") {" << std::endl;
 			m_output.increaseIndentation();
 
@@ -117,9 +115,7 @@ void CppLLkParserGenerator::visit(const CategoryStatement* category) {
 	// definition postamble
 	m_output.putln("");
 	m_output.putln("return nullptr; // to suppress the warning");
-	m_output.decreaseIndentation();
-	m_output.putln("}");
-	m_output.putln("");
+	handleTypeFormingPostamble();
 }
 
 void CppLLkParserGenerator::visit(const PatternStatement* rule) {
@@ -127,21 +123,16 @@ void CppLLkParserGenerator::visit(const PatternStatement* rule) {
 }
 
 void CppLLkParserGenerator::visit(const ProductionStatement* production) {
-	m_declarations.push_back("std::shared_ptr<" + production->name + "> parse_" + production->name + "(InputStream& is) const;");
+	m_declarations.push_back("std::shared_ptr<" + production->name + "> parse_" + production->name + "(InputStream& is);");
 
 	// definition preamble
-	m_output.put("std::shared_ptr<");
-	m_output << production->name << "> " << m_builder.contextMachine().name << "::parse_" << production->name << "(InputStream& is) const {" << std::endl;
-	m_output.increaseIndentation();
-	m_output.putln("auto productionStartLocation = is.peek(0)->location()->clone();");
+	handleTypeFormingPreamble(production->name);
 
 	handleRuleBody(production);
 
 	m_output.putln("return std::make_shared<" + production->name + ">(productionStartLocation);");
 
-	m_output.decreaseIndentation();
-	m_output.putln("}");
-	m_output.putln("");
+	handleTypeFormingPostamble();
 }
 
 void CppLLkParserGenerator::visit(const RegexStatement* rule) {
@@ -165,7 +156,7 @@ void CppLLkParserGenerator::visit(const DisjunctiveRegex* regex) {
 
 		// if header
 		m_output << "if(";
-		outputConditionTesting(decisionPoints.back());
+		m_output << makeConditionTesting(decisionPoints.back());
 		m_output << ") {" << std::endl;
 		m_output.increaseIndentation();
 
@@ -199,7 +190,7 @@ void CppLLkParserGenerator::visit(const ConjunctiveRegex* regex) {
 
 		// if header
 		m_output.put("if(");
-		outputConditionTesting(decisionPoint);
+		m_output << makeConditionTesting(decisionPoint);
 		m_output << ") {" << std::endl;
 		m_output.increaseIndentation();
 
@@ -225,7 +216,7 @@ void CppLLkParserGenerator::visit(const RepetitiveRegex* regex) {
 	for (unsigned long it = 0; it < regex->minRepetitions; ++it) {
 		// if header
 		m_output.put("if(");
-		outputConditionTesting(decisionPoint);
+		m_output << makeConditionTesting(decisionPoint);
 		m_output << ") {" << std::endl;
 		m_output.increaseIndentation();
 
@@ -253,7 +244,7 @@ void CppLLkParserGenerator::visit(const RepetitiveRegex* regex) {
 		m_output.increaseIndentation();
 		m_output.putln("unsigned long counter = " + std::to_string(regex->maxRepetitions - regex->minRepetitions) + ";");
 		m_output.put("while(counter > 0 && (");
-		outputConditionTesting(decisionPoint);
+		m_output << makeConditionTesting(decisionPoint);
 		m_output << ")) {" << std::endl;
 		m_output.increaseIndentation(); 
 		repeatedRegexAsGenerablePtr->accept(this);
@@ -264,7 +255,7 @@ void CppLLkParserGenerator::visit(const RepetitiveRegex* regex) {
 		m_output.putln("}");
 	} else {
 		m_output.put("while(");
-		outputConditionTesting(decisionPoint);
+		m_output << makeConditionTesting(decisionPoint);
 		m_output << ") {" << std::endl;
 		m_output.increaseIndentation();
 		repeatedRegexAsGenerablePtr->accept(this);
@@ -298,8 +289,7 @@ void CppLLkParserGenerator::visit(const ReferenceRegex* regex) {
 		m_output.putln("parse_" + regex->referenceName + "(is);");
 	} else if (regex->referenceStatementMachine != m_builder.contextMachine().on.second.get()) {
 		// i.e. if this comes from a "uses" machine
-		// TODO: would like to avoid doing the same parse twice - see if we can figure out exactly how many tokens to skip *ehm* consume
-		m_output.putln("m_" + regex->referenceStatementMachine->name + ".tryApplyWithIgnorance(is);");
+		m_output.putln("m_" + regex->referenceStatementMachine->name + ".consume(is);");
 	} else {
 		// it comes from an "on" machine
 		m_output.putln("is.consume();");
@@ -315,9 +305,23 @@ std::string CppLLkParserGenerator::parsingDeclarations() const {
 	return ss.str();
 }
 
+void CppLLkParserGenerator::handleTypeFormingPreamble(const std::string& typeName) {
+	m_output.put("std::shared_ptr<");
+	m_output << typeName << "> " << m_builder.contextMachine().name << "::parse_" << typeName << "(InputStream& is) {" << std::endl;
+	m_output.increaseIndentation();
+	m_output.putln("auto productionStartLocation = is.peek(0)->location()->clone();");
+	m_output.putln("size_t cumulativePeekCorrection = 0;");
+}
+
+void CppLLkParserGenerator::handleTypeFormingPostamble() {
+	m_output.decreaseIndentation();
+	m_output.putln("}");
+	m_output.putln("");
+}
+
 void CppLLkParserGenerator::handleRuleBody(const RuleStatement* rule) {
 	/*m_output.put("if(");
-	outputConditionTesting(m_builder.getDecisionTree(rule));
+	m_output << makeConditionTesting(m_builder.getDecisionTree(rule));
 	m_output << ") {" << std::endl;
 	m_output.increaseIndentation();*/
 
@@ -331,35 +335,89 @@ void CppLLkParserGenerator::handleRuleBody(const RuleStatement* rule) {
 	m_output.putln("}");*/
 }
 
-void CppLLkParserGenerator::outputConditionTesting(const LLkDecisionPoint& dp, unsigned long depth) {
+std::string CppLLkParserGenerator::makeConditionTesting(const LLkDecisionPoint& dp, unsigned long depth, bool needsUnpeeking) const {
+	std::stringstream output;
 	if (dp.transitions.empty()) {
-		m_output << "true";
-		return;
+		return "true";
 	}
 
-	for (auto it = dp.transitions.cbegin(); it != dp.transitions.cend();++it) {
+	
+	for (auto it = dp.transitions.cbegin(); it != dp.transitions.cend(); ++it) {
 		if (it != dp.transitions.cbegin()) {
-			m_output << " || ";
+			output << " || ";
 		}
 
 		const auto& transitionPtr = *it;
-		outputCondition(transitionPtr->condition, depth);
+		const bool doesThisConditionHaveContinuation = !transitionPtr->point.transitions.empty();
 
-		if(!transitionPtr->point.transitions.empty()) {
-			m_output << " && ";
+		std::string unpeekingPostamble;
+		auto condition = makeCondition(transitionPtr->condition, unpeekingPostamble, depth);
+		const bool doesThisOneNeedUnpeeking = !unpeekingPostamble.empty();
+		const bool needsUnpeekingDisambiguationParenthesisStructureAroundCondition = doesThisOneNeedUnpeeking && doesThisConditionHaveContinuation;
+		if (needsUnpeekingDisambiguationParenthesisStructureAroundCondition) {
+			output << '(';
+		}
+		output << condition;
+
+		if(doesThisConditionHaveContinuation) {
+			output << " && ";
 			const bool needParentheses = transitionPtr->point.transitions.size() > 1;
 			if (needParentheses) {
-				m_output << '(';
+				output << '(';
 			}
 			
-			outputConditionTesting(transitionPtr->point, depth+1);
+			output << makeConditionTesting(transitionPtr->point, depth+(doesThisOneNeedUnpeeking ? 0 : 1), doesThisOneNeedUnpeeking || needsUnpeeking);
 			
 			if (needParentheses) {
-				m_output << ')';
+				output << ')';
 			}
+		} else if (doesThisOneNeedUnpeeking || needsUnpeeking) {
+			output << " && !(cumulativePeekCorrection = 0)";
+		}
+
+		if (needsUnpeekingDisambiguationParenthesisStructureAroundCondition) {
+			output << " || " << unpeekingPostamble << ')';
 		}
 	}
+	
+	return output.str();
 }
+
+std::string CppLLkParserGenerator::makeCondition(const std::shared_ptr<SymbolGroup>& sgPtr, std::string& postamble, unsigned long depth) const {
+	std::stringstream output;
+	const SymbolGroup* rawPtr = sgPtr.get();
+
+	const ByteSymbolGroup* bytePtr = dynamic_cast<const ByteSymbolGroup*>(rawPtr);
+	if (bytePtr != nullptr) {
+		output << "is.peek(cumulativePeekCorrection+" << depth << ")->raw.length() == 1 && is.peek(cumulativePeekCorrection+" << depth << ")->raw[0] >= " << bytePtr->rangeStart << " && is.peek(cumulativePeekCorrection+" << depth << ")->raw[0] <= " << bytePtr->rangeEnd;
+		return output.str();
+	}
+
+	const LiteralSymbolGroup* literalPtr = dynamic_cast<const LiteralSymbolGroup*>(rawPtr);
+	if (literalPtr != nullptr) {
+		output << "is.peek(cumulativePeekCorrection+" << depth << ")->raw == \"" << literalPtr->literal << "\"";
+		return output.str();
+	}
+
+	const StatementSymbolGroup* ssgPtr = dynamic_cast<const StatementSymbolGroup*>(rawPtr);
+	if (ssgPtr != nullptr) {
+		if (ssgPtr->statementMachine == this->m_builder.contextMachine().on.second.get()) {
+			// the input comes from "on"
+			output << "std::dynamic_pointer_cast<" << (ssgPtr->statementMachine != &m_builder.contextMachine() ? ssgPtr->statementMachine->name + "::" : "") << ssgPtr->statement->name << ">(is.peek(cumulativePeekCorrection+" << depth << "))";
+		} else {
+			// the input comes from an "uses" machine
+			output << "m_" << ssgPtr->statementMachine->name << ".peekCast<";
+			output << (ssgPtr->statementMachine != &m_builder.contextMachine() ? ssgPtr->statementMachine->name + "::" : "");
+			output << ssgPtr->statement->name << ">(is, cumulativePeekCorrection+" << depth << ", cumulativePeekCorrection)";
+			postamble = "m_" + ssgPtr->statementMachine->name + ".unpeekIfApplicable(is, cumulativePeekCorrection)";
+		}
+
+		return output.str();
+	}
+
+	throw GenerationException("Unknown symbol group encountered");
+}
+
 
 std::string CppLLkParserGenerator::makeExpectationMessage(const LLkDecisionPoint& dp) {
 	return makeExpectationMessage(std::vector<LLkDecisionPoint>({ dp }));
@@ -437,36 +495,4 @@ std::string CppLLkParserGenerator::makeExpectationGrammar(const LLkDecisionPoint
 	}
 
 	return ss.str();
-}
-
-void CppLLkParserGenerator::outputCondition(const std::shared_ptr<SymbolGroup>& sgPtr, unsigned long depth) {
-	const SymbolGroup* rawPtr = sgPtr.get();
-	
-	const ByteSymbolGroup* bytePtr = dynamic_cast<const ByteSymbolGroup*>(rawPtr);
-	if (bytePtr != nullptr) {
-		m_output << "is.peek(" << depth << ")->raw.length() == 1 && is.peek(" << depth << ")->raw[0] >= " << bytePtr->rangeStart << " && is.peek(" << depth << ")->raw[0] <= " << bytePtr->rangeEnd;
-		return;
-	}
-
-	const LiteralSymbolGroup* literalPtr = dynamic_cast<const LiteralSymbolGroup*>(rawPtr);
-	if (literalPtr != nullptr) {
-		m_output << "is.peek(" << depth << ")->raw == \"" << literalPtr->literal << "\"";
-		return;
-	}
-
-	const StatementSymbolGroup* ssgPtr = dynamic_cast<const StatementSymbolGroup*>(rawPtr);
-	if (ssgPtr != nullptr)  {
-		if(ssgPtr->statementMachine == this->m_builder.contextMachine().on.second.get()) {
-			// the input comes from "on"
-			m_output << "std::dynamic_pointer_cast<" << (ssgPtr->statementMachine != &m_builder.contextMachine() ? ssgPtr->statementMachine->name + "::" : "") << ssgPtr->statement->name << ">(is.peek(" << depth << "))";
-		return;
-		} else {
-			// the input comes from an "uses" machine
-			m_output << "std::dynamic_pointer_cast<" << ssgPtr->statementMachine->name << "::";
-			m_output << ssgPtr->statement->name << ">(m_" << ssgPtr->statementMachine->name;
-			m_output << ".tryApplyWithIgnorance(is))";
-		}
-	}
-
-	throw GenerationException("Unknown symbol group encountered");
 }

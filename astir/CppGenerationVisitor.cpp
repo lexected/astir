@@ -7,12 +7,17 @@
 #include "GenerationHelper.h"
 #include "CppNFAGenerationHelper.h"
 #include "CppLLkParserGenerator.h"
+#include "GenerationException.h"
 
 void CppGenerationVisitor::setup() const {
-	// TODO: improve the error handling here... what if m_folderPath is actually a file?? throw an exception
-	if(!std::filesystem::is_directory(m_folderPath)) {
+	if (std::filesystem::exists(m_folderPath)) {
+		if (!std::filesystem::is_directory(m_folderPath)) {
+			throw GenerationException("The filesystem entry '" + m_folderPath.string() + "' exists but is not a directory");
+		}
+	} else {
 		std::filesystem::create_directory(m_folderPath);
 	}
+	
 	std::filesystem::copy_file("Resources/Location.h", m_folderPath / "Location.h", std::filesystem::copy_options::overwrite_existing);
 	std::filesystem::copy_file("Resources/Location.cpp", m_folderPath / "Location.cpp", std::filesystem::copy_options::overwrite_existing);
 	std::filesystem::copy_file("Resources/Production.h", m_folderPath / "Production.h", std::filesystem::copy_options::overwrite_existing);
@@ -197,6 +202,7 @@ void CppGenerationVisitor::buildUniversalMachineMacros(std::map<std::string, std
 	macros.emplace("MachineName", machine->name);
 
 	//	- choose appropriate input stream type
+	std::stringstream dependencyHeaderIncludesStream;
 	if (!machine->on.second) {
 		if (!m_hasIncludedRawStreamFiles) {
 			std::filesystem::copy_file("Resources/RawStream.h", m_folderPath / "RawStream.h", std::filesystem::copy_options::overwrite_existing);
@@ -213,7 +219,7 @@ void CppGenerationVisitor::buildUniversalMachineMacros(std::map<std::string, std
 		macros.emplace("AppropriateStreamHeader", "ProductionStream.h");
 		macros.emplace("InputTerminalTypeName", onName + "::OutputTerminal");
 		macros.emplace("InputStreamTypeName", "ProductionStream<" + onName + "::OutputTerminal>");
-		macros.emplace("DependencyHeaderInclude", "#include \"" + onName + ".h\"");
+		dependencyHeaderIncludesStream << "#include \"" + onName + ".h\"" << std::endl;
 	}
 
 	//  - enumerate all the production roots
@@ -240,8 +246,10 @@ void CppGenerationVisitor::buildUniversalMachineMacros(std::map<std::string, std
 	//	- prepare the declarations for dependency machines
 	for (const auto& usesPair : machine->uses) {
 		ss << usesPair.first << "::" << usesPair.first << " m_" << usesPair.first << ";" << std::endl;
+		dependencyHeaderIncludesStream << "#include \"" + usesPair.first + ".h\"" << std::endl;
 	}
 	macros.emplace("DependencyMachineFields", ss.str());
+	macros.emplace("DependencyHeaderIncludes", dependencyHeaderIncludesStream.str());
 	ss.str("");
 }
 

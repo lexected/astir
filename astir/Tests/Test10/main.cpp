@@ -7,13 +7,8 @@ int main() {
 	std::ifstream f("input.txt");
 	TextFileStream tfs("input.txt", f);
 
-	TreeTokenizer::TreeTokenizer treeTokenizer;
-	auto primaryStreamProcessed = treeTokenizer.process(tfs);
-
-	ListProductionStream<TreeTokenizer::OutputTerminal> lcs(primaryStreamProcessed);
-
 	TreeParser::TreeParser treeParser;
-	auto secondaryStreamProcessed = treeParser.apply(lcs);
+	auto secondaryStreamProcessed = treeParser.parse(tfs);
 
 	return 0;
 }

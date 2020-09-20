@@ -7,10 +7,15 @@
 #include <stack>
 #include <vector>
 
+// stream
 #include "${{AppropriateStreamHeader}}"
-${{DependencyHeaderInclude}}
+
+// general dependencies
 #include "Terminal.h"
 #include "Machine.h"
+
+// particular dependencies
+${{DependencyHeaderIncludes}}
 
 namespace ${{MachineName}} {
 	enum class ${{MachineName}}TerminalType {
