@@ -602,9 +602,13 @@ std::unique_ptr<PrimitiveRegex> SyntacticAnalyzer::parsePrimitiveRegex(std::list
 
 	unique_ptr<PrimitiveRegex> ret;
 	if (it->type == TokenType::STRING) {
-		auto lr = make_unique<LiteralRegex>();
-		lr->literal = it->string;
-		ret = move(lr);
+		if (it->string.length() == 0) {
+			ret = make_unique<EmptyRegex>();
+		} else {
+			auto lr = make_unique<LiteralRegex>();
+			lr->literal = it->string;
+			ret = move(lr);
+		}
 	} else if (it->type == TokenType::OP_DOT) {
 		ret = make_unique<ArbitrarySymbolRegex>();
 	} else if (it->type == TokenType::IDENTIFIER) {

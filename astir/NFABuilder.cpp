@@ -7,6 +7,7 @@
 #include "SyntacticTree.h"
 #include "MachineDefinition.h"
 #include "Regex.h"
+#include "SemanticAnalysisException.h"
 
 NFA NFABuilder::visit(const CategoryStatement* category) const {
 	NFA alternationPoint;
@@ -234,19 +235,28 @@ NFA NFABuilder::visit(const ExceptAnyRegex* regex) const {
 
 NFA NFABuilder::visit(const LiteralRegex* regex) const {
 	NFA base;
+
+	if (m_contextMachine.on.second) {
+		throw SemanticAnalysisException("Encountered literal regex '" + regex->literal + "' at "+regex->locationString() + " within the finite automaton '" + m_contextMachine.name +"' (declared at " + m_contextMachine.locationString() + ") that refers to '" + m_contextMachine.on.first + "' for input (whereas literal regexes may only be used for finite automata on raw input)");
+	}
 	
 	NFAActionRegister initial, final;
 	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
-	State prevState = 0;
-	for(CharType c : regex->literal) {
-		State newState = base.addState();
-		base.addTransition(prevState, Transition(newState, std::make_shared<ByteSymbolGroup>(c, c), initial));
-
-		prevState = newState;
+	State newState = base.addState();
+	if (regex->literal.length() == 1) {
+		base.addTransition(0, Transition(newState, std::make_shared<ByteSymbolGroup>(regex->literal[0], regex->literal[0]), initial));
+	} else {
+		if (!m_contextMachine.on.second) {
+			// TODO: could actually be made into a warning and proceed just with the first character of regex->literal
+			throw SemanticAnalysisException("Encountered multi-byte literal regex '" + regex->literal + "' at " + regex->locationString() + " within the finite automaton '" + m_contextMachine.name + "' (declared at " + m_contextMachine.locationString() + ") accepts raw input -- multibyte strings can not be recognized by other finite automata"); // TODO: add the words "will proceed with the first character ('X') instead"
+			base.addTransition(0, Transition(newState, std::make_shared<ByteSymbolGroup>(regex->literal[0], regex->literal[0]), initial));
+		} else {
+			base.addTransition(0, Transition(newState, std::make_shared<LiteralSymbolGroup>(regex->literal), initial));
+		}
 	}
 
-	base.finalStates.insert(prevState);
+	base.finalStates.insert(newState);
 	base.addFinalActions(final);
 
 	return base;

@@ -212,7 +212,8 @@ std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> LiteralSymbolGroup::dis
 }
 
 std::shared_ptr<std::list<SymbolIndex>> LiteralSymbolGroup::retrieveSymbolIndices() const {
-	throw std::exception("retrieveSymbolIndices() called on LiteralSymbolGroup - an invalid call");
+	throw std::exception("retrieveSymbolIndices() called on LiteralSymbolGroup -- an invalid call");
+	// make it into a(n internal) warning and just return an empty list, continuing with execution
 	return std::shared_ptr<std::list<SymbolIndex>>();
 }
 
