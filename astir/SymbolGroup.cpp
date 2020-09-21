@@ -8,7 +8,14 @@
 bool ByteSymbolGroup::equals(const SymbolGroup* rhs) const {
 	const ByteSymbolGroup* rhsCast = dynamic_cast<const ByteSymbolGroup*>(rhs);
 	if (rhsCast == nullptr) {
-		return false;
+		const LiteralSymbolGroup* rhsCastAgain = dynamic_cast<const LiteralSymbolGroup*>(rhs);
+		if (rhsCastAgain == nullptr) {
+			return false;
+		} else {
+			return rhsCastAgain->literal.length() == 1
+				&& rhsCastAgain->literal[0] == this->rangeStart
+				&& rhsCastAgain->literal[0] == this->rangeEnd;
+		}
 	} else {
 		return this->rangeStart == rhsCast->rangeStart && this->rangeEnd == rhsCast->rangeEnd;
 	}
@@ -17,7 +24,14 @@ bool ByteSymbolGroup::equals(const SymbolGroup* rhs) const {
 bool ByteSymbolGroup::disjoint(const SymbolGroup* rhs) const {
 	const ByteSymbolGroup* rhsCast = dynamic_cast<const ByteSymbolGroup*>(rhs);
 	if (rhsCast == nullptr) {
-		return true;
+		const LiteralSymbolGroup* rhsCastAgain = dynamic_cast<const LiteralSymbolGroup*>(rhs);
+		if (rhsCastAgain == nullptr) {
+			return true;
+		} else {
+			return rhsCastAgain->literal.length() != 1
+				|| rhsCastAgain->literal[0] < this->rangeStart
+				|| rhsCastAgain->literal[0] > this->rangeEnd;
+		}
 	} else {
 		return this->rangeStart > rhsCast->rangeEnd || rhsCast->rangeStart > this->rangeEnd;
 	}
@@ -31,7 +45,15 @@ std::list<std::pair<std::shared_ptr<SymbolGroup>, bool >> ByteSymbolGroup::disjo
 	}
 
 	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool >> ret;
-	const ByteSymbolGroup* rhs = dynamic_cast<ByteSymbolGroup*>(rhsUncast.get());
+	const ByteSymbolGroup* rhs;
+	const LiteralSymbolGroup* rhsCastAgain = dynamic_cast<const LiteralSymbolGroup*>(rhsUncast.get());
+	if (rhsCastAgain != nullptr) {
+		// to avoid duplicating code just pretend that you are a ByteSymbolGroup and then don't forget to deallocate before return
+		rhs = new ByteSymbolGroup((CharType)rhsCastAgain->literal[0], (CharType)rhsCastAgain->literal[0]);
+	} else {
+		rhs = dynamic_cast<ByteSymbolGroup*>(rhsUncast.get());
+	}
+
 	if (this->rangeEnd >= rhs->rangeStart) {
 		ComputationCharType mid_beg = std::max(this->rangeStart, rhs->rangeStart);
 		ComputationCharType mid_end = std::min(this->rangeEnd, rhs->rangeEnd);
@@ -56,6 +78,9 @@ std::list<std::pair<std::shared_ptr<SymbolGroup>, bool >> ByteSymbolGroup::disjo
 		}
 	}
 
+	if (rhsCastAgain != nullptr) {
+		delete rhs;
+	}
 	return ret;
 }
 
@@ -150,7 +175,12 @@ SymbolGroupList& SymbolGroupList::operator+=(const SymbolGroupList& rhs) {
 bool LiteralSymbolGroup::equals(const SymbolGroup* rhs) const {
 	const LiteralSymbolGroup* rhsCast = dynamic_cast<const LiteralSymbolGroup*>(rhs);
 	if (rhsCast == nullptr) {
-		return false;
+		const ByteSymbolGroup* rhsCastAsBSG = dynamic_cast<const ByteSymbolGroup*>(rhs);
+		if(rhsCastAsBSG == nullptr) {
+			return false;
+		} else {
+			return rhsCastAsBSG->equals(this);
+		}
 	} else {
 		return this->literal == rhsCast->literal;
 	}
@@ -164,7 +194,20 @@ std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> LiteralSymbolGroup::dis
 	if(equals(rhs.get())) {
 		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>();
 	} else {
-		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhs, true } });
+		ByteSymbolGroup* rhsCastAsBSG = dynamic_cast<ByteSymbolGroup*>(rhs.get());
+		if (rhsCastAsBSG == nullptr || rhsCastAsBSG->disjoint(this)) {
+			return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhs, true } });
+		} else {
+			std::shared_ptr<ByteSymbolGroup> bsg = std::make_shared<ByteSymbolGroup>((CharType)literal[0], (CharType)literal[0]);
+			auto disjoinmentResult = rhsCastAsBSG->disjoinFrom(bsg);
+			for (auto& pair : disjoinmentResult) {
+				pair.second = !pair.second; // flipping sides
+			}
+			this->literal[0] = rhsCastAsBSG->rangeStart; // == bsg->rangeEnd (remember?)
+			rhsCastAsBSG->rangeStart = bsg->rangeStart;
+			rhsCastAsBSG->rangeEnd = bsg->rangeEnd;
+			return disjoinmentResult;
+		}
 	}
 }
 
