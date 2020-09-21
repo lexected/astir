@@ -286,7 +286,7 @@ void CppLLkParserGenerator::visit(const LiteralRegex* regex) {
 }
 
 void CppLLkParserGenerator::visit(const ArbitrarySymbolRegex* regex) {
-	m_output.putln("is.consume();");
+	m_output.putln("is.consume();"); // even with uses machines, this is the intended and correct behaviour!!
 }
 
 void CppLLkParserGenerator::visit(const ReferenceRegex* regex) {

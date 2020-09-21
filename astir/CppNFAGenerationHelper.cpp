@@ -39,7 +39,7 @@ void CppNFAGenerationHelper::generateMechanicsMaps(std::string& stateMap, std::s
 		}
 
 		for (const auto& transition : stateObject.transitions) {
-			auto simpleSymbolGroup = std::dynamic_pointer_cast<SimpleSymbolGroup>(transition.condition);
+			auto simpleSymbolGroup = std::dynamic_pointer_cast<SymbolGroup>(transition.condition);
 			const auto conditionSymbolIndices = simpleSymbolGroup->retrieveSymbolIndices();
 			for (SymbolIndex symbolIndex : *conditionSymbolIndices) {
 				auto offsetMapLine = transitionStateMapLine.begin() + symbolIndex;

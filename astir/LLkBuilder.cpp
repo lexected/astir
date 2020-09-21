@@ -139,7 +139,10 @@ void LLkBuilder::disambiguateDecisionPoints(ILLkNonterminalCPtr first, ILLkNonte
 	}
 
 	// TODO: if both first.transitions and second.transitions contain EndOfGrammarSymbolGroup, we are seeing a fully ambiguous pair of rules
-	
+	// another option is to check at the very end of this function whether both of the above are still empty -- if yes, we have have a fully ambiguous pair of rules as above
+	// maybe don't make it an error but a warning...
+	// furthermore, here, (!firstPoint.transitions.empty() && secondPoint.transitions.empty()) is a potentially permissible ambiguity (longer is parsed first) but (firstPoint.transitions.empty() && !secondPoint.transitions.empty()) is likely to be undesired
+
 	auto firstIterator = firstPoint.transitions.begin();
 	for (; firstIterator != firstPoint.transitions.end(); ++firstIterator) {
 		auto secondIterator = secondPoint.transitions.begin();
@@ -153,6 +156,14 @@ void LLkBuilder::disambiguateDecisionPoints(ILLkNonterminalCPtr first, ILLkNonte
 						secondPoint.transitions.push_back(std::make_shared<LLkTransition>(djPair.first, (*secondIterator)->point));
 					}
 				}
+
+				// the reason for the following line is that the disjoinFrom procedures are written with a NFA building in mind
+				// lhs of disjoinFrom is modified to contain the ovelap of the two non-disjoint conditions (lhs, rhs)
+				// in case of NFAs, we simply need just one copy of that, but here where we are working on two separate decision trees,
+				// the overlap transition needs to be present on the rhs as well as it is a completely separate decision tree
+				auto secondDecisionPoint = (*secondIterator)->point;
+				secondPoint.transitions.push_back(std::make_shared<LLkTransition>((*firstIterator)->condition));
+
 				secondIterator = secondPoint.transitions.erase(secondIterator);
 				if (secondIterator == secondPoint.transitions.end()) {
 					continue;
@@ -161,7 +172,7 @@ void LLkBuilder::disambiguateDecisionPoints(ILLkNonterminalCPtr first, ILLkNonte
 
 				// now, at this point, the challenge is to handle the deeper-level difference
 				prefix.push_back((*firstIterator)->condition); // firstIterator->condition is guaranteed to be modified by the above to be the overlap symbol group
-				disambiguateDecisionPoints(first, second, (*firstIterator)->point, (*secondIterator)->point, prefix);
+				disambiguateDecisionPoints(first, second, (*firstIterator)->point, secondDecisionPoint, prefix);
 				prefix.pop_back();
 			}
 		}
@@ -192,7 +203,7 @@ SymbolGroupList LLkBuilder::lookahead(ILLkFirstableCPtr firstable, const SymbolG
 
 	auto prefixIt = prefix.begin();
 	while (prefixIt != prefix.end()) {
-		const auto& currentLookahead = prefix.front();
+		const auto& currentLookahead = *prefixIt;
 		auto fit = std::find_if(currentDecisionPoint->transitions.begin(), currentDecisionPoint->transitions.end(), [&currentLookahead](const auto& transitionPtr) {
 			return !currentLookahead->disjoint(transitionPtr->condition.get());
 		});
@@ -200,6 +211,7 @@ SymbolGroupList LLkBuilder::lookahead(ILLkFirstableCPtr firstable, const SymbolG
 			if(!currentDecisionPoint->transitions.empty()) {
 				throw SemanticAnalysisException("Unrecognized prefix element sought in the decision point tree");
 			}
+			break;
 		}
 
 		currentDecisionPoint = &(*fit)->point;

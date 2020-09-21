@@ -48,7 +48,7 @@ public:
 
 	void completeCategoryReferences(std::list<std::string> namesEncountered, const std::shared_ptr<AttributedStatement>& attributedStatement, bool mustBeACategory = false) const;
 
-	std::shared_ptr<SymbolGroup> computeArbitrarySymbolGroup() const;
+	SymbolGroupList computeArbitrarySymbolGroupList() const;
 	bool isOnTerminalInput() const { return m_isOnTerminalInput; }
 
 protected:

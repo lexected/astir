@@ -320,12 +320,15 @@ void NFA::calculateDisjointTransitions(std::list<Transition>& transitions) {
     while(it != transitions.end()) {
         auto iit = it;
         ++iit;
-        for (; iit != transitions.end(); ++iit) {
+        for (; iit != transitions.end();) {
             if (iit->equals(*it)) {
                 break;
             } else if (!iit->alignedSymbolWise(*it)) {
                 auto newTransitions = it->disjoinFrom(*iit);
                 transitions.insert(transitions.end(), newTransitions.cbegin(), newTransitions.cend());
+                iit = transitions.erase(iit);
+            } else {
+                ++iit;
             }
         }
 

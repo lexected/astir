@@ -16,12 +16,9 @@ public:
 	virtual bool disjoint(const SymbolGroup* rhs) const = 0;
 	virtual std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) = 0;
 
+	virtual std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const = 0;
 protected:
 	SymbolGroup() = default;
-};
-
-struct SimpleSymbolGroup : public SymbolGroup {
-	virtual std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const = 0;
 };
 
 class SymbolGroupList : public std::list<std::shared_ptr<SymbolGroup>> {
@@ -40,7 +37,7 @@ public:
 	SymbolGroupList& operator+=(const SymbolGroupList& rhs);
 };
 
-struct EmptySymbolGroup : public SimpleSymbolGroup {
+struct EmptySymbolGroup : public SymbolGroup {
 public:
 	EmptySymbolGroup() = default;
 
@@ -52,11 +49,11 @@ public:
 protected:
 };
 
-struct ByteSymbolGroup : public SimpleSymbolGroup {
+struct ByteSymbolGroup : public SymbolGroup {
 	ByteSymbolGroup()
 		: ByteSymbolGroup(0, 0) { }
 	ByteSymbolGroup(CharType rangeStart, CharType rangeEnd)
-		: SimpleSymbolGroup(), rangeStart(rangeStart), rangeEnd(rangeEnd), m_symbolIndicesFlyweight(std::make_shared<std::list<SymbolIndex>>()) { }
+		: SymbolGroup(), rangeStart(rangeStart), rangeEnd(rangeEnd), m_symbolIndicesFlyweight(std::make_shared<std::list<SymbolIndex>>()) { }
 	ByteSymbolGroup(const ByteSymbolGroup& lsg)
 		: ByteSymbolGroup(lsg.rangeStart, lsg.rangeEnd) { }
 
@@ -66,21 +63,6 @@ struct ByteSymbolGroup : public SimpleSymbolGroup {
 
 	CharType rangeStart;
 	CharType rangeEnd;
-
-	std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const override;
-private:
-	std::shared_ptr<std::list<SymbolIndex>> m_symbolIndicesFlyweight;
-};
-
-struct ProductionStatement;
-struct TerminalSymbolGroup : public SimpleSymbolGroup {
-	std::list<const ProductionStatement*> referencedProductions;
-	TerminalSymbolGroup(const std::list<const ProductionStatement*>& referencedProductions)
-		: SimpleSymbolGroup(), referencedProductions(referencedProductions), m_symbolIndicesFlyweight(std::make_shared<std::list<SymbolIndex>>()) { }
-
-	bool equals(const SymbolGroup* rhs) const override;
-	bool disjoint(const SymbolGroup* rhs) const override;
-	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
 
 	std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const override;
 private:
@@ -97,6 +79,8 @@ struct LiteralSymbolGroup : public SymbolGroup {
 	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
 
 	std::string literal;
+
+	std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const override;
 };
 
 struct TypeFormingStatement;
@@ -104,7 +88,7 @@ struct MachineDefinition;
 struct StatementSymbolGroup : public SymbolGroup {
 	StatementSymbolGroup() = default;
 	StatementSymbolGroup(const TypeFormingStatement* statement, const MachineDefinition* statementMachine)
-		: SymbolGroup(), statement(statement), statementMachine(statementMachine) { }
+		: SymbolGroup(), statement(statement), statementMachine(statementMachine), m_symbolIndicesFlyweight(std::make_shared<std::list<SymbolIndex>>()) { }
 
 	bool equals(const SymbolGroup* rhs) const override;
 	bool disjoint(const SymbolGroup* rhs) const override;
@@ -112,4 +96,9 @@ struct StatementSymbolGroup : public SymbolGroup {
 
 	const TypeFormingStatement* statement;
 	const MachineDefinition* statementMachine;
+
+	std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const override;
+
+private:
+	std::shared_ptr<std::list<SymbolIndex>> m_symbolIndicesFlyweight;
 };

@@ -62,6 +62,10 @@ SymbolGroupList LLkFirster::visit(const RepetitiveRegex* rr, const SymbolGroupLi
 		++counter;
 	}
 
+	if (!nextQueueOfPrefixEnds.empty() && counter == rr->maxRepetitions) {
+		ret.push_back(std::make_shared<EmptySymbolGroup>());
+	}
+
 	return ret;
 }
 
@@ -91,7 +95,7 @@ SymbolGroupList LLkFirster::visit(const ConjunctiveRegex* cr, const SymbolGroupL
 			ILLkFirstableCPtr rootRegexAsFirstable = dynamic_cast<ILLkFirstableCPtr>(conjunctionIt->get());
 			auto thisPartsFirst = rootRegexAsFirstable->first(this, currentPrefix);
 			if (thisPartsFirst.containsEmpty()) {
-				nextQueueOfPrefixEnds.emplace_back(currentPrefixPair.second, currentPrefixPair.second);
+				nextQueueOfPrefixEnds.emplace_back(currentPrefixPair.second, currentPrefixPair.second); // yeah, you read me right, second-second
 				thisPartsFirst.removeEmpty();
 			}
 			
@@ -110,6 +114,10 @@ SymbolGroupList LLkFirster::visit(const ConjunctiveRegex* cr, const SymbolGroupL
 			currentQueueOfPrefixEnds.pop_front();
 		}
 		++conjunctionIt;
+	}
+
+	if (!nextQueueOfPrefixEnds.empty() && conjunctionIt == cr->conjunction.cend()) {
+		ret.push_back(std::make_shared<EmptySymbolGroup>());
 	}
 
 	return ret;
@@ -174,7 +182,7 @@ SymbolGroupList LLkFirster::visit(const LiteralRegex* lr, const SymbolGroupList&
 
 SymbolGroupList LLkFirster::visit(const ArbitrarySymbolRegex* asr, const SymbolGroupList& prefix) {
 	if (prefix.empty()) {
-		return SymbolGroupList({ m_machine.computeArbitrarySymbolGroup() });
+		return m_machine.computeArbitrarySymbolGroupList();
 	} else if (prefix.size() == 1) {
 		return SymbolGroupList({ std::make_shared<EmptySymbolGroup>()  });
 	} else {

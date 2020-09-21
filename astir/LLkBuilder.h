@@ -72,6 +72,7 @@ public:
 	LLkDecisionPoint getDecisionTree(ILLkFirstableCPtr firstable);
 
 	const MachineDefinition& contextMachine() const { return m_contextMachine; }
+	LLkFirster& firster() { return m_firster; }
 	const std::map<ILLkNonterminalCPtr, LLkFlyweight>& flyweights() const { return m_flyweights; }
 private:
 	const unsigned long m_k;

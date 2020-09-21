@@ -241,17 +241,16 @@ void MachineDefinition::completeCategoryReferences(std::list<std::string> namesE
 	namesEncountered.pop_back();
 }
 
-std::shared_ptr<SymbolGroup> MachineDefinition::computeArbitrarySymbolGroup() const {
+SymbolGroupList MachineDefinition::computeArbitrarySymbolGroupList() const {
+	SymbolGroupList ret;
 	if (on.second) {
-		if(on.second->hasPurelyTerminalRoots()) {
-			return std::make_shared<TerminalSymbolGroup>(on.second->getUnderlyingProductionsOfRoots());
-		} else {
-			// return std::make_shared<StatementSymbolGroup>(on.second->getRoots());
-			// TODO: sort this out when the merge of TerminalSymbolGroup and StatementSymbolGroup has been done
+		for (const auto& root : this->getRoots()) {
+			ret.push_back(std::make_shared<StatementSymbolGroup>(root.get(), on.second.get()));
 		}
 	} else {
-		return std::make_shared<ByteSymbolGroup>((CharType)0, (CharType)255);
+		ret.push_back(std::make_shared<ByteSymbolGroup>((CharType)0, (CharType)255));
 	}
+	return ret;
 }
 
 MachineDefinition::MachineDefinition(const std::map<MachineFlag, MachineDefinitionAttribute>& attributes)

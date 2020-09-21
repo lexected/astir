@@ -29,6 +29,7 @@ public:
 
 	std::string parsingDeclarations() const;
 	std::string parsingDefinitions() const { return m_output.str(); }
+
 private:
 	void handleTypeFormingPreamble(const std::string& typeName);
 	void handleTypeFormingPostamble();

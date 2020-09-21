@@ -93,80 +93,6 @@ std::shared_ptr<std::list<SymbolIndex>> EmptySymbolGroup::retrieveSymbolIndices(
 	return std::shared_ptr<std::list<SymbolIndex>>();
 }
 
-bool TerminalSymbolGroup::equals(const SymbolGroup* rhs) const {
-	const TerminalSymbolGroup* rhsCast = dynamic_cast<const TerminalSymbolGroup*>(rhs);
-	if (rhsCast == nullptr) {
-		return false;
-	} else {
-		return this->referencedProductions == rhsCast->referencedProductions;
-	}
-}
-
-bool TerminalSymbolGroup::disjoint(const SymbolGroup* rhs) const {
-	const TerminalSymbolGroup* rhsCast = dynamic_cast<const TerminalSymbolGroup*>(rhs);
-	if (rhsCast == nullptr) {
-		return true;
-	} else {
-		for (const auto referencedComponentPtr : referencedProductions) {
-			auto fit = std::find_if(rhsCast->referencedProductions.cbegin(), rhsCast->referencedProductions.cend(), [referencedComponentPtr](const MachineStatement* rhsComponentPtr) {
-				return referencedComponentPtr->name == rhsComponentPtr->name;
-				});
-			if (fit != rhsCast->referencedProductions.cend()) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-}
-
-std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> TerminalSymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhsUncast) {
-	if (rhsUncast->equals(this)) {
-		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>();
-	}
-
-	const TerminalSymbolGroup* rhs = dynamic_cast<const TerminalSymbolGroup*>(rhsUncast.get());
-	if (rhs == nullptr) {
-		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhsUncast, true } });
-	}
-
-	std::list<const ProductionStatement*> sharedComponents;
-	std::list<const ProductionStatement*> excludedComponents;
-	for (auto it = referencedProductions.begin(); it != referencedProductions.end(); ) {
-		auto fit = std::find_if(rhs->referencedProductions.cbegin(), rhs->referencedProductions.cend(), [it](const ProductionStatement* rhsComponentPtr) {
-			return (*it)->name == rhsComponentPtr->name;
-			});
-		if (fit != rhs->referencedProductions.cend()) {
-			sharedComponents.push_back(*fit);
-			it = referencedProductions.erase(it);
-		} else {
-			excludedComponents.push_back(*fit);
-			++it;
-		}
-	}
-
-	if (sharedComponents.empty()) {
-		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhsUncast, true } });
-	} else {
-		std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> ret;
-		ret.emplace_back(std::make_shared<TerminalSymbolGroup>(sharedComponents), false);
-		ret.emplace_back(std::make_shared<TerminalSymbolGroup>(sharedComponents), true);
-		ret.emplace_back(std::make_shared<TerminalSymbolGroup>(excludedComponents), true);
-
-		return ret;
-	}
-}
-
-std::shared_ptr<std::list<SymbolIndex>> TerminalSymbolGroup::retrieveSymbolIndices() const {
-	if (m_symbolIndicesFlyweight->empty()) {
-		for (const ProductionStatement* referencedComponentPtr : referencedProductions) {
-			m_symbolIndicesFlyweight->push_back(referencedComponentPtr->terminalTypeIndex);
-		}
-	}
-
-	return m_symbolIndicesFlyweight;
-}
-
 bool SymbolGroupList::contains(const std::shared_ptr<SymbolGroup>& symbolGroupPtr) const {
 	for (const auto& elementPtr : *this) {
 		if (elementPtr == symbolGroupPtr) {
@@ -242,6 +168,11 @@ std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> LiteralSymbolGroup::dis
 	}
 }
 
+std::shared_ptr<std::list<SymbolIndex>> LiteralSymbolGroup::retrieveSymbolIndices() const {
+	throw std::exception("retrieveSymbolIndices() called on LiteralSymbolGroup - an invalid call");
+	return std::shared_ptr<std::list<SymbolIndex>>();
+}
+
 bool StatementSymbolGroup::equals(const SymbolGroup* rhs) const {
 	const StatementSymbolGroup* ssgPtr = dynamic_cast<const StatementSymbolGroup*>(rhs);
 	if (ssgPtr == nullptr) {
@@ -256,28 +187,28 @@ bool StatementSymbolGroup::disjoint(const SymbolGroup* rhs) const {
 		return false;
 	}
 
-	const StatementSymbolGroup* ssg = dynamic_cast<const StatementSymbolGroup*>(rhs);
-	if (ssg == nullptr) {
+	const StatementSymbolGroup* rhsAsStatementSymbolGroup = dynamic_cast<const StatementSymbolGroup*>(rhs);
+	if (rhsAsStatementSymbolGroup == nullptr) {
 		return true;
 	}
 
-	if (this->statement == ssg->statement) {
+	if (this->statement == rhsAsStatementSymbolGroup->statement) {
 		return false;
 	}
 
-	const CategoryStatement* cs = dynamic_cast<const CategoryStatement*>(ssg->statement);
-	if (cs != nullptr) {
-		if (cs->categoricallyRefersTo(this->statement)) {
+	const CategoryStatement* rhsStatementAsCategoryStatement = dynamic_cast<const CategoryStatement*>(rhsAsStatementSymbolGroup->statement);
+	if (rhsStatementAsCategoryStatement != nullptr) {
+		if (rhsStatementAsCategoryStatement->categoricallyRefersTo(this->statement)) {
 			return false;
 		}
 	}
 
-	const CategoryStatement* thisCs = dynamic_cast<const CategoryStatement*>(statement);
-	if (thisCs == nullptr) {
+	const CategoryStatement* thisStatementAsCategoryStatement = dynamic_cast<const CategoryStatement*>(statement);
+	if (thisStatementAsCategoryStatement == nullptr) {
 		return true;
 	}
 
-	if (thisCs->categoricallyRefersTo(ssg->statement)) {
+	if (thisStatementAsCategoryStatement->categoricallyRefersTo(rhsAsStatementSymbolGroup->statement)) {
 		return false;
 	}
 
@@ -285,47 +216,62 @@ bool StatementSymbolGroup::disjoint(const SymbolGroup* rhs) const {
 }
 
 std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> StatementSymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) {
-	if (rhs.get() == this) {
+	if (rhs.get() == this || equals(rhs.get())) {
+		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>();
+	}
+
+	const StatementSymbolGroup* rhsAsStatementSymbolGroup = dynamic_cast<const StatementSymbolGroup*>(rhs.get());
+	if (rhsAsStatementSymbolGroup == nullptr) {
 		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhs, true } });
 	}
 
-	const StatementSymbolGroup* ssg = dynamic_cast<const StatementSymbolGroup*>(rhs.get());
-	if (ssg == nullptr) {
-		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhs, true } });
-	}
-
-	const CategoryStatement* cs = dynamic_cast<const CategoryStatement*>(ssg->statement);
-	if (cs != nullptr) {
-		std::set<const AttributedStatement*> disjoined = cs->unpickReferal(statement);
+	const CategoryStatement* rhsStatementAsCategoryStatement = dynamic_cast<const CategoryStatement*>(rhsAsStatementSymbolGroup->statement);
+	if (rhsStatementAsCategoryStatement != nullptr) {
+		std::set<const AttributedStatement*> disjoined = rhsStatementAsCategoryStatement->unpickReferal(statement);
 		std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> ret;
 		for (const AttributedStatement* as : disjoined) {
 			auto asAsTypeForming = dynamic_cast<const TypeFormingStatement*>(as);
 			if (asAsTypeForming != nullptr) {
-				ret.emplace_back(std::make_shared<StatementSymbolGroup>(asAsTypeForming, ssg->statementMachine), true); // comes from rhs, hence true
+				ret.emplace_back(std::make_shared<StatementSymbolGroup>(asAsTypeForming, rhsAsStatementSymbolGroup->statementMachine), true); // comes from rhs, hence true
 			}
 		}
+
 		return ret;
 	}
 
-	const CategoryStatement* thisCs = dynamic_cast<const CategoryStatement*>(statement);
-	if (thisCs == nullptr) {
+	const CategoryStatement* thisStatementAsCategoryStatement = dynamic_cast<const CategoryStatement*>(statement);
+	if (thisStatementAsCategoryStatement == nullptr) {
 		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhs, true } });
 	}
 
-	if (thisCs->categoricallyRefersTo(ssg->statement)) {
-		std::set<const AttributedStatement*> disjoined = thisCs->unpickReferal(ssg->statement);
-		this->statement = ssg->statement;
-		this->statementMachine = ssg->statementMachine;
+	if (thisStatementAsCategoryStatement->categoricallyRefersTo(rhsAsStatementSymbolGroup->statement)) {
+		std::set<const AttributedStatement*> disjoinment = thisStatementAsCategoryStatement->unpickReferal(rhsAsStatementSymbolGroup->statement);
+		this->statement = rhsAsStatementSymbolGroup->statement;
+		this->statementMachine = rhsAsStatementSymbolGroup->statementMachine;
 
 		std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> ret;
-		for (const AttributedStatement* as : disjoined) {
+		for (const AttributedStatement* as : disjoinment) {
 			auto asAsTypeForming = dynamic_cast<const TypeFormingStatement*>(as);
 			if (asAsTypeForming != nullptr) {
-				ret.emplace_back(std::make_shared<StatementSymbolGroup>(asAsTypeForming, ssg->statementMachine), false); // comes from lhs, hence false
+				ret.emplace_back(std::make_shared<StatementSymbolGroup>(asAsTypeForming, rhsAsStatementSymbolGroup->statementMachine), false); // comes from lhs, hence false
 			}
 		}
 		return ret;
 	}
 
 	return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhs, true } });
+}
+
+std::shared_ptr<std::list<SymbolIndex>> StatementSymbolGroup::retrieveSymbolIndices() const {
+	if (m_symbolIndicesFlyweight->empty()) {
+		auto referencedProductions = statement->calculateInstandingProductions();
+		for (const ProductionStatement* referencedComponentPtr : referencedProductions) {
+			if (referencedComponentPtr->terminality != Terminality::Terminal) {
+				throw std::exception("Calling retrieveSymbolIndices on at least partially non-terminal statement");
+			}
+			m_symbolIndicesFlyweight->push_back(referencedComponentPtr->terminalTypeIndex);
+		}
+	}
+
+	return m_symbolIndicesFlyweight;
 }

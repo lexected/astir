@@ -49,6 +49,7 @@ protected:
 };
 
 struct CategoryStatement;
+struct ProductionStatement;
 struct AttributedStatement : public virtual MachineStatement {
 	std::map<std::string, std::shared_ptr<CategoryStatement>> categories;
 	std::list<std::shared_ptr<Field>> fields;

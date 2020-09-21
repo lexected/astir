@@ -259,7 +259,9 @@ NFA NFABuilder::visit(const ArbitrarySymbolRegex* regex) const {
 	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
 	auto newState = base.addState();
-	base.addTransition(0, Transition(newState, m_contextMachine.computeArbitrarySymbolGroup(), initial));
+	for (const auto& sg : m_contextMachine.computeArbitrarySymbolGroupList()) {
+		base.addTransition(0, Transition(newState, sg, initial));
+	}
 	base.finalStates.insert(newState);
 	base.addFinalActions(final);
 
@@ -287,8 +289,8 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 	} else {
 		NFAActionRegister initial, final;
 		std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
-		auto attributedStatement = std::dynamic_pointer_cast<AttributedStatement>(statement);
-		base.addTransition(0, Transition(newBaseState, std::make_shared<TerminalSymbolGroup>(attributedStatement->calculateInstandingProductions()), initial));
+		auto typeFormingStatement = std::dynamic_pointer_cast<TypeFormingStatement>(statement);
+		base.addTransition(0, Transition(newBaseState, std::make_shared<StatementSymbolGroup>(typeFormingStatement.get(), regex->referenceStatementMachine), initial));
 		base.addFinalActions(final);
 	}
 

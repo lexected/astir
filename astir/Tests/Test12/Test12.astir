@@ -1,0 +1,59 @@
+// Test12 - test for the disjoinFrom (unpickReferal) procedures on category hierarchies
+
+LL(1) parser CategoricalParser {
+    category TopLevelCategory;
+    category MidLevelCategory : TopLevelCategory;
+
+    A : MidLevelCategory = '0';
+    B : MidLevelCategory = '1';
+    C : MidLevelCategory = '2';
+    D : TopLevelCategory = '3';
+    E : TopLevelCategory = '4';
+    F : TopLevelCategory = '5';
+
+    root TestA = 
+        TopLevelCategory 'X'
+        | F 'Y'
+        ;
+    
+    root TestB = 
+        TopLevelCategory 'X'
+        | A 'Y'
+        ;
+    
+    root TestC = 
+        TopLevelCategory 'X'
+        | MidLevelCategory 'Y'
+        ;
+
+    root TestD = 
+        TopLevelCategory 'X'
+        | MidLevelCategory 'Y'
+        | B 'Z'
+        ;
+
+    root TestE = 
+        MidLevelCategory 'X'
+        | C 'Y'
+        ;
+
+    root TestF = 
+        MidLevelCategory 'X'
+        | E 'Y'
+        ;
+}
+
+/*
+// A Simplified version for debugging
+LL(1) parser CategoricalParser {
+    category TopLevelCategory;
+    category MidLevelCategory : TopLevelCategory;
+
+    A : MidLevelCategory = '0';
+    F : TopLevelCategory = '5';
+
+    root TestA = 
+        TopLevelCategory 'X'
+        | F 'Y'
+        ;
+}*/
