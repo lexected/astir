@@ -3,9 +3,10 @@
 #include "SemanticAnalysisException.h"
 
 #include <algorithm>
+#include "LLkParserDefinition.h"
 
-LLkBuilder::LLkBuilder(unsigned long k, const MachineDefinition& context)
-	: m_k(k), m_contextMachine(context), m_firster(context) {}
+LLkBuilder::LLkBuilder(const LLkParserDefinition* context)
+	: m_contextMachine(context), m_firster(context) {}
 
 void LLkBuilder::visitRootDisjunction(const std::list<std::shared_ptr<TypeFormingStatement>>& rootDisjunction) {
 	std::list<ILLkNonterminalCPtr> disjunction;
@@ -65,7 +66,7 @@ void LLkBuilder::visit(const ConjunctiveRegex* regex) {
 		conjunctionBits.push_front(firstablePtr);
 
 		const ReferenceRegex* referenceRegexPtr = dynamic_cast<const ReferenceRegex*>(rootRegex.get());
-		if(referenceRegexPtr != nullptr && referenceRegexPtr->referenceStatementMachine == &m_contextMachine) {
+		if(referenceRegexPtr != nullptr && referenceRegexPtr->referenceStatementMachine == m_contextMachine) {
 			ILLkNonterminalCPtr nonterminalPtr = referenceRegexPtr->referenceStatement;
 			registerContextAppearance(nonterminalPtr, regex, conjunctionBits);
 		}
@@ -189,8 +190,8 @@ void LLkBuilder::fillDisambiguationParent(ILLkNonterminalCPtr parent, const std:
 }
 
 SymbolGroupList LLkBuilder::lookahead(ILLkFirstableCPtr firstable, const SymbolGroupList& prefix) {
-	if (prefix.size() >= m_k) {
-		throw SemanticAnalysisException("Lookahead of " + std::to_string(m_k) + " is insufficient, need to look further ahead");
+	if (prefix.size() >= m_contextMachine->k()) {
+		throw SemanticAnalysisException("Lookahead of " + std::to_string(m_contextMachine->k()) + " is insufficient, need to look further ahead");
 	}
 
 	auto nonterminal = dynamic_cast<ILLkNonterminalCPtr>(firstable);
@@ -208,9 +209,11 @@ SymbolGroupList LLkBuilder::lookahead(ILLkFirstableCPtr firstable, const SymbolG
 			return !currentLookahead->disjoint(transitionPtr->condition.get());
 		});
 		if (fit == currentDecisionPoint->transitions.end()) {
+			/*
+			The reason you don't want to throw this exception is that it breaks if some decision trees haven't yet been fully contextually filled in
 			if(!currentDecisionPoint->transitions.empty()) {
 				throw SemanticAnalysisException("Unrecognized prefix element sought in the decision point tree");
-			}
+			}*/
 			break;
 		}
 

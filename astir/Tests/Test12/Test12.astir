@@ -1,45 +1,45 @@
 // Test12 - test for the disjoinFrom (unpickReferal) procedures on category hierarchies
 
-LL(1) parser CategoricalParser {
+LL(3) parser CategoricalParser {
     category TopLevelCategory;
     category MidLevelCategory : TopLevelCategory;
 
-    A : MidLevelCategory = '0';
-    B : MidLevelCategory = '1';
-    C : MidLevelCategory = '2';
-    D : TopLevelCategory = '3';
-    E : TopLevelCategory = '4';
-    F : TopLevelCategory = '5';
+    a : MidLevelCategory = '0';
+    b : MidLevelCategory = '1';
+    c : MidLevelCategory = '2';
+    d : TopLevelCategory = '3';
+    e : TopLevelCategory = '4';
+    f : TopLevelCategory = '5';
 
     root TestA = 
-        TopLevelCategory 'X'
-        | F 'Y'
+        TopLevelCategory 'X' 'A'
+        | f 'Y' 'A'
         ;
     
     root TestB = 
-        TopLevelCategory 'X'
-        | A 'Y'
+        TopLevelCategory 'X' 'B'
+        | a 'Y' 'B'
         ;
     
     root TestC = 
-        TopLevelCategory 'X'
-        | MidLevelCategory 'Y'
+        TopLevelCategory 'X' 'C'
+        | MidLevelCategory 'Y' 'C'
         ;
 
     root TestD = 
-        TopLevelCategory 'X'
-        | MidLevelCategory 'Y'
-        | B 'Z'
+        TopLevelCategory 'X' 'D'
+        | MidLevelCategory 'Y' 'D'
+        | b 'Z' 'D'
         ;
 
     root TestE = 
-        MidLevelCategory 'X'
-        | C 'Y'
+        MidLevelCategory 'X' 'E'
+        | c 'Y' 'E'
         ;
 
     root TestF = 
-        MidLevelCategory 'X'
-        | E 'Y'
+        MidLevelCategory 'X' 'F'
+        | e 'Y' 'F'
         ;
 }
 

@@ -6,9 +6,10 @@
 #include "MachineStatement.h"
 #include "Regex.h"
 
+struct LLkParserDefinition;
 class LLkFirster {
 public:
-	LLkFirster(const MachineDefinition& machine);
+	LLkFirster(const LLkParserDefinition* machine);
 
 	SymbolGroupList visit(const CategoryStatement* cs, const SymbolGroupList& prefix);
 	SymbolGroupList visit(const RuleStatement* rs, const SymbolGroupList& prefix);
@@ -25,6 +26,6 @@ public:
 	SymbolGroupList visit(const ArbitrarySymbolRegex* asr, const SymbolGroupList& prefix);
 
 private:
-	const MachineDefinition& m_machine;
+	const LLkParserDefinition* m_machine;
 };
 

@@ -201,8 +201,6 @@ std::unique_ptr<MachineDefinition> SyntacticAnalyzer::parseMachineType(std::list
 
 		return faDef;
 	} else if (it->type == TokenType::KW_LL) {
-		std::unique_ptr<LLkParserDefinition> llDef = std::make_unique<LLkParserDefinition>();
-		llDef->copyLocation(*savedIt);
 		++it;
 
 		if (it->type != TokenType::PAR_LEFT) {
@@ -213,6 +211,9 @@ std::unique_ptr<MachineDefinition> SyntacticAnalyzer::parseMachineType(std::list
 		if (it->type != TokenType::NUMBER) {
 			throw UnexpectedTokenException(*it, "a positive integer (k)", "for LL(k) parser declaration", *savedIt);
 		}
+		unsigned long k = std::stoul(it->string);
+		std::unique_ptr<LLkParserDefinition> llDef = std::make_unique<LLkParserDefinition>(k);
+		llDef->copyLocation(*savedIt);
 		++it;
 
 		if (it->type != TokenType::PAR_RIGHT) {

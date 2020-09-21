@@ -22,7 +22,7 @@ void CppLLkParserGenerator::visitRootDisjunction(const std::list<std::shared_ptr
 
 	// definition preamble
 	m_output.put("std::shared_ptr<OutputProduction> ");
-	m_output << m_builder.contextMachine().name << "::parse_root(InputStream & is) {" << std::endl;
+	m_output << m_builder.contextMachine()->name << "::parse_root(InputStream & is) {" << std::endl;
 	m_output.increaseIndentation();
 	m_output.putln("auto productionStartLocation = is.peek(0)->location()->clone();");
 	m_output.putln("size_t cumulativePeekCorrection = 0;");
@@ -290,9 +290,9 @@ void CppLLkParserGenerator::visit(const ArbitrarySymbolRegex* regex) {
 }
 
 void CppLLkParserGenerator::visit(const ReferenceRegex* regex) {
-	if (regex->referenceStatementMachine == &m_builder.contextMachine()) {
+	if (regex->referenceStatementMachine == m_builder.contextMachine()) {
 		m_output.putln("parse_" + regex->referenceName + "(is);");
-	} else if (regex->referenceStatementMachine != m_builder.contextMachine().on.second.get()) {
+	} else if (regex->referenceStatementMachine != m_builder.contextMachine()->on.second.get()) {
 		// i.e. if this comes from a "uses" machine
 		m_output.putln("m_" + regex->referenceStatementMachine->name + ".consume(is);");
 	} else {
@@ -312,7 +312,7 @@ std::string CppLLkParserGenerator::parsingDeclarations() const {
 
 void CppLLkParserGenerator::handleTypeFormingPreamble(const std::string& typeName) {
 	m_output.put("std::shared_ptr<");
-	m_output << typeName << "> " << m_builder.contextMachine().name << "::parse_" << typeName << "(InputStream& is) {" << std::endl;
+	m_output << typeName << "> " << m_builder.contextMachine()->name << "::parse_" << typeName << "(InputStream& is) {" << std::endl;
 	m_output.increaseIndentation();
 	m_output.putln("auto productionStartLocation = is.peek(0)->location()->clone();");
 	m_output.putln("size_t cumulativePeekCorrection = 0;");
@@ -406,13 +406,13 @@ std::string CppLLkParserGenerator::makeCondition(const std::shared_ptr<SymbolGro
 
 	const StatementSymbolGroup* ssgPtr = dynamic_cast<const StatementSymbolGroup*>(rawPtr);
 	if (ssgPtr != nullptr) {
-		if (ssgPtr->statementMachine == this->m_builder.contextMachine().on.second.get()) {
+		if (ssgPtr->statementMachine == this->m_builder.contextMachine()->on.second.get()) {
 			// the input comes from "on"
-			output << "std::dynamic_pointer_cast<" << (ssgPtr->statementMachine != &m_builder.contextMachine() ? ssgPtr->statementMachine->name + "::" : "") << ssgPtr->statement->name << ">(is.peek(cumulativePeekCorrection+" << depth << "))";
+			output << "std::dynamic_pointer_cast<" << (ssgPtr->statementMachine != m_builder.contextMachine() ? ssgPtr->statementMachine->name + "::" : "") << ssgPtr->statement->name << ">(is.peek(cumulativePeekCorrection+" << depth << "))";
 		} else {
 			// the input comes from an "uses" machine
 			output << "m_" << ssgPtr->statementMachine->name << ".peekCast<";
-			output << (ssgPtr->statementMachine != &m_builder.contextMachine() ? ssgPtr->statementMachine->name + "::" : "");
+			output << (ssgPtr->statementMachine != m_builder.contextMachine() ? ssgPtr->statementMachine->name + "::" : "");
 			output << ssgPtr->statement->name << ">(is, cumulativePeekCorrection+" << depth << ", cumulativePeekCorrection)";
 			postamble = "m_" + ssgPtr->statementMachine->name + ".unpeekIfApplicable(is, cumulativePeekCorrection)";
 		}

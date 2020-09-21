@@ -1,6 +1,13 @@
 #include "LLkParserDefinition.h"
 #include "GenerationVisitor.h"
 
+LLkParserDefinition::LLkParserDefinition(unsigned long k)
+	: MachineDefinition({
+				{ MachineFlag::ProductionsTerminalByDefault, MachineDefinitionAttribute(false) },
+				{ MachineFlag::ProductionsRootByDefault, MachineDefinitionAttribute(false) },
+				{ MachineFlag::CategoriesRootByDefault, MachineDefinitionAttribute(false) },
+	}), m_builder(std::make_unique<LLkBuilder>(this)), m_k(k) { }
+
 void LLkParserDefinition::initialize() {
 	if (initialized()) { // really necessary
 		return;

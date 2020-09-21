@@ -47,9 +47,10 @@ struct LLkFlyweight {
 	LLkDecisionPoint decisions;
 };
 
+struct LLkParserDefinition;
 class LLkBuilder {
 public:
-	LLkBuilder(unsigned long k, const MachineDefinition& context);
+	LLkBuilder(const LLkParserDefinition* context);
 
 	void visitRootDisjunction(const std::list<std::shared_ptr<TypeFormingStatement>>& rootDisjunction);
 
@@ -71,12 +72,12 @@ public:
 
 	LLkDecisionPoint getDecisionTree(ILLkFirstableCPtr firstable);
 
-	const MachineDefinition& contextMachine() const { return m_contextMachine; }
+	const LLkParserDefinition* contextMachine() const { return m_contextMachine; }
 	LLkFirster& firster() { return m_firster; }
 	const std::map<ILLkNonterminalCPtr, LLkFlyweight>& flyweights() const { return m_flyweights; }
+
 private:
-	const unsigned long m_k;
-	const MachineDefinition& m_contextMachine;
+	const LLkParserDefinition* m_contextMachine;
 	std::map<ILLkNonterminalCPtr, LLkFlyweight> m_flyweights;
 	LLkFirster m_firster;
 

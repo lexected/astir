@@ -3,8 +3,9 @@
 #include "LLkBuilder.h"
 #include <queue>
 #include "SemanticAnalysisException.h"
+#include "LLkParserDefinition.h"
 
-LLkFirster::LLkFirster(const MachineDefinition& machine)
+LLkFirster::LLkFirster(const LLkParserDefinition* machine)
 	: m_machine(machine) { }
 
 SymbolGroupList LLkFirster::visit(const CategoryStatement* cs, const SymbolGroupList& prefix) {
@@ -132,7 +133,7 @@ SymbolGroupList LLkFirster::visit(const EmptyRegex* er, const SymbolGroupList& p
 }
 
 SymbolGroupList LLkFirster::visit(const ReferenceRegex* rr, const SymbolGroupList& prefix) {
-	if (rr->referenceStatementMachine == &this->m_machine) {
+	if (rr->referenceStatementMachine == this->m_machine) {
 		return rr->referenceStatement->first(this, prefix);
 	} else {
 		if (prefix.empty()) {
@@ -167,8 +168,8 @@ SymbolGroupList LLkFirster::visit(const ExceptAnyRegex* ar, const SymbolGroupLis
 }
 
 SymbolGroupList LLkFirster::visit(const LiteralRegex* lr, const SymbolGroupList& prefix) {
-	if (!m_machine.isOnTerminalInput()) {
-		throw SemanticAnalysisException("Attemtping to capture the literal '" + lr->literal + "' at " + lr->locationString() + " within the context of machine '" + m_machine.name + "' that may see non-terminal productions on its input ('" + m_machine.name + "' is on '" + m_machine.on.second->name + "')");
+	if (!m_machine->isOnTerminalInput()) {
+		throw SemanticAnalysisException("Attemtping to capture the literal '" + lr->literal + "' at " + lr->locationString() + " within the context of machine '" + m_machine->name + "' that may see non-terminal productions on its input ('" + m_machine->name + "' is on '" + m_machine->on.second->name + "')");
 	}
 
 	if (prefix.empty()) {
@@ -182,7 +183,7 @@ SymbolGroupList LLkFirster::visit(const LiteralRegex* lr, const SymbolGroupList&
 
 SymbolGroupList LLkFirster::visit(const ArbitrarySymbolRegex* asr, const SymbolGroupList& prefix) {
 	if (prefix.empty()) {
-		return m_machine.computeArbitrarySymbolGroupList();
+		return m_machine->computeArbitrarySymbolGroupList();
 	} else if (prefix.size() == 1) {
 		return SymbolGroupList({ std::make_shared<EmptySymbolGroup>()  });
 	} else {

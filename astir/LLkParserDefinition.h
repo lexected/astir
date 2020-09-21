@@ -9,18 +9,15 @@
 #include <memory>
 
 struct LLkParserDefinition : public MachineDefinition {
-	LLkParserDefinition()
-		: MachineDefinition({
-				{ MachineFlag::ProductionsTerminalByDefault, MachineDefinitionAttribute(false) },
-				{ MachineFlag::ProductionsRootByDefault, MachineDefinitionAttribute(false) },
-				{ MachineFlag::CategoriesRootByDefault, MachineDefinitionAttribute(false) },
-			}), m_builder(std::make_unique<LLkBuilder>(10, *this)) { }
+	LLkParserDefinition(unsigned long k);
 
 	void initialize() override;
 
 	void accept(GenerationVisitor* visitor) const override;
 
 	LLkBuilder& builder() const { return *m_builder; }
+	unsigned long k() const { return m_k; }
 private:
+	unsigned long m_k;
 	std::unique_ptr<LLkBuilder> m_builder;
 };
