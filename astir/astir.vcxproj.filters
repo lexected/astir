@@ -344,6 +344,12 @@
     <ClInclude Include="Resources\Machine.h">
       <Filter>Resource Files\Resources</Filter>
     </ClInclude>
+    <ClInclude Include="Resources\Parser.h">
+      <Filter>Resource Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Exception.h">
+      <Filter>Resource Files\Resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Grammar.astir">

@@ -6,15 +6,15 @@
 #include "Location.h"
 #include "Production.h"
 #include "Terminal.h"
+#include "Exception.h"
 
 #include <stack>
-#include <exception>
 
-class ProductionStreamException : public std::exception {
+class ProductionStreamException : public Exception {
 public:
 	ProductionStreamException() = default;
 	ProductionStreamException(const std::string& message)
-		: std::exception(message.c_str()) { }
+		: Exception(message) { }
 };
 
 template <class ProductionType>

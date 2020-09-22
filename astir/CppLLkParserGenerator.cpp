@@ -14,7 +14,7 @@ void CppLLkParserGenerator::visitTypeFormingStatements(const std::list<std::shar
 }
 
 void CppLLkParserGenerator::visitRootDisjunction(const std::list<std::shared_ptr<TypeFormingStatement>>& rootDisjunction) {
-	m_declarations.push_back("std::shared_ptr<OutputProduction> parse_root(InputStream& is);");
+	m_declarations.push_back("std::shared_ptr<OutputProduction> parse_root(InputStream& is) override;");
 
 	// definition preamble
 	m_output.put("std::shared_ptr<OutputProduction> ");

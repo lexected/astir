@@ -18,12 +18,14 @@ void CppGenerationVisitor::setup() const {
 		std::filesystem::create_directory(m_folderPath);
 	}
 	
+	std::filesystem::copy_file("Resources/Exception.h", m_folderPath / "Exception.h", std::filesystem::copy_options::overwrite_existing);
 	std::filesystem::copy_file("Resources/Location.h", m_folderPath / "Location.h", std::filesystem::copy_options::overwrite_existing);
 	std::filesystem::copy_file("Resources/Location.cpp", m_folderPath / "Location.cpp", std::filesystem::copy_options::overwrite_existing);
 	std::filesystem::copy_file("Resources/Production.h", m_folderPath / "Production.h", std::filesystem::copy_options::overwrite_existing);
 	std::filesystem::copy_file("Resources/Terminal.h", m_folderPath / "Terminal.h", std::filesystem::copy_options::overwrite_existing);
 	std::filesystem::copy_file("Resources/ProductionStream.h", m_folderPath / "ProductionStream.h", std::filesystem::copy_options::overwrite_existing);
 	std::filesystem::copy_file("Resources/Machine.h", m_folderPath / "Machine.h", std::filesystem::copy_options::overwrite_existing);
+	std::filesystem::copy_file("Resources/Parser.h", m_folderPath / "Parser.h", std::filesystem::copy_options::overwrite_existing);
 }
 
 void CppGenerationVisitor::visit(const SyntacticTree* tree) {

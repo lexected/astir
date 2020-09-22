@@ -12,7 +12,7 @@
 
 // general dependencies
 #include "Terminal.h"
-#include "Machine.h"
+#include "Parser.h"
 
 // particular dependencies
 ${{DependencyHeaderIncludes}}
@@ -55,34 +55,11 @@ namespace ${{MachineName}} {
 	typedef ${{InputTypeName}} InputType;
 	typedef std::shared_ptr<${{InputTypeName}}> InputTypePtr;
 
-	class Exception : public std::exception {
+	class ${{MachineName}} : public Parser<InputStream, OutputProduction> {
 	public:
-		Exception(const std::string& message)
-			: std::exception(message.c_str()) {}
-		virtual ~Exception() = default;
-	};
+		${{MachineName}}() = default;
 
-	class ${{MachineName}} : public Machine<InputStream, OutputProduction> {
-	public:
-		${{MachineName}}()
-			: m_lastApplicationSuccessful(false), m_lastException(nullptr) { }
-
-		std::shared_ptr<OutputProduction> apply(InputStream& rs) override;
-
-		std::shared_ptr<OutputProduction> parse(InputStream& rs);
-		std::shared_ptr<OutputProduction> parseWithIgnorance(InputStream& rs);
-		std::list<std::shared_ptr<OutputProduction>> parseStream(InputStream& rs);
-		std::list<std::shared_ptr<OutputProduction>> parseStreamWithIgnorance(InputStream& rs);
-
-		bool lastApplicationSuccessful() const override { return m_lastApplicationSuccessful; }
-		void reset() override;
-		std::string lastError() const;
-		
-	private:
-		bool m_lastApplicationSuccessful;
-		std::unique_ptr<Exception> m_lastException;
-		void error(const std::string& message) const;
-
+	protected:
 		// helper methods
 		${{CombineRawDeclaration}}
 		

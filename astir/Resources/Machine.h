@@ -4,6 +4,15 @@
 #include <list>
 #include <map>
 
+#include "Exception.h"
+
+class MachineException : public Exception {
+public:
+	MachineException() = default;
+	MachineException(const std::string& message)
+		: Exception(message) { }
+};
+
 template <typename InputStreamType, typename OutputProductionType>
 class Machine {
 public:
