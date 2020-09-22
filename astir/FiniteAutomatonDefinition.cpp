@@ -11,6 +11,10 @@ void FiniteAutomatonDefinition::initialize() {
 
 	this->MachineDefinition::initialize();
 
+	if (!this->uses.empty()) {
+		throw SemanticAnalysisException("The machine '" + name + "' declared at " + locationString() + " `uses` at least one other machine -- finite automata using other machines is not supported, but the finite automaton can still be `on` input from some other machine");
+	}
+
 	// check for any signs of recursion
 	for (const auto& statementPair : statements) {
 		std::list<IReferencingCPtr> relevantReferencesEncountered;
