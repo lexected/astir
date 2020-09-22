@@ -204,25 +204,28 @@ std::unique_ptr<MachineDefinition> SyntacticAnalyzer::parseMachineType(std::list
 		++it;
 
 		if (it->type != TokenType::PAR_LEFT) {
-			throw UnexpectedTokenException(*it, "the left (opening) parenthesis '('", "for LL(k) parser declaration", *savedIt);
+			throw UnexpectedTokenException(*it, "the left (opening) parenthesis '('", "for LL(k)/LL(finite) parser declaration", *savedIt);
 		}
 		++it;
-
-		if (it->type != TokenType::NUMBER) {
-			throw UnexpectedTokenException(*it, "a positive integer (k)", "for LL(k) parser declaration", *savedIt);
+		unsigned long k;
+		if (it->type == TokenType::NUMBER) {
+			k = std::stoul(it->string);
+		} else if (it->type == TokenType::KW_FINITE) {
+			k = (unsigned long)(-1);
+		} else {
+			throw UnexpectedTokenException(*it, "a positive integer (`the k`) or the keyword 'finite'", "for LL(k)/LL(finite) parser declaration", *savedIt);
 		}
-		unsigned long k = std::stoul(it->string);
 		std::unique_ptr<LLkParserDefinition> llDef = std::make_unique<LLkParserDefinition>(k);
 		llDef->copyLocation(*savedIt);
 		++it;
 
 		if (it->type != TokenType::PAR_RIGHT) {
-			throw UnexpectedTokenException(*it, "the right (closing) parenthesis ')'", "for LL(k) parser declaration", *savedIt);
+			throw UnexpectedTokenException(*it, "the right (closing) parenthesis ')'", "for LL(k)/LL(finite) parser declaration", *savedIt);
 		}
 		++it;
 
 		if (it->type != TokenType::KW_PARSER) {
-			throw UnexpectedTokenException(*it, "the keyword 'parser'", "for LL(k) parser declaration", *savedIt);
+			throw UnexpectedTokenException(*it, "the keyword 'parser'", "for LL(k)/LL(finite) parser declaration", *savedIt);
 		}
 		++it;
 
@@ -615,6 +618,8 @@ std::unique_ptr<PrimitiveRegex> SyntacticAnalyzer::parsePrimitiveRegex(std::list
 		auto rr = make_unique<ReferenceRegex>();
 		rr->referenceName = it->string;
 		ret = move(rr);
+	} else if (it->type == TokenType::KW_EMPTY) {
+		ret = make_unique<EmptyRegex>();
 	} else {
 		return nullptr; // needs to be like this
 	}

@@ -90,7 +90,7 @@ production machineDefinition =
 
 pattern machineType =
 	KW_FINITE KW_AUTOMATON
-	| KW_LL PAR_LEFT NUMBER PAR_RIGHT KW_PARSER
+	| KW_LL PAR_LEFT (NUMBER|KW_FINITE) PAR_RIGHT KW_PARSER
 	;
 
 pattern machineOptionList =
@@ -202,6 +202,7 @@ production atomicRegex =
 	| SQUARE_LEFT OP_CARET (STRING|regexRange)+ SQUARE_RIGHT
 	| SQUARE_LEFT (STRING|regexRange)+ SQUARE_RIGHT
 	| STRING
+	| (KW_EMPTY | PAR_LEFT PAR_RIGHT)
 	| OP_DOT
 	| referenceRegex
 	;
