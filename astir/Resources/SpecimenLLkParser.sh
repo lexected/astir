@@ -52,8 +52,8 @@ namespace ${{MachineName}} {
 	${{TypeForwardDeclarations}}
 	${{TypeDeclarations}}
 	typedef ${{InputStreamTypeName}} InputStream;
-	typedef ${{InputTerminalTypeName}} InputTerminal;
-	typedef std::shared_ptr<${{InputTerminalTypeName}}> InputTerminalPtr;
+	typedef ${{InputTypeName}} InputType;
+	typedef std::shared_ptr<${{InputTypeName}}> InputTypePtr;
 
 	class Exception : public std::exception {
 	public:
@@ -62,8 +62,6 @@ namespace ${{MachineName}} {
 		virtual ~Exception() = default;
 	};
 
-	class ${{MachineName}};
-	typedef void (${{MachineName}}::* ActionMethodPointer)(size_t, const std::deque<InputTerminalPtr>&, const std::shared_ptr<Location>&);
 	class ${{MachineName}} : public Machine<InputStream, OutputProduction> {
 	public:
 		${{MachineName}}()
@@ -84,6 +82,9 @@ namespace ${{MachineName}} {
 		bool m_lastApplicationSuccessful;
 		std::unique_ptr<Exception> m_lastException;
 		void error(const std::string& message) const;
+
+		// helper methods
+		${{CombineRawDeclaration}}
 		
 		// dependency machines
 		${{DependencyMachineFields}}

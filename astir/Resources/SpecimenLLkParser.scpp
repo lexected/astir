@@ -73,4 +73,6 @@ namespace ${{MachineName}} {
 	}
 
 	${{ParsingDefinitions}}
+	// helper methods
+	${{CombineRawDefinition}}
 }

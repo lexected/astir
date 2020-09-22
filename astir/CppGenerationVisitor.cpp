@@ -99,6 +99,9 @@ void CppGenerationVisitor::visit(const LLkParserDefinition* llkParserDefinition)
 
 	// do the LL(k)-specific constructive magic
 	auto roots = llkParserDefinition->getRoots();
+	if (roots.empty()) {
+		throw GenerationException("The machine '" + llkParserDefinition->name + "' has no root productions and cannot thus be generated", *llkParserDefinition);
+	}
 	CppLLkParserGenerator generator(llkParserDefinition->builder());
 	generator.visitTypeFormingStatements(llkParserDefinition->getTypeFormingStatements());
 	generator.visitRootDisjunction(roots);
@@ -213,13 +216,38 @@ void CppGenerationVisitor::buildUniversalMachineMacros(std::map<std::string, std
 		macros.emplace("AppropriateStreamHeader", "RawStream.h");
 		macros.emplace("InputTerminalTypeName", "RawTerminal");
 		macros.emplace("InputStreamTypeName", "RawStream");
+		macros.emplace("InputTypeName", "RawTerminal");
 		macros.emplace("DependencyHeaderInclude", "");
+		macros.emplace("CombineRawDeclaration", "");
+		macros.emplace("CombineRawDefinition", "");
 	} else {
 		const std::string& onName = machine->on.first;
+		dependencyHeaderIncludesStream << "#include \"" + onName + ".h\"" << std::endl;
 		macros.emplace("AppropriateStreamHeader", "ProductionStream.h");
 		macros.emplace("InputTerminalTypeName", onName + "::OutputTerminal");
-		macros.emplace("InputStreamTypeName", "ProductionStream<" + onName + "::OutputTerminal>");
-		dependencyHeaderIncludesStream << "#include \"" + onName + ".h\"" << std::endl;
+		
+		if (!machine->on.second->hasPurelyTerminalRoots()) {
+			macros.emplace("InputTypeName", onName + "::OutputProduction");
+			macros.emplace("InputStreamTypeName", "ProductionStream<" + onName + "::OutputProduction>");
+
+			macros.emplace("CombineRawDeclaration", "");
+			macros.emplace("CombineRawDefinition", "");
+		} else {
+			const std::string inputTypeName = onName + "::OutputTerminal";
+			macros.emplace("InputTypeName", inputTypeName);
+			macros.emplace("InputStreamTypeName", "ProductionStream<" + inputTypeName + ">");
+
+			macros.emplace("CombineRawDeclaration", "std::string combineRaw(const std::deque<" + inputTypeName + "Ptr>& contents);");
+			std::stringstream combineRawss;
+			combineRawss << "std::string " << machine->name << "::combineRaw(const std::deque<" << inputTypeName << "Ptr>& contents) {" << std::endl;
+			combineRawss << "\tstd::stringstream ss;" << std::endl;
+			combineRawss << "\tfor(const auto& element : contents) {" << std::endl;
+			combineRawss << "\t\tss << element->raw;" << std::endl;
+			combineRawss << "\t}" << std::endl;
+			combineRawss << "\t return ss.str();" << std::endl;
+			combineRawss << "}" << std::endl;
+			macros.emplace("CombineRawDefinition", combineRawss.str());
+		}
 	}
 
 	//  - enumerate all the production roots

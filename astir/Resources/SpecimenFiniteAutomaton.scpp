@@ -174,4 +174,6 @@ namespace ${{MachineName}} {
 	};
 
 	${{ActionDefinitions}}
+	// helper methods
+	${{CombineRawDefinition}}
 }

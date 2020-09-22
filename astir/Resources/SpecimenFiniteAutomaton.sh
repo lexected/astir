@@ -80,6 +80,9 @@ namespace ${{MachineName}} {
 		// raw-capture internals
 		std::stack<size_t> m_captureStack;
 
+		// helper methods
+		${{CombineRawDeclaration}}
+
 		// dependency machines
 		${{DependencyMachineFields}}
 		// action contexts

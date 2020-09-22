@@ -16,15 +16,12 @@ void CppLLkParserGenerator::visitTypeFormingStatements(const std::list<std::shar
 void CppLLkParserGenerator::visitRootDisjunction(const std::list<std::shared_ptr<TypeFormingStatement>>& rootDisjunction) {
 	m_declarations.push_back("std::shared_ptr<OutputProduction> parse_root(InputStream& is);");
 
-	if (rootDisjunction.empty()) {
-		throw GenerationException("A machine with no root productions can not be generated");
-	}
-
 	// definition preamble
 	m_output.put("std::shared_ptr<OutputProduction> ");
 	m_output << m_builder.contextMachine()->name << "::parse_root(InputStream & is) {" << std::endl;
 	m_output.increaseIndentation();
 	m_output.putln("auto productionStartLocation = is.peek(0)->location()->clone();");
+	m_output.putln("const std::string typeFormingStatementName = \"root\";");
 	m_output.putln("size_t cumulativePeekCorrection = 0;");
 
 	// core
@@ -32,7 +29,7 @@ void CppLLkParserGenerator::visitRootDisjunction(const std::list<std::shared_ptr
 	decisionPoints.reserve(rootDisjunction.size());
 
 	bool isFirst = true;
-	m_output.put(""); // to indent
+	m_output.indent();
 	for (const auto& tfsSPtr : rootDisjunction) {
 		decisionPoints.push_back(m_builder.getDecisionTree(tfsSPtr.get()));
 		if (isFirst) {
@@ -69,7 +66,9 @@ void CppLLkParserGenerator::visitRootDisjunction(const std::list<std::shared_ptr
 	m_output.putln("}");
 
 	// definition postamble
-	handleTypeFormingPostamble();
+	m_output.decreaseIndentation();
+	m_output.putln("}");
+	m_output.newline();
 }
 
 void CppLLkParserGenerator::visit(const CategoryStatement* category) {
@@ -86,7 +85,7 @@ void CppLLkParserGenerator::visit(const CategoryStatement* category) {
 		decisionPoints.reserve(category->references.size());
 
 		bool isFirst = true;
-		m_output.put(""); // to indent
+		m_output.indent();
 		for (const auto& categoryReferencePair : category->references) {
 			decisionPoints.push_back(m_builder.getDecisionTree(categoryReferencePair.second.statement));
 			if (isFirst) {
@@ -118,7 +117,7 @@ void CppLLkParserGenerator::visit(const CategoryStatement* category) {
 	}
 
 	// definition postamble
-	m_output.putln("");
+	m_output.newline();
 	m_output.putln("return nullptr; // to suppress the warning");
 	handleTypeFormingPostamble();
 }
@@ -135,8 +134,6 @@ void CppLLkParserGenerator::visit(const ProductionStatement* production) {
 
 	handleRuleBody(production);
 
-	m_output.putln("return std::make_shared<" + production->name + ">(productionStartLocation);");
-
 	handleTypeFormingPostamble();
 }
 
@@ -145,12 +142,16 @@ void CppLLkParserGenerator::visit(const RegexStatement* rule) {
 }
 
 void CppLLkParserGenerator::visit(const DisjunctiveRegex* regex) {
+	// initial actions
+	auto actionsToTake = makeActionExecution(regex->actions);
+	m_output.put(actionsToTake.first);
+
 	std::vector<LLkDecisionPoint> decisionPoints;
 	decisionPoints.reserve(regex->disjunction.size());
 
 	// core
 	bool isFirst = true;
-	m_output.put(""); // to indent
+	m_output.indent();
 	for (const auto& conjunctiveRegexPtr : regex->disjunction) {
 		decisionPoints.push_back(m_builder.getDecisionTree(conjunctiveRegexPtr.get()));
 		if (isFirst) {
@@ -179,6 +180,9 @@ void CppLLkParserGenerator::visit(const DisjunctiveRegex* regex) {
 	m_output.putln("error(\"" + makeExpectationMessage(decisionPoints) + "\");");
 	m_output.decreaseIndentation();
 	m_output.putln("}");
+
+	// final actions
+	m_output.put(actionsToTake.second);
 }
 
 void CppLLkParserGenerator::visit(const ConjunctiveRegex* regex) {
@@ -186,7 +190,7 @@ void CppLLkParserGenerator::visit(const ConjunctiveRegex* regex) {
 	const auto begin = regex->conjunction.cbegin();
 	for (auto it = begin; it != end; ++it) {
 		if (it != begin) {
-			m_output.putln("");
+			m_output.newline();
 		}
 
 		const auto& rootRegexPtr = *it;
@@ -214,6 +218,10 @@ void CppLLkParserGenerator::visit(const ConjunctiveRegex* regex) {
 }
 
 void CppLLkParserGenerator::visit(const RepetitiveRegex* regex) {
+	// initial actions
+	auto actionsToTake = makeActionExecution(regex->actions);
+	m_output.put(actionsToTake.first);
+
 	ILLkParserGenerableCPtr repeatedRegexAsGenerablePtr = dynamic_cast<ILLkParserGenerableCPtr>(regex->regex.get());
 	ILLkFirstableCPtr repeatedRegexAsFirstablePtr = dynamic_cast<ILLkFirstableCPtr>(regex->regex.get());
 	auto decisionPoint = m_builder.getDecisionTree(repeatedRegexAsFirstablePtr);
@@ -241,7 +249,7 @@ void CppLLkParserGenerator::visit(const RepetitiveRegex* regex) {
 		return;
 	}
 	if (regex->minRepetitions > 0) {
-		m_output.putln(""); // nothing to see here, just some formatting :)
+		m_output.newline(); // nothing to see here, just some formatting :)
 	}
 
 	if (regex->maxRepetitions != regex->INFINITE_REPETITIONS) {
@@ -267,38 +275,83 @@ void CppLLkParserGenerator::visit(const RepetitiveRegex* regex) {
 		m_output.decreaseIndentation();
 		m_output.putln("}");
 	}
+
+	// final actions
+	m_output.put(actionsToTake.second);
 }
 
 void CppLLkParserGenerator::visit(const EmptyRegex* regex) {
-	// do nothing, or at least until the actions come into play
+	// initial actions
+	auto actionsToTake = makeActionExecution(regex->actions);
+	m_output.put(actionsToTake.first);
+
+	// do nothing
+
+	// final actions
+	m_output.put(actionsToTake.second);
 }
 
 void CppLLkParserGenerator::visit(const AnyRegex* regex) {
-	m_output.putln("is.consume();");
+	// initial actions
+	auto actionsToTake = makeActionExecution(regex->actions);
+	m_output.put(actionsToTake.first);
+
+	m_output.putln("auto payload = is.consume();");
+
+	// final actions
+	m_output.put(actionsToTake.second);
 }
 
 void CppLLkParserGenerator::visit(const ExceptAnyRegex* regex) {
-	m_output.putln("is.consume();");
+	// initial actions
+	auto actionsToTake = makeActionExecution(regex->actions);
+	m_output.put(actionsToTake.first);
+
+	m_output.putln("auto payload = is.consume();");
+
+	// final actions
+	m_output.put(actionsToTake.second);
 }
 
 void CppLLkParserGenerator::visit(const LiteralRegex* regex) {
-	m_output.putln("is.consume();");
+	// initial actions
+	auto actionsToTake = makeActionExecution(regex->actions);
+	m_output.put(actionsToTake.first);
+
+	m_output.putln("auto payload = is.consume();");
+
+	// final actions
+	m_output.put(actionsToTake.second);
 }
 
 void CppLLkParserGenerator::visit(const ArbitrarySymbolRegex* regex) {
-	m_output.putln("is.consume();"); // even with uses machines, this is the intended and correct behaviour!!
+	// initial actions
+	auto actionsToTake = makeActionExecution(regex->actions);
+	m_output.put(actionsToTake.first);
+
+	m_output.putln("auto payload = is.consume();"); // even with uses machines, this is the intended and correct behaviour!!
+
+	// final actions
+	m_output.put(actionsToTake.second);
 }
 
 void CppLLkParserGenerator::visit(const ReferenceRegex* regex) {
+	// initial actions
+	auto actionsToTake = makeActionExecution(regex->actions);
+	m_output.put(actionsToTake.first);
+
 	if (regex->referenceStatementMachine == m_builder.contextMachine()) {
-		m_output.putln("parse_" + regex->referenceName + "(is);");
+		m_output.putln("auto payload = parse_" + regex->referenceName + "(is);");
 	} else if (regex->referenceStatementMachine != m_builder.contextMachine()->on.second.get()) {
 		// i.e. if this comes from a "uses" machine
-		m_output.putln("m_" + regex->referenceStatementMachine->name + ".consume(is);");
+		m_output.putln("auto payload = m_" + regex->referenceStatementMachine->name + ".consume(is);");
 	} else {
 		// it comes from an "on" machine
-		m_output.putln("is.consume();");
+		m_output.putln("auto payload = is.consume();");
 	}
+
+	// final actions
+	m_output.put(actionsToTake.second);
 }
 
 std::string CppLLkParserGenerator::parsingDeclarations() const {
@@ -315,13 +368,18 @@ void CppLLkParserGenerator::handleTypeFormingPreamble(const std::string& typeNam
 	m_output << typeName << "> " << m_builder.contextMachine()->name << "::parse_" << typeName << "(InputStream& is) {" << std::endl;
 	m_output.increaseIndentation();
 	m_output.putln("auto productionStartLocation = is.peek(0)->location()->clone();");
+	m_output.putln("const std::string typeFormingStatementName = \"" + typeName + "\";");
+	m_output.putln("std::shared_ptr<" + typeName + "> typeFormingStatement = std::make_shared<" + typeName + ">(productionStartLocation);");
 	m_output.putln("size_t cumulativePeekCorrection = 0;");
+	m_output.newline();
 }
 
 void CppLLkParserGenerator::handleTypeFormingPostamble() {
+	m_output.newline();
+	m_output.putln("return typeFormingStatement;");
 	m_output.decreaseIndentation();
 	m_output.putln("}");
-	m_output.putln("");
+	m_output.newline();
 }
 
 void CppLLkParserGenerator::handleRuleBody(const RuleStatement* rule) {
@@ -345,7 +403,6 @@ std::string CppLLkParserGenerator::makeConditionTesting(const LLkDecisionPoint& 
 	if (dp.transitions.empty()) {
 		return "true";
 	}
-
 	
 	for (auto it = dp.transitions.cbegin(); it != dp.transitions.cend(); ++it) {
 		if (it != dp.transitions.cbegin()) {
@@ -420,9 +477,13 @@ std::string CppLLkParserGenerator::makeCondition(const std::shared_ptr<SymbolGro
 		return output.str();
 	}
 
+	const EmptySymbolGroup* esgPtr = dynamic_cast<const EmptySymbolGroup*>(rawPtr);
+	if (esgPtr != nullptr) {
+		return "true /*due to empty regex encountered*/";
+	}
+
 	throw GenerationException("Unknown symbol group encountered");
 }
-
 
 std::string CppLLkParserGenerator::makeExpectationMessage(const LLkDecisionPoint& dp) {
 	return makeExpectationMessage(std::vector<LLkDecisionPoint>({ dp }));
@@ -447,7 +508,7 @@ std::string CppLLkParserGenerator::makeExpectationMessage(const std::vector<LLkD
 		}
 		ss << " + is.peek(" << it << ")->stringForError()";
 	}
-	ss << " + \"\\\" encountered at \" + is.peek(0)->locationString() + \"; expected ";
+	ss << " + \"\\\" encountered at \" + is.peek(0)->locationString() + \" in construction for '\" + typeFormingStatementName + \"'; expected ";
 	for (auto dpIt = dps.cbegin(); dpIt != dps.cend();++dpIt) {
 		if (dpIt != dps.cbegin()) {
 			ss << ", or ";
@@ -485,7 +546,12 @@ std::string CppLLkParserGenerator::makeExpectationGrammar(const LLkDecisionPoint
 			if (ssgPtr != nullptr) {
 				ss << ssgPtr->statement->name;
 			} else {
-				throw GenerationException("Unknown symbol group encountered");
+				const EmptySymbolGroup* esgPtr = dynamic_cast<const EmptySymbolGroup*>(rawPtr);
+				if (esgPtr != nullptr) {
+					ss << "empty";
+				} else {
+					throw GenerationException("Unknown symbol group encountered");
+				}
 			}
 		}
 
@@ -500,4 +566,57 @@ std::string CppLLkParserGenerator::makeExpectationGrammar(const LLkDecisionPoint
 	}
 
 	return ss.str();
+}
+
+std::pair<std::string, std::string> CppLLkParserGenerator::makeActionExecution(const std::list<RegexAction>& actions) const {
+	std::stringstream pre, post;
+
+	for (const auto& regexAction : actions) {
+		const std::string particularField = "typeFormingStatement->" + regexAction.target;
+		switch (regexAction.type) {
+			case RegexActionType::Flag:
+				post << particularField << " = true;" << std::endl;
+				break;
+			case RegexActionType::Unflag:
+				post << particularField << " = false;" << std::endl;
+				break;
+
+			case RegexActionType::Capture:
+				pre << "is.pin();" << std::endl;
+				post << particularField << " = combineRaw(is.bufferSincePin());" << std::endl;
+				post << "is.unpin();" << std::endl;
+				break;
+			case RegexActionType::Empty:
+				post << particularField << ".clear();" << std::endl;
+				break;
+			case RegexActionType::Append:
+				pre << "is.pin();" << std::endl;
+				post << particularField << ".append(combineRaw(is.bufferSincePin()));" << std::endl;
+				post << "is.unpin();" << std::endl;
+				break;
+			case RegexActionType::Prepend:
+				pre << "is.pin();" << std::endl;
+				post << particularField << ".insert(0, combineRaw(is.bufferSincePin());" << std::endl;
+				post << "is.unpin();" << std::endl;
+				break;
+
+			case RegexActionType::Set:
+				post << particularField << " = payload;" << std::endl;
+				break;
+			case RegexActionType::Unset:
+				post << particularField << " = nullptr;" << std::endl;
+				break;
+			case RegexActionType::Pop:
+				post << particularField << ".pop_back();" << std::endl;
+				break;
+			case RegexActionType::Push:
+				post << particularField << ".push_back(payload);" << std::endl;
+				break;
+			default:
+				throw GenerationException("Unrecognized RegexActionType encountered at " + regexAction.locationString() + " targeting '" + regexAction.target + "'");
+				break;
+		}
+	}
+	
+	return std::pair<std::string, std::string>(pre.str(), post.str());
 }

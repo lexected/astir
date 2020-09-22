@@ -26,7 +26,7 @@ public:
 
 	bool get(StreamElementPtr& c);
 	StreamElementPtr peek(size_t ahead = 0);
-	size_t consume(size_t howMany = 1);
+	StreamElementPtr consume(size_t howMany = 1);
 	bool good() const;
 
 	void pin();
@@ -119,16 +119,16 @@ inline std::shared_ptr<ProductionType> ProductionStream<ProductionType>::peek(si
 }
 
 template<class ProductionType>
-inline size_t ProductionStream<ProductionType>::consume(size_t howMany) {
+inline std::shared_ptr<ProductionType> ProductionStream<ProductionType>::consume(size_t howMany) {
+	StreamElementPtr ret;
 	size_t counter = 0;
 	for(; counter < howMany;++counter) {
-		StreamElementPtr __discard;
-		auto ret = get(__discard);
-		if (!ret) {
+		auto outcome = get(ret);
+		if (!outcome) {
 			break;
 		}
 	}
-	return counter;
+	return ret;
 }
 
 template<class ProductionType>
@@ -143,13 +143,18 @@ inline void ProductionStream<ProductionType>::pin() {
 
 template<class ProductionType>
 inline std::deque<std::shared_ptr<ProductionType>> ProductionStream<ProductionType>::bufferSincePin() const {
-	return std::deque<std::shared_ptr<ProductionType>>(m_buffer.cbegin(), m_buffer.cbegin() + m_nextProductionToGive);
+	if (m_pins.empty()) {
+		throw ProductionStreamException("Invalid call to bufferSincePin() -- the pin stack is empty");
+	}
+	const auto& latestPin = m_pins.top();
+
+	return std::deque<std::shared_ptr<ProductionType>>(m_buffer.cbegin() + latestPin.bufferOffset, m_buffer.cbegin() + m_nextProductionToGive);
 }
 
 template<class ProductionType>
 inline void ProductionStream<ProductionType>::resetToPin() {
 	if (m_pins.empty()) {
-		throw ProductionStreamException("Invalid resetToPin -- the pin stack is empty");
+		throw ProductionStreamException("Invalid call to resetToPin() -- the pin stack is empty");
 	}
 
 	const auto& top = m_pins.top();

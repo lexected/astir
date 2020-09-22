@@ -36,9 +36,12 @@ private:
 	void handleRuleBody(const RuleStatement* rule);
 	std::string makeConditionTesting(const LLkDecisionPoint& dp, unsigned long depth = 0, bool needsUnpeeking = false) const;
 	std::string makeCondition(const std::shared_ptr<SymbolGroup>& sgPtr, std::string& postamble, unsigned long depth) const;
+
 	std::string makeExpectationMessage(const LLkDecisionPoint& dp);
 	std::string makeExpectationMessage(const std::vector<LLkDecisionPoint>& dps);
 	std::string makeExpectationGrammar(const LLkDecisionPoint& dp);
+
+	std::pair<std::string, std::string> makeActionExecution(const std::list<RegexAction>& actions) const;
 
 	IndentedStringStream m_output;
 	std::list<std::string> m_declarations;
