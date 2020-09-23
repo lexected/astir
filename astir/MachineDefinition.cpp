@@ -51,8 +51,11 @@ void MachineDefinition::initialize() {
 					const auto machineDefinitionAttributeIterator = attributes.find(MachineFlag::ProductionsTerminalByDefault);
 					productionStatementPtr->terminality = machineDefinitionAttributeIterator->second.value ? Terminality::Terminal : Terminality::Nonterminal;
 
-					productionStatementPtr->terminalTypeIndex = machineDefinitionAttributeIterator->second.value ? ++m_terminalCount : (TerminalTypeIndex)0;
+					terminalityDecision = machineDefinitionAttributeIterator->second.value ? ++m_terminalCount : (TerminalTypeIndex)0;
+				} else if(productionStatementPtr->terminality == Terminality::Terminal) {
+					terminalityDecision = ++m_terminalCount;
 				}
+				productionStatementPtr->terminalTypeIndex = terminalityDecision;
 			}
 		}
 	}
