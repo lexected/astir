@@ -1,6 +1,6 @@
 // Test12 - test for the disjoinFrom (unpickReferal) procedures on category hierarchies
 
-LL(3) parser CategoricalParser {
+LL(3) parser CategoricalParser with ambiguity_resolved_by_precedence {
     category TopLevelCategory;
     category MidLevelCategory : TopLevelCategory;
 
@@ -45,7 +45,7 @@ LL(3) parser CategoricalParser {
 
 /*
 // A Simplified version for debugging
-LL(1) parser CategoricalParser {
+LL(1) parser CategoricalParser with ambiguity_resolved_by_precedence {
     category TopLevelCategory;
     category MidLevelCategory : TopLevelCategory;
 

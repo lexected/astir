@@ -1,14 +1,12 @@
 #include <fstream>
 
-#include "Output/TreeTokenizer.h"
-#include "Output/TreeParser.h"
+#include "Output/CategoricalParser.h"
 
 int main() {
-	std::ifstream f("input.txt");
-	TextFileStream tfs("input.txt", f);
+	TextFileStream tfs("input.txt");
 
-	TreeParser::TreeParser treeParser;
-	auto secondaryStreamProcessed = treeParser.parse(tfs);
+	CategoricalParser::CategoricalParser categoricalParser;
+	auto primaryStreamProcessed = categoricalParser.parse(tfs);
 
 	return 0;
 }
