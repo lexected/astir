@@ -1,14 +1,12 @@
 #include <fstream>
 
-#include "Test05.h"
+#include "Output/Test05.h"
 
 int main() {
-	std::ifstream f("input.txt");
-
-	TextFileStream tfs("input.txt", f);
+	TextFileStream tfs("input.txt");
 
 	Test05::Test05 tokenizer;
-	tokenizer.apply(tfs);
+	auto token = tokenizer.apply(tfs);
 
 	return 0;
 }
