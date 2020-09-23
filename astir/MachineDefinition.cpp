@@ -121,7 +121,7 @@ std::list<std::shared_ptr<ProductionStatement>> MachineDefinition::getTerminalPr
 
 	for (const auto& statementPair : statements) {
 		auto productionPtr = std::dynamic_pointer_cast<ProductionStatement>(statementPair.second);
-		if (productionPtr) {
+		if (productionPtr && productionPtr->terminality == Terminality::Terminal) {
 			ret.push_back(productionPtr);
 		}
 	}

@@ -1,20 +1,16 @@
-#include <fstream>
-
 #include "Output/PrimaryAutomaton.h"
 #include "Output/SecondaryAutomaton.h"
 
 int main() {
-	std::ifstream f("input.txt");
-
-	TextFileStream tfs("input.txt", f);
+	TextFileStream tfs("input.txt");
 
 	PrimaryAutomaton::PrimaryAutomaton primaryTokenizer;
-	auto primaryStreamProcessed = primaryTokenizer.process(tfs);
+	auto primaryStreamProcessed = primaryTokenizer.processStreamWithIgnorance(tfs);
 
 	ListProductionStream<PrimaryAutomaton::OutputTerminal> lps(primaryStreamProcessed);
 
 	SecondaryAutomaton::SecondaryAutomaton secondaryTokenizer;
-	auto secondaryStreamProcessed = secondaryTokenizer.process(lps);
+	auto secondaryStreamProcessed = secondaryTokenizer.processStream(lps);
 
 	return 0;
 }

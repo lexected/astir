@@ -253,7 +253,7 @@ void CppGenerationVisitor::buildUniversalMachineMacros(std::map<std::string, std
 	}
 
 	//  - enumerate all the production roots
-	auto terminalRootProductions = machine->getTerminalRoots();
+	auto terminalRootProductions = machine->getTerminalProductions();
 	std::stringstream ss;
 	for (auto productionPtr : terminalRootProductions) {
 		ss << productionPtr->name << " = " << productionPtr->terminalTypeIndex << "," << std::endl;
