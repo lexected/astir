@@ -8,7 +8,7 @@ finite automaton TreeTokenizer {
     root LEAF = ['a'-'z' 'A'-'Z' '_' '0' - '9']+;
 }
 
-LL(2) parser TreeParser on TreeTokenizer {
+LL(2) parser TreeParser with ambiguity_resolved_by_precedence on TreeTokenizer {
     root category Node;
 
     production EmptyNode : Node {

@@ -143,7 +143,7 @@ void LLkBuilder::disambiguateDecisionPoints(ILLkNonterminalCPtr first, ILLkNonte
 		if (m_contextMachine->attributes.find(MachineFlag::AmbiguityResolvedByPrecedence)->second.value) {
 			// do nothing? will just doing that work? I think it should. But it should be tested
 		} else {
-			throw SemanticAnalysisException("Ambiguity of grammar identified on the lookahead sequence \"" + prefix.asSequenceString() + "\". Alternatives include using the ambiguity_resolved_by_precedence machine flag (i.e. in a `with` clause)");
+			throw SemanticAnalysisException("Ambiguity of grammar identified on the lookahead sequence \"" + prefix.asSequenceString() + "\". Alternatives include using the `ambiguity_resolved_by_precedence` machine flag (i.e. in a `with` clause)");
 		}
 	}
 
