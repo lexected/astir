@@ -1,4 +1,4 @@
-// Test08 - a context-free grammar LL(1) parser test
+// Test08 - a context-free grammar LL(2) parser test
 
 // The following is actually left-recursive
 /*
