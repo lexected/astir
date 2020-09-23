@@ -4,8 +4,7 @@
 #include "Output/TreeParser.h"
 
 int main() {
-	std::ifstream f("input.txt");
-	TextFileStream tfs("input.txt", f);
+	TextFileStream tfs("input.txt");
 
 	TreeTokenizer::TreeTokenizer treeTokenizer;
 	auto primaryStreamProcessed = treeTokenizer.processStreamWithIgnorance(tfs);

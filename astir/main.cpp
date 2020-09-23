@@ -55,8 +55,8 @@ int main(int argc, char* argv[]) {
 		{ "Test09", "Test09" },
 		{ "Test10", "Test10" },
 		{ "Test11", "Test11" },
-		{ "Test12", "Test12" },/*
-		{ "Test13", "Test13" },*/
+		{ "Test12", "Test12" },
+		{ "Test13", "Test13" },/**/
 		//{ "Hello Binary", "BinaryRecognizer" },
 	};
 	for (const auto& folderFilePair : testsToRun) {
