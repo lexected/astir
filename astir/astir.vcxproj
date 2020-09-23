@@ -142,18 +142,28 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CppGenerationVisitor.cpp" />
+    <ClCompile Include="CppLLkParserGenerator.cpp" />
+    <ClCompile Include="CppLLkParserGenerator.h" />
     <ClCompile Include="CppNFAGenerationHelper.cpp" />
     <ClCompile Include="dimcli\libs\dimcli\cli.cpp" />
     <ClCompile Include="Field.cpp" />
+    <ClCompile Include="FiniteAutomatonDefinition.cpp" />
+    <ClCompile Include="IndentedStringStream.cpp" />
+    <ClCompile Include="LLkFirster.cpp" />
     <ClCompile Include="GenerationException.cpp" />
     <ClCompile Include="GenerationHelper.cpp" />
-    <ClCompile Include="IProductionReferencable.cpp" />
+    <ClCompile Include="IReferencing.cpp" />
+    <ClCompile Include="LLkBuilder.cpp" />
+    <ClCompile Include="LLkParserDefinition.cpp" />
+    <ClCompile Include="MachineDefinition.cpp" />
+    <ClCompile Include="MachineStatement.cpp" />
     <ClCompile Include="NFAAction.cpp" />
     <ClCompile Include="NFABuilder.cpp" />
     <ClCompile Include="ISyntacticEntity.cpp" />
     <ClCompile Include="LexicalAnalyzer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="NFA.cpp" />
+    <ClCompile Include="SymbolGroup.cpp" />
     <ClCompile Include="SyntacticAnalyzer.cpp" />
     <ClCompile Include="Regex.cpp" />
     <ClCompile Include="Resources\Location.cpp">
@@ -170,27 +180,43 @@
     <ClCompile Include="Token.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CharType.h" />
     <ClInclude Include="CppGenerationVisitor.h" />
     <ClInclude Include="CppNFAGenerationHelper.h" />
     <ClInclude Include="dimcli\libs\dimcli\cli.h" />
     <ClInclude Include="Exception.h" />
     <ClInclude Include="Field.h" />
     <ClInclude Include="FileLocation.h" />
+    <ClInclude Include="FiniteAutomatonDefinition.h" />
+    <ClInclude Include="ILLkParserGenerable.h" />
+    <ClInclude Include="IndentedStringStream.h" />
+    <ClInclude Include="LLkFirster.h" />
     <ClInclude Include="GenerationException.h" />
     <ClInclude Include="GenerationHelper.h" />
     <ClInclude Include="GenerationVisitor.h" />
     <ClInclude Include="IActing.h" />
     <ClInclude Include="IFileLocalizable.h" />
     <ClInclude Include="IGenerationVisitable.h" />
+    <ClInclude Include="ILLkBuilding.h" />
+    <ClInclude Include="ILLkFirstable.h" />
     <ClInclude Include="INFABuildable.h" />
     <ClInclude Include="LexicalAnalysisException.h" />
+    <ClInclude Include="LLkBuilder.h" />
+    <ClInclude Include="LLkParserDefinition.h" />
+    <ClInclude Include="LLkParserGenerator.h" />
+    <ClInclude Include="MachineDefinition.h" />
+    <ClInclude Include="MachineStatement.h" />
     <ClInclude Include="NFAAction.h" />
     <ClInclude Include="NFABuilder.h" />
     <ClInclude Include="ISemanticEntity.h" />
     <ClInclude Include="ISyntacticEntity.h" />
-    <ClInclude Include="IProductionReferencable.h" />
+    <ClInclude Include="IReferencing.h" />
     <ClInclude Include="LexicalAnalyzer.h" />
     <ClInclude Include="NFA.h" />
+    <ClInclude Include="Resources\Exception.h" />
+    <ClInclude Include="Resources\Machine.h" />
+    <ClInclude Include="Resources\Parser.h" />
+    <ClInclude Include="SymbolGroup.h" />
     <ClInclude Include="SyntacticAnalysisException.h" />
     <ClInclude Include="SyntacticAnalyzer.h" />
     <ClInclude Include="Regex.h" />
@@ -218,6 +244,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Grammar.astir" />
+    <None Include="Resources\SpecimenLLkParser.scpp" />
+    <None Include="Resources\SpecimenLLkParser.sh">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
     <None Include="Tests\Test01\Test01.alex" />
     <None Include="Tests\Test02\Test02.alex" />
     <None Include="Tests\Test03\Test03.alex" />
@@ -225,6 +255,7 @@
     <None Include="Tests\Test05\Test05.alex" />
     <None Include="Tests\Test06\Test06.alex" />
     <None Include="Tests\Test07\Test07.alex" />
+    <None Include="Tests\Test08\Test08.astir" />
     <None Include="Tests\Uncategorized\C99Tokenizer.alex" />
     <None Include="Tests\Uncategorized\ExampleParser.apar" />
     <None Include="Tests\Uncategorized\ExampleTokenizer.alex" />

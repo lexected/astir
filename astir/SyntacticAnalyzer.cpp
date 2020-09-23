@@ -109,6 +109,7 @@ std::unique_ptr<MachineDefinition> SyntacticAnalyzer::parseMachineDefinition(std
 			throw UnexpectedTokenException(*it, "an identifier for the machine to \"use\" to follow the 'uses' keyword", "for machine declaration", *savedIt);
 		}
 		machineDefinition->uses.emplace(it->string, nullptr);
+		++it;
 
 		while (it->type == TokenType::OP_COMMA) {
 			++it;
@@ -170,10 +171,13 @@ bool SyntacticAnalyzer::tryParseMachineFlag(std::list<Token>::const_iterator& it
 		setting = make_pair<MachineFlag, bool>(MachineFlag::CategoriesRootByDefault, true);
 	} else if (it->type == TokenType::KW_CATEGORIES_NONROOT_BY_DEFAULT) {
 		setting = make_pair<MachineFlag, bool>(MachineFlag::CategoriesRootByDefault, false);
+	} else if (it->type == TokenType::KW_AMBIGUITY_DISALLOWED) {
+		setting = make_pair<MachineFlag, bool>(MachineFlag::AmbiguityResolvedByPrecedence, false);
+	} else if (it->type == TokenType::KW_AMBIGUITY_RESOLVED_BY_PRECEDENCE) {
+		setting = make_pair<MachineFlag, bool>(MachineFlag::AmbiguityResolvedByPrecedence, true);
 	} else {
 		return false;
 	}
-	
 	
 	if (attributes[setting.first].set) {
 		throw SyntacticAnalysisException("The attribute setting '" + it->string + "' in 'with' clause of a machine definition attempts to configure machine on an attribute that has already been explicitly set - check for repetitive or contradictory use of attribute settings", *it);
@@ -199,6 +203,36 @@ std::unique_ptr<MachineDefinition> SyntacticAnalyzer::parseMachineType(std::list
 		++it;
 
 		return faDef;
+	} else if (it->type == TokenType::KW_LL) {
+		++it;
+
+		if (it->type != TokenType::PAR_LEFT) {
+			throw UnexpectedTokenException(*it, "the left (opening) parenthesis '('", "for LL(k)/LL(finite) parser declaration", *savedIt);
+		}
+		++it;
+		unsigned long k;
+		if (it->type == TokenType::NUMBER) {
+			k = std::stoul(it->string);
+		} else if (it->type == TokenType::KW_FINITE) {
+			k = (unsigned long)(-1);
+		} else {
+			throw UnexpectedTokenException(*it, "a positive integer (`the k`) or the keyword 'finite'", "for LL(k)/LL(finite) parser declaration", *savedIt);
+		}
+		std::unique_ptr<LLkParserDefinition> llDef = std::make_unique<LLkParserDefinition>(k);
+		llDef->copyLocation(*savedIt);
+		++it;
+
+		if (it->type != TokenType::PAR_RIGHT) {
+			throw UnexpectedTokenException(*it, "the right (closing) parenthesis ')'", "for LL(k)/LL(finite) parser declaration", *savedIt);
+		}
+		++it;
+
+		if (it->type != TokenType::KW_PARSER) {
+			throw UnexpectedTokenException(*it, "the keyword 'parser'", "for LL(k)/LL(finite) parser declaration", *savedIt);
+		}
+		++it;
+
+		return llDef;
 	} else {
 		return nullptr;
 	}
@@ -574,15 +608,21 @@ std::unique_ptr<PrimitiveRegex> SyntacticAnalyzer::parsePrimitiveRegex(std::list
 
 	unique_ptr<PrimitiveRegex> ret;
 	if (it->type == TokenType::STRING) {
-		auto lr = make_unique<LiteralRegex>();
-		lr->literal = it->string;
-		ret = move(lr);
+		if (it->string.length() == 0) {
+			ret = make_unique<EmptyRegex>();
+		} else {
+			auto lr = make_unique<LiteralRegex>();
+			lr->literal = it->string;
+			ret = move(lr);
+		}
 	} else if (it->type == TokenType::OP_DOT) {
 		ret = make_unique<ArbitrarySymbolRegex>();
 	} else if (it->type == TokenType::IDENTIFIER) {
 		auto rr = make_unique<ReferenceRegex>();
 		rr->referenceName = it->string;
 		ret = move(rr);
+	} else if (it->type == TokenType::KW_EMPTY) {
+		ret = make_unique<EmptyRegex>();
 	} else {
 		return nullptr; // needs to be like this
 	}

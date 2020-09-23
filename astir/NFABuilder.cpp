@@ -5,6 +5,9 @@
 #include <algorithm>
 
 #include "SyntacticTree.h"
+#include "MachineDefinition.h"
+#include "Regex.h"
+#include "SemanticAnalysisException.h"
 
 NFA NFABuilder::visit(const CategoryStatement* category) const {
 	NFA alternationPoint;
@@ -96,7 +99,8 @@ NFA NFABuilder::visit(const ConjunctiveRegex* regex) const {
 	base.finalStates.insert(0);
 
 	for (const auto& rootRegex : regex->conjunction) {
-		base &= rootRegex->accept(*this);
+		const INFABuildable* rootAsBuildable = rootRegex.get();
+		base &= rootAsBuildable->accept(*this);
 	}
 	return base;
 }
@@ -117,7 +121,8 @@ NFA NFABuilder::visit(const RepetitiveRegex* regex) const {
 		base.finalStates.insert(0);
 	}
 
-	NFA atomMachine = regex->regex->accept(*this);
+	const INFABuildable* atomicAsBuildable = regex->regex.get();
+	NFA atomMachine = atomicAsBuildable->accept(*this);
 	if (regex->minRepetitions <= 1 && regex->maxRepetitions > 0) {
 		base.orNFA(atomMachine, true);
 	}
@@ -197,7 +202,7 @@ NFA NFABuilder::visit(const AnyRegex* regex) const {
 	NFAActionRegister initial, final;
 	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
-	auto literalGroups = makeLiteralGroups(regex);
+	auto literalGroups = regex->makeSymbolGroups();
 	for (auto& literalSymbolGroup : literalGroups) {
 		base.addTransition(0, Transition(newState, literalSymbolGroup, initial));
 	}
@@ -212,7 +217,7 @@ NFA NFABuilder::visit(const ExceptAnyRegex* regex) const {
 	NFA base;
 	auto newState = base.addState();
 
-	auto literalGroups = makeLiteralGroups(regex);
+	auto literalGroups = regex->makeSymbolGroups();
 	auto complementedGroups = NFA::makeComplementSymbolGroups(literalGroups);
 
 	NFAActionRegister initial, final;
@@ -230,19 +235,28 @@ NFA NFABuilder::visit(const ExceptAnyRegex* regex) const {
 
 NFA NFABuilder::visit(const LiteralRegex* regex) const {
 	NFA base;
+
+	if (m_contextMachine.on.second) {
+		throw SemanticAnalysisException("Encountered literal regex '" + regex->literal + "' at "+regex->locationString() + " within the finite automaton '" + m_contextMachine.name +"' (declared at " + m_contextMachine.locationString() + ") that refers to '" + m_contextMachine.on.first + "' for input (whereas literal regexes may only be used for finite automata on raw input)");
+	}
 	
 	NFAActionRegister initial, final;
 	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
-	State prevState = 0;
-	for(CharType c : regex->literal) {
-		State newState = base.addState();
-		base.addTransition(prevState, Transition(newState, std::make_shared<LiteralSymbolGroup>(c, c), initial));
-
-		prevState = newState;
+	State newState = base.addState();
+	if (regex->literal.length() == 1) {
+		base.addTransition(0, Transition(newState, std::make_shared<ByteSymbolGroup>(regex->literal[0], regex->literal[0]), initial));
+	} else {
+		if (!m_contextMachine.on.second) {
+			// TODO: could actually be made into a warning and proceed just with the first character of regex->literal
+			throw SemanticAnalysisException("Encountered multi-byte literal regex '" + regex->literal + "' at " + regex->locationString() + " within the finite automaton '" + m_contextMachine.name + "' (declared at " + m_contextMachine.locationString() + ") accepts raw input -- multibyte strings can not be recognized by other finite automata"); // TODO: add the words "will proceed with the first character ('X') instead"
+			base.addTransition(0, Transition(newState, std::make_shared<ByteSymbolGroup>(regex->literal[0], regex->literal[0]), initial));
+		} else {
+			base.addTransition(0, Transition(newState, std::make_shared<LiteralSymbolGroup>(regex->literal), initial));
+		}
 	}
 
-	base.finalStates.insert(prevState);
+	base.finalStates.insert(newState);
 	base.addFinalActions(final);
 
 	return base;
@@ -255,7 +269,9 @@ NFA NFABuilder::visit(const ArbitrarySymbolRegex* regex) const {
 	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
 	auto newState = base.addState();
-	base.addTransition(0, Transition(newState, createArbitrarySymbolGroup(), initial));
+	for (const auto& sg : m_contextMachine.computeArbitrarySymbolGroupList()) {
+		base.addTransition(0, Transition(newState, sg, initial));
+	}
 	base.finalStates.insert(newState);
 	base.addFinalActions(final);
 
@@ -283,29 +299,12 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 	} else {
 		NFAActionRegister initial, final;
 		std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
-		auto attributedStatement = std::dynamic_pointer_cast<AttributedStatement>(statement);
-		base.addTransition(0, Transition(newBaseState, std::make_shared<TerminalSymbolGroup>(attributedStatement->calculateInstandingProductions()), initial));
+		auto typeFormingStatement = std::dynamic_pointer_cast<TypeFormingStatement>(statement);
+		base.addTransition(0, Transition(newBaseState, std::make_shared<StatementSymbolGroup>(typeFormingStatement.get(), regex->referenceStatementMachine), initial));
 		base.addFinalActions(final);
 	}
 
 	return base;
-}
-
-std::list<std::shared_ptr<SymbolGroup>> NFABuilder::makeLiteralGroups(const AnyRegex* regex) const {
-	std::list<std::shared_ptr<SymbolGroup>> literalGroups;
-
-	for (const auto& literal : regex->literals) {
-		for (const auto& c : literal) {
-			literalGroups.push_back(std::make_shared<LiteralSymbolGroup>(c, c));
-		}
-	}
-	for (const auto& range : regex->ranges) {
-		CharType beginning = (CharType)range.start;
-		CharType end = (CharType)range.end;
-		literalGroups.push_back(std::make_shared<LiteralSymbolGroup>(beginning, end));
-	}
-
-	return literalGroups;
 }
 
 std::pair<NFAActionRegister, NFAActionRegister> NFABuilder::computeActionRegisterEntries(const std::list<RegexAction>& actions) const {
@@ -330,12 +329,4 @@ std::pair<NFAActionRegister, NFAActionRegister>  NFABuilder::computeActionRegist
 	}
 
 	return std::pair<NFAActionRegister, NFAActionRegister>(initial, final);
-}
-
-std::shared_ptr<SymbolGroup> NFABuilder::createArbitrarySymbolGroup() const {
-	if (m_contextMachine.on.second) {
-		return std::make_shared<TerminalSymbolGroup>(m_contextMachine.on.second->getUnderlyingProductionsOfRoots());
-	} else {
-		return std::make_shared<LiteralSymbolGroup>((CharType)0, (CharType)255);
-	}
 }

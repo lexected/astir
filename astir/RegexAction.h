@@ -23,6 +23,7 @@ enum class RegexActionType : unsigned char {
 
 	None = 255
 };
+
 struct RegexAction : public ISyntacticEntity {
 	RegexActionType type = RegexActionType::None;
 	std::string target;

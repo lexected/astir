@@ -5,14 +5,15 @@
 #include "RegexAction.h"
 
 #include "ISyntacticEntity.h"
-#include "IProductionReferencable.h"
+#include "IReferencing.h"
 #include "INFABuildable.h"
 #include "IActing.h"
+#include "ILLkFirstable.h"
+#include "ILLkBuilding.h"
+#include "ILLkParserGenerable.h"
+#include "CharType.h"
 
-using CharType = unsigned char;
-using ComputationCharType = signed short int;
-
-struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IProductionReferencable { };
+struct Regex : public IActing, public INFABuildable, public ISyntacticEntity, public IReferencing, public ILLkBuilding, public ILLkParserGenerable { };
 
 struct RootRegex : public Regex {
 public:
@@ -22,56 +23,74 @@ public:
 
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 	virtual std::string computeItemType(const MachineDefinition& machine, const MachineStatement* context) const;
-
-protected:
+	void accept(LLkBuilder* llkBuilder) const override;
 };
 
 struct AtomicRegex;
-struct RepetitiveRegex : public RootRegex {
-	std::unique_ptr<AtomicRegex> regex;
+struct RepetitiveRegex : public RootRegex, public ILLkNonterminal {
+	std::shared_ptr<AtomicRegex> regex;
 	unsigned long minRepetitions;
 	unsigned long maxRepetitions;
 	static const unsigned long INFINITE_REPETITIONS = (unsigned long)((signed int)-1);
 
-	RepetitiveRegex() : minRepetitions(0), maxRepetitions(0) { }
+	RepetitiveRegex() : RepetitiveRegex(nullptr, 0, 0) { }
+	RepetitiveRegex(const std::shared_ptr<AtomicRegex>& regex, unsigned long minRepetitions,
+	unsigned long maxRepetitions) : regex(regex), minRepetitions(minRepetitions), maxRepetitions(maxRepetitions), m_tailFlyweight(std::make_unique<std::shared_ptr<RepetitiveRegex>>()) { }
 
-	const IFileLocalizable* findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+	void completeReferences(const MachineDefinition& machine) override;
+	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkBuilder* llkBuilder) const override;
+	void accept(LLkParserGenerator* generator) const override;
 
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
+
+	const std::shared_ptr<RepetitiveRegex>& kleeneTail() const;
+private:
+	std::unique_ptr<std::shared_ptr<RepetitiveRegex>> m_tailFlyweight;
 };
 
 struct AtomicRegex : public RootRegex { };
 
 struct ConjunctiveRegex;
-struct DisjunctiveRegex : public AtomicRegex {
+struct DisjunctiveRegex : public AtomicRegex, public ILLkNonterminal {
 	std::list<std::unique_ptr<ConjunctiveRegex>> disjunction;
 
-	const IFileLocalizable* findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+	void completeReferences(const MachineDefinition& machine) override;
+	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkBuilder* llkBuilder) const override;
+	void accept(LLkParserGenerator* generator) const override;
 
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 };
 
-struct RootRegex;
-struct ConjunctiveRegex : public Regex {
+struct ConjunctiveRegex : public Regex, public ILLkNonterminal {
 	std::list<std::unique_ptr<RootRegex>> conjunction;
 
-	const IFileLocalizable* findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+	void completeReferences(const MachineDefinition& machine) override;
+	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkBuilder* llkBuilder) const override;
+	void accept(LLkParserGenerator* generator) const override;
 
 	void checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) override;
 };
 
-struct PrimitiveRegex : public AtomicRegex {
+struct PrimitiveRegex : public AtomicRegex, public ILLkFirstable {
 	
 };
 
 struct EmptyRegex : public PrimitiveRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkParserGenerator* generator) const override;
 };
 
 struct RegexRange {
@@ -83,29 +102,49 @@ struct AnyRegex : public PrimitiveRegex {
 	std::list<std::string> literals;
 	std::list<RegexRange> ranges;
 
+	SymbolGroupList makeSymbolGroups() const;
+
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkParserGenerator* generator) const override;
 };
 
 struct ExceptAnyRegex : public AnyRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkParserGenerator* generator) const override;
 };
 
 struct LiteralRegex : public PrimitiveRegex {
 	std::string literal;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkParserGenerator* generator) const override;
 };
 
+struct MachineStatement;
 struct ReferenceRegex : public PrimitiveRegex {
 	std::string referenceName;
+	const MachineDefinition* referenceStatementMachine;
+	const MachineStatement* referenceStatement;
+
+	ReferenceRegex()
+		: referenceStatementMachine(nullptr), referenceStatement(nullptr) { }
 
 	std::string computeItemType(const MachineDefinition& machine, const MachineStatement* context) const override;
 
-	const IFileLocalizable* findRecursiveReference(const MachineDefinition& machine, std::list<std::string>& namesEncountered, const std::string& targetName) const;
+	void completeReferences(const MachineDefinition& machine) override;
+	IFileLocalizableCPtr findRecursiveReference(std::list<IReferencingCPtr>& referencingEntitiesEncountered) const override;
 
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkBuilder* llkBuilder) const override;
+	void accept(LLkParserGenerator* generator) const override;
 };
 
 struct ArbitrarySymbolRegex : public PrimitiveRegex {
 	NFA accept(const NFABuilder& nfaBuilder) const override;
+	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
+	void accept(LLkParserGenerator* generator) const override;
 };

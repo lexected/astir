@@ -1,9 +1,11 @@
 #include "CppNFAGenerationHelper.h"
-#include "Field.h"
 
 #include <sstream>
 
 #include "SyntacticTree.h"
+#include "MachineDefinition.h"
+#include "MachineStatement.h"
+#include "Field.h"
 
 void CppNFAGenerationHelper::generateMechanicsMaps(std::string& stateMap, std::string& actionRegisterDeclarations, std::string& actionRegisterDefinitions, std::string& transitionActionMap, std::string& stateActionMap) const {
 	std::stringstream stateMapStream;
@@ -37,7 +39,8 @@ void CppNFAGenerationHelper::generateMechanicsMaps(std::string& stateMap, std::s
 		}
 
 		for (const auto& transition : stateObject.transitions) {
-			const auto conditionSymbolIndices = transition.condition->retrieveSymbolIndices();
+			auto simpleSymbolGroup = std::dynamic_pointer_cast<SymbolGroup>(transition.condition);
+			const auto conditionSymbolIndices = simpleSymbolGroup->retrieveSymbolIndices();
 			for (SymbolIndex symbolIndex : *conditionSymbolIndices) {
 				auto offsetMapLine = transitionStateMapLine.begin() + symbolIndex;
 				offsetMapLine->push_back(transition.target);

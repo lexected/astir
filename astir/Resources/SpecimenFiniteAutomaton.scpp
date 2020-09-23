@@ -41,7 +41,7 @@ namespace ${{MachineName}} {
 		std::list<BranchingPoint> branchingPoints;
 		std::vector<ActionPack> actionStack;
 
-		m_currentState = 0;
+		// m_currentState = 0;
 		rs.pin();
 
 		// register the actions associated with state 0 if there are any
@@ -80,9 +80,12 @@ namespace ${{MachineName}} {
 					}
 				} else {
 					if (lastAcceptingState == (State)(-1)) {
+						// for stack parity, we unpin the pin we placed internally a few lines above
+						rs.unpin();
+
 						// in case of failure at this point, we are not in the first state and we have not reached any accepting state so far, so we will return nullptr. The users are then encouraged to make use of lastApplicationSuccessful() and InputStream location information to identify the issue
 						// the stream is left as we left it after the last read, it is up to user to try to rs.resetToPin() and try again if they want to
-						// further, rawSincePin() gives precisely the token that we failed to match
+						// further, bufferSincePin() gives precisely the token that we failed to match
 
 						// but you can also reach this point by simply reaching an accepting state and not being able to proceed any further
 						break;
@@ -90,6 +93,7 @@ namespace ${{MachineName}} {
 						// backtrack input to where the lastAcceptingState was hit
 						rs.resetToPosition(lastAcceptedInputPosition);
 						std::deque<InputTerminalPtr> completeInput = rs.bufferSincePin();
+						rs.unpin();
 
 						// execute all actions accepted with the state
 						for(const ActionPack& actionPackObject : lastAcceptedActionStack) {
@@ -99,8 +103,11 @@ namespace ${{MachineName}} {
 						// plan to return the built token
 						tokenToReturn = m_token;
 
+						/*
+						Not strictly needed - a candidate for removal
 						// pin the input stream forward
 						rs.pin(); // that is, at lastAcceptedPosition, not at the position at which we entered this else clause
+						*/
 
 						// the following is essential for correct readings of lastApplicationSuccessful
 						m_currentState = lastAcceptingState;
@@ -149,25 +156,6 @@ namespace ${{MachineName}} {
 		return tokenToReturn;
 	}
 
-	std::list<std::shared_ptr<OutputProduction>> ${{MachineName}}::process(InputStream& rs) {
-		std::list<std::shared_ptr<OutputProduction>> ret;
-
-		do {
-			auto terminalPtr = apply(rs);
-			if (terminalPtr) {
-				ret.push_back(terminalPtr);
-			}
-		} while (lastApplicationSuccessful() && rs.good());
-
-		if (lastApplicationSuccessful()) {
-			auto eosLocationPtr = rs.pinLocation()->clone();
-			eosLocationPtr->advance();
-			ret.push_back(std::make_shared<EOS>(eosLocationPtr));
-		}
-
-		return ret;
-	}
-
 	void ${{MachineName}}::reset() {
 		m_currentState = 0;
 	}
@@ -186,4 +174,6 @@ namespace ${{MachineName}} {
 	};
 
 	${{ActionDefinitions}}
+	// helper methods
+	${{CombineRawDefinition}}
 }

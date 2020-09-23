@@ -47,10 +47,10 @@ class TextFileLocation : public TextLocation {
 public:
 	std::string fileName;
 	TextFileLocation()
-		: TextLocation(0, 0), fileName() { }
+		: TextLocation(), fileName() { }
 
 	TextFileLocation(const std::string& fileName, unsigned long line, unsigned long column)
-		: TextLocation(0, 0), fileName(fileName) { }
+		: TextLocation(line, column), fileName(fileName) { }
 
 	std::string toString() const override;
 	std::shared_ptr<Location> clone() const override;

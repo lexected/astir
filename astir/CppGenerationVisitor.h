@@ -4,6 +4,7 @@
 #include <set>
 
 #include "GenerationVisitor.h"
+#include "FiniteAutomatonDefinition.h"
 
 class CppGenerationVisitor : public GenerationVisitor {
 public:
@@ -14,6 +15,7 @@ public:
 
 	void visit(const SyntacticTree* tree) override;
 	void visit(const FiniteAutomatonDefinition* tree) override;
+	void visit(const LLkParserDefinition* llkParserDefinition) override;
 
 	void visit(const TypeFormingStatement* component) override;
 	void visit(const FlagField* flagField) override;
@@ -22,7 +24,11 @@ public:
 	void visit(const ListField * listField) override;
 
 private:
+	void buildUniversalMachineMacros(std::map<std::string, std::string>& macros, const MachineDefinition* machine);
+	std::string combineForwardDeclarationsAndClear();
+
 	std::stringstream m_output;
+	std::set<std::string> m_typeFormingStatementsVisited;
 	void resetOutput();
 	std::string outputAndReset();
 

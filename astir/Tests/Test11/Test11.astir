@@ -1,0 +1,14 @@
+// Test11 - test for the disjoinFrom procedures of various SymbolGroups
+
+finite automaton PrimaryAutomaton {
+    root A = ['0'-'3'];
+    root B = ['2'-'5'];
+    root C = ['4'-'7'];
+    root D = ['6'-'9'];
+}
+
+finite automaton SecondaryAutomaton on PrimaryAutomaton {
+    root First = (A | B | D) A A;
+    root Second  = (B | C) (A | B) B;
+    root Third = (B | C | D) C C;
+}

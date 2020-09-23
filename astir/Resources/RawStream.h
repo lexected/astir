@@ -9,7 +9,7 @@ class RawTerminal : public Terminal<char> {
 public:
 	RawTerminal()
 		: Terminal<char>('\0', nullptr) { }
-	//^ something distinguishably invalid, should never be referred to in practice if not initialized in a valid fashion
+	//^ something distinguishably invalid (is it tho?), should never be referred to in practice if not initialized in a valid fashion
 
 	RawTerminal(char c, const std::shared_ptr<Location>& occurenceLocation)
 		: Terminal<char>(c, std::string({ c }), occurenceLocation) { }

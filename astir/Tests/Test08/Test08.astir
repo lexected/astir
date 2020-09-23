@@ -1,0 +1,20 @@
+// Test08 - a context-free grammar LL(1) parser test
+
+// The following is actually left-recursive
+/*
+LL(1) parser TreeParser {
+	root production Node =
+		'(' Node ')'
+		| '(' Node Node ')'
+		| 'L' // as in "leaf"
+		;
+}
+*/
+
+LL(1) parser TreeParser {
+	root production Node =
+		'(' ')' // empty
+		| '(' Node Node ')'
+		| 'L' // as in "leaf"
+		;
+}

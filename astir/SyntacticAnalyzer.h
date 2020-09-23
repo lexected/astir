@@ -5,6 +5,10 @@
 #include <memory>
 
 #include "SyntacticTree.h"
+#include "MachineDefinition.h"
+#include "FiniteAutomatonDefinition.h"
+#include "LLkParserDefinition.h"
+#include "MachineStatement.h"
 #include "SyntacticAnalysisException.h"
 
 class SyntacticAnalyzer {
