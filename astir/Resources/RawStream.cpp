@@ -16,3 +16,6 @@ bool RawStream::streamGet(std::shared_ptr<RawTerminal>& c) {
 bool RawStream::streamGood() const {
     return m_underlyingStream.good();
 }
+
+TextFileStream::TextFileStream(const std::string& fileName)
+    : m_fileStream(fileName), RawStream(m_fileStream, std::make_shared<TextFileLocation>(fileName, 1, 0)) { }

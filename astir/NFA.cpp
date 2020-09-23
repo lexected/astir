@@ -24,7 +24,7 @@ void NFA::orNFA(const NFA& rhs, bool preventSymbolClosureOptimisation) {
     // handle the 0th state
     for (auto& transition : scit->transitions) {
         transition.target += stateIndexShift;
-        transition.doNotOptimizeTargetIntoSymbolClosure = preventSymbolClosureOptimisation;
+        transition.doNotOptimizeTargetIntoSymbolClosure |= preventSymbolClosureOptimisation;
     }
     ++scit;
     // handle all other states
@@ -68,7 +68,7 @@ void NFA::andNFA(const NFA& rhs, bool preventSymbolClosureOptimisation) {
     // handle the 0th state
     for (auto& transition : scit->transitions) {
         transition.target += stateIndexShift;
-        transition.doNotOptimizeTargetIntoSymbolClosure = preventSymbolClosureOptimisation;
+        transition.doNotOptimizeTargetIntoSymbolClosure |= preventSymbolClosureOptimisation;
     }
     ++scit;
     // handle all other states

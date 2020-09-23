@@ -6,5 +6,13 @@
 finite automaton Test01 {
 	terminal production p1 = "a";
 	terminal production p2 = "a" "b" "b";
-	terminal production p3 = "a"* "b"+;
+	production p3 = "a"* "b"+;
 }
+
+
+/*
+// A simpler test case if the above doesn't work
+finite automaton Test01 {
+	production p3 = "a" "b"+;
+}
+*/

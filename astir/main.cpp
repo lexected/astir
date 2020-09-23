@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include <map>
+#include <list>
 #include <string>
 
 #include "LexicalAnalyzer.h"
@@ -43,8 +43,8 @@ int main(int argc, char* argv[]) {
 	} 
 
 #else
-	std::map<std::string, std::string> testsToRun = {
-		/*{ "Test01", "Test01" },
+	std::list<std::pair<std::string, std::string>> testsToRun = {
+		{ "Test01", "Test01" },
 		{ "Test02", "Test02" },
 		{ "Test03", "Test03" },
 		{ "Test04", "Test04" },
@@ -55,9 +55,11 @@ int main(int argc, char* argv[]) {
 		{ "Test09", "Test09" },
 		{ "Test10", "Test10" },
 		{ "Test11", "Test11" },
-		{ "Test12", "Test12" },*/
+		{ "Test12", "Test12" },
 		{ "Test13", "Test13" },
-		//{ "Hello Binary", "BinaryRecognizer" },
+		{ "Hello Binary", "BinaryRecognizer" },
+		{ "Hello Binary", "BinaryRecognizerRefactored" },
+		{ "Hello Binary", "BinaryTokenizer" },
 	};
 	for (const auto& folderFilePair : testsToRun) {
 		std::fstream inputFile("Tests/" + folderFilePair.first + "/" + folderFilePair.second + ".astir");

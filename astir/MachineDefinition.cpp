@@ -51,8 +51,11 @@ void MachineDefinition::initialize() {
 					const auto machineDefinitionAttributeIterator = attributes.find(MachineFlag::ProductionsTerminalByDefault);
 					productionStatementPtr->terminality = machineDefinitionAttributeIterator->second.value ? Terminality::Terminal : Terminality::Nonterminal;
 
-					productionStatementPtr->terminalTypeIndex = machineDefinitionAttributeIterator->second.value ? ++m_terminalCount : (TerminalTypeIndex)0;
+					terminalityDecision = machineDefinitionAttributeIterator->second.value ? ++m_terminalCount : (TerminalTypeIndex)0;
+				} else if(productionStatementPtr->terminality == Terminality::Terminal) {
+					terminalityDecision = ++m_terminalCount;
 				}
+				productionStatementPtr->terminalTypeIndex = terminalityDecision;
 			}
 		}
 	}
@@ -118,7 +121,7 @@ std::list<std::shared_ptr<ProductionStatement>> MachineDefinition::getTerminalPr
 
 	for (const auto& statementPair : statements) {
 		auto productionPtr = std::dynamic_pointer_cast<ProductionStatement>(statementPair.second);
-		if (productionPtr) {
+		if (productionPtr && productionPtr->terminality == Terminality::Terminal) {
 			ret.push_back(productionPtr);
 		}
 	}

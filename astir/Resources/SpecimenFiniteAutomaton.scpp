@@ -34,6 +34,8 @@ namespace ${{MachineName}} {
 		const std::vector<State> emptyStateVector;
 		const std::vector<ActionMethodPointer> emptyActionVector;
 		std::shared_ptr<OutputProduction> tokenToReturn = nullptr;
+
+		rs.pin();
 		
 		State lastAcceptingState = (State)(-1);
 		size_t lastAcceptedInputPosition = 0;
@@ -41,17 +43,14 @@ namespace ${{MachineName}} {
 		std::list<BranchingPoint> branchingPoints;
 		std::vector<ActionPack> actionStack;
 
-		// m_currentState = 0;
-		rs.pin();
-
 		// register the actions associated with state 0 if there are any
 		if(this->m_stateActions[0] != nullptr) {
-			actionStack.emplace_back(this->m_stateActions[0], rs.currentPosition(), rs.lastLocation());
+			actionStack.emplace_back(this->m_stateActions[0], rs.currentPositionRelativeToLastPin(), rs.lastLocation());
 		}
 		
 		while (true) {
 			InputTerminalPtr currentTerminal;
-			auto currentPosition = rs.currentPosition();
+			auto currentPosition = rs.currentPositionRelativeToLastPin();
 			auto currentLocation = rs.lastLocation();
 			bool readingOutcome = rs.get(currentTerminal);
 			const std::vector<State>& nextStates = !readingOutcome ? emptyStateVector : m_stateMap[m_currentState][(size_t)currentTerminal->type];
@@ -64,7 +63,7 @@ namespace ${{MachineName}} {
 					BranchingPoint& lastBp = branchingPoints.back();
 					// simulate reading of the character at which we branched again
 					currentPosition = lastBp.inputPosition;
-					rs.resetToPosition(lastBp.inputPosition);
+					rs.resetToPositionRelativeToLastPin(lastBp.inputPosition);
 					currentLocation = rs.lastLocation();
 					readingOutcome = rs.get(currentTerminal);
 					
@@ -91,7 +90,7 @@ namespace ${{MachineName}} {
 						break;
 					} else {
 						// backtrack input to where the lastAcceptingState was hit
-						rs.resetToPosition(lastAcceptedInputPosition);
+						rs.resetToPositionRelativeToLastPin(lastAcceptedInputPosition);
 						std::deque<InputTerminalPtr> completeInput = rs.bufferSincePin();
 						rs.unpin();
 
@@ -102,12 +101,6 @@ namespace ${{MachineName}} {
 
 						// plan to return the built token
 						tokenToReturn = m_token;
-
-						/*
-						Not strictly needed - a candidate for removal
-						// pin the input stream forward
-						rs.pin(); // that is, at lastAcceptedPosition, not at the position at which we entered this else clause
-						*/
 
 						// the following is essential for correct readings of lastApplicationSuccessful
 						m_currentState = lastAcceptingState;
@@ -141,10 +134,10 @@ namespace ${{MachineName}} {
 			}
 
 			// if this is a final state and strictly longer than the previous accepted sequence, take a note of that
-			if (m_stateFinality[stateToGoTo] && rs.currentPosition() > lastAcceptedInputPosition) {
+			if (m_stateFinality[stateToGoTo] && rs.currentPositionRelativeToLastPin() > lastAcceptedInputPosition) {
 				// remember, rs.currentPosition() is of currentPosition by 1, and it is the right quantity to use here
 				lastAcceptingState = stateToGoTo;
-				lastAcceptedInputPosition = rs.currentPosition();
+				lastAcceptedInputPosition = rs.currentPositionRelativeToLastPin();
 				lastAcceptedActionStack = actionStack;
 			}
 

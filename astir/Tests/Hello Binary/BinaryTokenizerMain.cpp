@@ -1,11 +1,9 @@
 #include <fstream>
 
-#include "BinaryTokenizer.h"
+#include "Output/BinaryTokenizer.h"
 
 int main() {
-	std::ifstream f("input.txt");
-
-	TextFileStream tfs("input.txt", f);
+	TextFileStream tfs("input.txt");
 
 	BinaryTokenizer::BinaryTokenizer tokenizer;
 	auto listOfTokens = tokenizer.processStream(tfs);

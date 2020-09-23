@@ -1,6 +1,5 @@
 .vs
 ./TestingSwitch.h
-Debug
-Release
-x64
+Build
+Tests/*/.vs
 Tests/*/Output

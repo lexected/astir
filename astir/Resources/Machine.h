@@ -188,10 +188,7 @@ inline std::shared_ptr<OutputProductionType> Machine<InputStreamType, OutputProd
 	}
 
 	rs.pin();
-	auto consumed = rs.consume(ahead);
-	if (consumed < ahead) {
-		return nullptr;
-	}
+	rs.consume(ahead);
 
 	size_t startingPosition = rs.currentPosition();
 	auto production = tryApplyWithIgnorance(rs);

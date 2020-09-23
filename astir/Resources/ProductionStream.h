@@ -36,7 +36,9 @@ public:
 
 	void setBufferFixed(bool bufferFixed = true) { m_bufferFixed = bufferFixed; }
 	size_t currentPosition() const;
+	size_t currentPositionRelativeToLastPin() const;
 	void resetToPosition(size_t newPosition);
+	void resetToPositionRelativeToLastPin(size_t newPosition);
 
 	std::shared_ptr<Location> lastPinLocation() const;
 	const std::shared_ptr<Location>& lastLocation() const { return m_lastLocation; }
@@ -196,6 +198,15 @@ inline size_t ProductionStream<ProductionType>::currentPosition() const {
 }
 
 template<class ProductionType>
+inline size_t ProductionStream<ProductionType>::currentPositionRelativeToLastPin() const {
+	if (m_pins.empty()) {
+		return m_nextProductionToGive;
+	} else {
+		return m_nextProductionToGive - m_pins.top().bufferOffset;
+	}
+}
+
+template<class ProductionType>
 inline void ProductionStream<ProductionType>::resetToPosition(size_t newPosition) {
 	m_nextProductionToGive = newPosition;
 
@@ -203,6 +214,15 @@ inline void ProductionStream<ProductionType>::resetToPosition(size_t newPosition
 		m_lastLocation = m_buffer[newPosition-1]->location();
 	} else {
 		m_lastLocation = m_bufferStartLocation;
+	}
+}
+
+template<class ProductionType>
+inline void ProductionStream<ProductionType>::resetToPositionRelativeToLastPin(size_t newPosition) {
+	if (m_pins.empty()) {
+		m_nextProductionToGive = newPosition;
+	} else {
+		m_nextProductionToGive = newPosition + m_pins.top().bufferOffset;
 	}
 }
 
