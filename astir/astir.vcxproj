@@ -79,6 +79,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)\Build\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\Build\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -145,7 +147,7 @@
     <ClCompile Include="CppLLkParserGenerator.cpp" />
     <ClCompile Include="CppLLkParserGenerator.h" />
     <ClCompile Include="CppNFAGenerationHelper.cpp" />
-    <ClCompile Include="dimcli\libs\dimcli\cli.cpp" />
+    <ClCompile Include="DimCli\libs\dimcli\cli.cpp" />
     <ClCompile Include="Field.cpp" />
     <ClCompile Include="FiniteAutomatonDefinition.cpp" />
     <ClCompile Include="IndentedStringStream.cpp" />
@@ -183,7 +185,7 @@
     <ClInclude Include="CharType.h" />
     <ClInclude Include="CppGenerationVisitor.h" />
     <ClInclude Include="CppNFAGenerationHelper.h" />
-    <ClInclude Include="dimcli\libs\dimcli\cli.h" />
+    <ClInclude Include="DimCli\libs\dimcli\cli.h" />
     <ClInclude Include="Exception.h" />
     <ClInclude Include="Field.h" />
     <ClInclude Include="FileLocation.h" />
