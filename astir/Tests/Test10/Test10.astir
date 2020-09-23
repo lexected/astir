@@ -1,4 +1,4 @@
-// Test10 - a context-free grammar LL(1) parser test
+// Test10 - a context-free grammar LL(2) parser test
 // This time, the parser 'uses' finite automaton that does the tokenizing, referring to it whenever a token is needed
 
 finite automaton TreeTokenizer {
@@ -8,7 +8,7 @@ finite automaton TreeTokenizer {
     root LEAF = ['a'-'z' 'A'-'Z' '_' '0' - '9']+;
 }
 
-LL(1) parser TreeParser uses TreeTokenizer {
+LL(2) parser TreeParser with ambiguity_resolved_by_precedence uses TreeTokenizer {
     root category Node;
 
     production EmptyNode : Node = PAR_LEFT PAR_RIGHT;

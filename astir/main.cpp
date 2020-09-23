@@ -52,8 +52,8 @@ int main(int argc, char* argv[]) {
 		{ "Test06", "Test06" },
 		{ "Test07", "Test07" },
 		{ "Test08", "Test08" },
-		{ "Test09", "Test09" },/*
-		{ "Test10", "Test10" },
+		{ "Test09", "Test09" },
+		{ "Test10", "Test10" },/*
 		{ "Test11", "Test11" },
 		{ "Test12", "Test12" },
 		{ "Test13", "Test13" },*/
