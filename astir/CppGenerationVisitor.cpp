@@ -265,7 +265,10 @@ void CppGenerationVisitor::buildUniversalMachineMacros(std::map<std::string, std
 	//  - generate type declarations
 	for (const auto& machineStatementPair : machine->statements) {
 		auto machineStatementCast = std::dynamic_pointer_cast<IGenerationVisitable>(machineStatementPair.second);
-		machineStatementCast->accept(this);
+		if(machineStatementCast) {
+			// regex or pattern, for example, will give you empty smart ptr in the cast above, hence the check
+			machineStatementCast->accept(this);
+		}
 	}
 	macros.emplace("TypeDeclarations", this->outputAndReset());
 	macros.emplace("TypeForwardDeclarations", this->combineForwardDeclarationsAndClear());

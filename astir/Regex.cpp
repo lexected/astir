@@ -46,7 +46,11 @@ const std::shared_ptr<RepetitiveRegex>& RepetitiveRegex::kleeneTail() const {
 }
 
 void RootRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) {
-	if (!areActionsAllowed && !actions.empty()) {
+	if (actions.empty()) {
+		return;
+	}
+
+	if (!areActionsAllowed) {
 		throw SemanticAnalysisException("Regex actions appearing in the regex located at " + this->locationString() + " while all actions are prohibited within the context of '" + context->name + "' (presumably a regex statement) declared at " + context->locationString());
 	}
 

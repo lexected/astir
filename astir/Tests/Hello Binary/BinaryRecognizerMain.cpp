@@ -3,9 +3,7 @@
 #include "Output/BinaryRecognizer.h"
 
 int main() {
-	std::ifstream f("input.txt");
-
-	TextFileStream tfs("input.txt", f);
+	TextFileStream tfs("input.txt");
 
 	BinaryRecognizer::BinaryRecognizer tokenizer;
 	tokenizer.apply(tfs);
