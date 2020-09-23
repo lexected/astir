@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
 #else
 	std::map<std::string, std::string> testsToRun = {
 		{ "Test01", "Test01" },
-		/*{ "Test02", "Test02" },
+		{ "Test02", "Test02" },/*
 		{ "Test03", "Test03" },
 		{ "Test04", "Test04" },
 		{ "Test05", "Test05" },
