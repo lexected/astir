@@ -171,10 +171,13 @@ bool SyntacticAnalyzer::tryParseMachineFlag(std::list<Token>::const_iterator& it
 		setting = make_pair<MachineFlag, bool>(MachineFlag::CategoriesRootByDefault, true);
 	} else if (it->type == TokenType::KW_CATEGORIES_NONROOT_BY_DEFAULT) {
 		setting = make_pair<MachineFlag, bool>(MachineFlag::CategoriesRootByDefault, false);
+	} else if (it->type == TokenType::KW_AMBIGUITY_DISALLOWED) {
+		setting = make_pair<MachineFlag, bool>(MachineFlag::AmbiguityResolvedByPrecedence, false);
+	} else if (it->type == TokenType::KW_AMBIGUITY_RESOLVED_BY_PRECEDENCE) {
+		setting = make_pair<MachineFlag, bool>(MachineFlag::AmbiguityResolvedByPrecedence, true);
 	} else {
 		return false;
 	}
-	
 	
 	if (attributes[setting.first].set) {
 		throw SyntacticAnalysisException("The attribute setting '" + it->string + "' in 'with' clause of a machine definition attempts to configure machine on an attribute that has already been explicitly set - check for repetitive or contradictory use of attribute settings", *it);

@@ -5,6 +5,8 @@
 #include "SyntacticTree.h"
 #include "MachineStatement.h"
 
+#include <sstream>
+
 bool ByteSymbolGroup::equals(const SymbolGroup* rhs) const {
 	const ByteSymbolGroup* rhsCast = dynamic_cast<const ByteSymbolGroup*>(rhs);
 	if (rhsCast == nullptr) {
@@ -84,6 +86,10 @@ std::list<std::pair<std::shared_ptr<SymbolGroup>, bool >> ByteSymbolGroup::disjo
 	return ret;
 }
 
+std::string ByteSymbolGroup::toString() const {
+	return std::string("'") + std::string(rangeStart, 1) + "' - " + std::string(rangeEnd, 1) + "'";
+}
+
 std::shared_ptr<std::list<SymbolIndex>> ByteSymbolGroup::retrieveSymbolIndices() const {
 	if (m_symbolIndicesFlyweight->empty()) {
 		for (ComputationCharType it = rangeStart; it <= (ComputationCharType)rangeEnd; ++it) {
@@ -112,6 +118,10 @@ std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> EmptySymbolGroup::disjo
 	} else {
 		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>();
 	}
+}
+
+std::string EmptySymbolGroup::toString() const {
+	return "empty";
 }
 
 std::shared_ptr<std::list<SymbolIndex>> EmptySymbolGroup::retrieveSymbolIndices() const {
@@ -157,6 +167,20 @@ void SymbolGroupList::removeEmpty() {
 	auto newEndIt = this->remove_if([](const auto& ptr) {
 		return dynamic_cast<const EmptySymbolGroup*>(ptr.get()) != nullptr;
 	});
+}
+
+std::string SymbolGroupList::asSequenceString() const {
+	if (empty()) {
+		return "";
+	}
+
+	std::stringstream ss;
+	ss << front()->toString();
+	for (auto it = ++cbegin(); it != cend(); ++it) {
+		ss << ' ';
+		ss << (*it)->toString();
+	}
+	return ss.str();
 }
 
 SymbolGroupList& SymbolGroupList::operator+=(const SymbolGroupList& rhs) {
@@ -209,6 +233,10 @@ std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> LiteralSymbolGroup::dis
 			return disjoinmentResult;
 		}
 	}
+}
+
+std::string LiteralSymbolGroup::toString() const {
+	return "'" + this->literal + "'";
 }
 
 std::shared_ptr<std::list<SymbolIndex>> LiteralSymbolGroup::retrieveSymbolIndices() const {
@@ -304,6 +332,10 @@ std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> StatementSymbolGroup::d
 	}
 
 	return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>({ { rhs, true } });
+}
+
+std::string StatementSymbolGroup::toString() const {
+	return statement->name;
 }
 
 std::shared_ptr<std::list<SymbolIndex>> StatementSymbolGroup::retrieveSymbolIndices() const {

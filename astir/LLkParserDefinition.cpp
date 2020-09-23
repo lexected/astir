@@ -6,6 +6,7 @@ LLkParserDefinition::LLkParserDefinition(unsigned long k)
 				{ MachineFlag::ProductionsTerminalByDefault, MachineDefinitionAttribute(false) },
 				{ MachineFlag::ProductionsRootByDefault, MachineDefinitionAttribute(false) },
 				{ MachineFlag::CategoriesRootByDefault, MachineDefinitionAttribute(false) },
+				{ MachineFlag::AmbiguityResolvedByPrecedence, MachineDefinitionAttribute(false) }
 	}), m_builder(std::make_unique<LLkBuilder>(this)), m_k(k) { }
 
 void LLkParserDefinition::initialize() {

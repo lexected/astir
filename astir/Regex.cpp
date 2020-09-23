@@ -74,9 +74,12 @@ void RootRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, co
 			}
 
 			case RegexActionType::Capture:
-			case RegexActionType::Empty:
 			case RegexActionType::Append:
-			case RegexActionType::Prepend: {
+			case RegexActionType::Prepend:
+				if (machine.on.second && !machine.on.second->hasPurelyTerminalRoots()) {
+					throw SemanticAnalysisException("Can not capture/append/prepend raw in machines that are not not `on` raw or more generally terminal input");
+				}
+			case RegexActionType::Empty: {
 				auto rfPtr = std::dynamic_pointer_cast<RawField>(fieldPtr);
 				if (rfPtr == nullptr) {
 					throw SemanticAnalysisException("The action at '" + action.locationString() + "' refers to target '" + action.target + "' that is not an 'raw' field of '" + context->name + "' (see its definition at " + context->locationString() + ")");

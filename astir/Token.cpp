@@ -61,7 +61,10 @@ std::string Token::convertTypeToString(TokenType type) {
 			return "KW_CATEGORIES_ROOT_BY_DEFAULT";
 		case TokenType::KW_CATEGORIES_NONROOT_BY_DEFAULT:
 			return "KW_CATEGORIES_NONROOT_BY_DEFAULT";
-
+		case TokenType::KW_AMBIGUITY_DISALLOWED:
+			return "KW_AMBIGUITY_DISALLOWED";
+		case TokenType::KW_AMBIGUITY_RESOLVED_BY_PRECEDENCE:
+			return "KW_AMBIGUITY_RESOLVED_BY_PRECEDENCE";
 		
 		case TokenType::KW_ROOT:
 			return "KW_ROOT";

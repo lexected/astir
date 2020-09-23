@@ -9,6 +9,7 @@ struct FiniteAutomatonDefinition : public MachineDefinition {
 				{ MachineFlag::ProductionsTerminalByDefault, MachineDefinitionAttribute(true) },
 				{ MachineFlag::ProductionsRootByDefault, MachineDefinitionAttribute(true) },
 				{ MachineFlag::CategoriesRootByDefault, MachineDefinitionAttribute(false) },
+				{ MachineFlag::AmbiguityResolvedByPrecedence, MachineDefinitionAttribute(false) }
 			}) { }
 
 	void initialize() override;

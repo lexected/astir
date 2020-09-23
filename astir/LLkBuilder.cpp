@@ -139,6 +139,14 @@ void LLkBuilder::disambiguateDecisionPoints(ILLkNonterminalCPtr first, ILLkNonte
 		lookahead(second, prefix);
 	}
 
+	if(firstPoint.transitions.empty() || secondPoint.transitions.empty()) {
+		if (m_contextMachine->attributes.find(MachineFlag::AmbiguityResolvedByPrecedence)->second.value) {
+			// do nothing? will just doing that work? I think it should. But it should be tested
+		} else {
+			throw SemanticAnalysisException("Ambiguity of grammar identified on the lookahead sequence \"" + prefix.asSequenceString() + "\". Alternatives include using the ambiguity_resolved_by_precedence machine flag (i.e. in a `with` clause)");
+		}
+	}
+
 	// TODO: if both first.transitions and second.transitions contain EndOfGrammarSymbolGroup, we are seeing a fully ambiguous pair of rules
 	// another option is to check at the very end of this function whether both of the above are still empty -- if yes, we have have a fully ambiguous pair of rules as above
 	// maybe don't make it an error but a warning...

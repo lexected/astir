@@ -14,7 +14,8 @@
 enum class MachineFlag {
 	ProductionsTerminalByDefault,
 	ProductionsRootByDefault,
-	CategoriesRootByDefault
+	CategoriesRootByDefault,
+	AmbiguityResolvedByPrecedence
 };
 
 struct MachineDefinitionAttribute {
@@ -56,7 +57,8 @@ protected:
 		: attributes({
 			{ MachineFlag::ProductionsTerminalByDefault, MachineDefinitionAttribute(false) },
 			{ MachineFlag::ProductionsRootByDefault, MachineDefinitionAttribute(false) },
-			{ MachineFlag::CategoriesRootByDefault, MachineDefinitionAttribute(false) }
+			{ MachineFlag::CategoriesRootByDefault, MachineDefinitionAttribute(false) },
+			{ MachineFlag::AmbiguityResolvedByPrecedence, MachineDefinitionAttribute(false) }
 			}), m_terminalCount((TerminalTypeIndex)0), m_isOnTerminalInput(false) { }
 
 	MachineDefinition(const std::map<MachineFlag, MachineDefinitionAttribute>& attributes);

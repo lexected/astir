@@ -59,6 +59,8 @@ private:
 		std::pair<std::string, TokenType>("productions_nonroot_by_default", TokenType::KW_PRODUCTIONS_NONROOT_BY_DEFAULT),
 		std::pair<std::string, TokenType>("categories_root_by_default", TokenType::KW_CATEGORIES_ROOT_BY_DEFAULT),
 		std::pair<std::string, TokenType>("categories_nonroot_by_default", TokenType::KW_CATEGORIES_NONROOT_BY_DEFAULT),
+		std::pair<std::string, TokenType>("ambiguity_disallowed", TokenType::KW_AMBIGUITY_DISALLOWED),
+		std::pair<std::string, TokenType>("ambiguity_resolved_by_precedence", TokenType::KW_AMBIGUITY_RESOLVED_BY_PRECEDENCE),
 		
 		std::pair<std::string, TokenType>("ignored", TokenType::KW_IGNORED),
 		std::pair<std::string, TokenType>("root", TokenType::KW_ROOT),

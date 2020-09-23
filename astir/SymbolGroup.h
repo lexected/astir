@@ -15,6 +15,7 @@ public:
 	virtual bool equals(const SymbolGroup* rhs) const = 0;
 	virtual bool disjoint(const SymbolGroup* rhs) const = 0;
 	virtual std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) = 0;
+	virtual std::string toString() const = 0;
 
 	virtual std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const = 0;
 protected:
@@ -34,6 +35,8 @@ public:
 	SymbolGroupList allButEmpty() const;
 	void removeEmpty();
 
+	std::string asSequenceString() const;
+
 	SymbolGroupList& operator+=(const SymbolGroupList& rhs);
 };
 
@@ -44,6 +47,7 @@ public:
 	bool equals(const SymbolGroup* rhs) const override;
 	bool disjoint(const SymbolGroup* rhs) const override;
 	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
+	std::string toString() const override;
 
 	std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const override;
 protected:
@@ -60,6 +64,7 @@ struct ByteSymbolGroup : public SymbolGroup {
 	bool equals(const SymbolGroup* rhs) const override;
 	bool disjoint(const SymbolGroup* rhs) const override;
 	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
+	std::string toString() const override;
 
 	CharType rangeStart;
 	CharType rangeEnd;
@@ -77,6 +82,7 @@ struct LiteralSymbolGroup : public SymbolGroup {
 	bool equals(const SymbolGroup* rhs) const override;
 	bool disjoint(const SymbolGroup* rhs) const override;
 	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
+	std::string toString() const override;
 
 	std::string literal;
 
@@ -93,6 +99,7 @@ struct StatementSymbolGroup : public SymbolGroup {
 	bool equals(const SymbolGroup* rhs) const override;
 	bool disjoint(const SymbolGroup* rhs) const override;
 	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
+	std::string toString() const override;
 
 	const TypeFormingStatement* statement;
 	const MachineDefinition* statementMachine;

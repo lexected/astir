@@ -537,23 +537,8 @@ std::string CppLLkParserGenerator::makeExpectationGrammar(const LLkDecisionPoint
 		}
 
 		const auto& transition = *it;
-		const SymbolGroup* rawPtr = transition->condition.get();
-		const LiteralSymbolGroup* literalPtr = dynamic_cast<const LiteralSymbolGroup*>(rawPtr);
-		if (literalPtr != nullptr) {
-			ss << "'" << literalPtr->literal << "'";
-		} else {
-			const StatementSymbolGroup* ssgPtr = dynamic_cast<const StatementSymbolGroup*>(rawPtr);
-			if (ssgPtr != nullptr) {
-				ss << ssgPtr->statement->name;
-			} else {
-				const EmptySymbolGroup* esgPtr = dynamic_cast<const EmptySymbolGroup*>(rawPtr);
-				if (esgPtr != nullptr) {
-					ss << "empty";
-				} else {
-					throw GenerationException("Unknown symbol group encountered");
-				}
-			}
-		}
+		const SymbolGroup* rawSGPtr = transition->condition.get();
+		ss << rawSGPtr->toString();
 
 		if (!transition->point.transitions.empty()) {
 			ss << ' ';
