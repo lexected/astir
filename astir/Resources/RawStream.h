@@ -16,10 +16,11 @@ public:
 };
 
 class RawStream : public ProductionStream<RawTerminal> {
-protected:
+public:
 	RawStream(std::istream& underlyingStream, const std::shared_ptr<Location>& startingStreamLocation)
 		: m_underlyingStream(underlyingStream), m_currentStreamLocation(startingStreamLocation), ProductionStream<RawTerminal>(startingStreamLocation) { }
 
+protected:
 	bool streamGet(std::shared_ptr<RawTerminal>& c) override;
 	bool streamGood() const override;
 
@@ -29,8 +30,12 @@ private:
 	std::shared_ptr<Location> m_currentStreamLocation;
 };
 
+#include <fstream>
+
 class TextFileStream : public RawStream {
 public:
-	TextFileStream(const std::string& fileName, std::istream& underlyingStream)
-		: RawStream(underlyingStream, std::make_shared<TextFileLocation>(fileName, 1, 0)) { }
+	TextFileStream(const std::string& fileName);
+
+private:
+	std::ifstream m_fileStream;
 };

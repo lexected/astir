@@ -44,8 +44,8 @@ int main(int argc, char* argv[]) {
 
 #else
 	std::map<std::string, std::string> testsToRun = {
-		/*{ "Test01", "Test01" },
-		{ "Test02", "Test02" },
+		{ "Test01", "Test01" },
+		/*{ "Test02", "Test02" },
 		{ "Test03", "Test03" },
 		{ "Test04", "Test04" },
 		{ "Test05", "Test05" },
@@ -55,8 +55,8 @@ int main(int argc, char* argv[]) {
 		{ "Test09", "Test09" },
 		{ "Test10", "Test10" },
 		{ "Test11", "Test11" },
-		{ "Test12", "Test12" },*/
-		{ "Test13", "Test13" },
+		{ "Test12", "Test12" },
+		{ "Test13", "Test13" },*/
 		//{ "Hello Binary", "BinaryRecognizer" },
 	};
 	for (const auto& folderFilePair : testsToRun) {
