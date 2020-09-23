@@ -2,7 +2,7 @@
 
 // The following is actually left-recursive
 /*
-LL(1) parser TreeParser {
+LL(2) parser TreeParser with ambiguity_resolved_by_precedence {
 	root production Node =
 		'(' Node ')'
 		| '(' Node Node ')'
@@ -11,7 +11,7 @@ LL(1) parser TreeParser {
 }
 */
 
-LL(1) parser TreeParser {
+LL(2) parser TreeParser with ambiguity_resolved_by_precedence {
 	root production Node =
 		'(' ')' // empty
 		| '(' Node Node ')'
