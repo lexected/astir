@@ -1,6 +1,6 @@
 // Test08 - a context-free grammar LL(2) parser test
 
-// The following is actually left-recursive
+// The following is actually properly ambiguous (in a construction-prohibiting way that is)
 /*
 LL(2) parser TreeParser with ambiguity_resolved_by_precedence {
 	root production Node =
