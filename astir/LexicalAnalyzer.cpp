@@ -34,12 +34,12 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 
 		switch (m_state) {
 			case LexicalAnalyzerState::Default:
-				if (std::isalpha(m_currentCharacter)) {
+				if (std::isalpha(m_currentCharacter) || m_currentCharacter == '_') {
 					m_state = LexicalAnalyzerState::Identifier;
 					m_currentToken.string.append(std::string({ m_currentCharacter }));
 					m_currentToken.type = TokenType::IDENTIFIER;
 					m_currentToken.setLocation(m_currentLocation);
-				} else if (std::isalnum(m_currentCharacter) || m_currentCharacter == '_') {
+				} else if (std::isdigit(m_currentCharacter)) {
 					m_state = LexicalAnalyzerState::Number;
 					m_currentToken.string.append(std::string({ m_currentCharacter }));
 					m_currentToken.type = TokenType::NUMBER;

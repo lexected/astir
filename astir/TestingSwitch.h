@@ -1,3 +1,3 @@
 #pragma once
 
-#define TESTING
+#undef TESTING

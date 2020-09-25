@@ -116,9 +116,9 @@ category Number {
 
 production BinaryNumber : Number = '0' 'b' ['0' '1']+;
 production OctalNumber : Number = '0' 'o' ['0' - '7']+;
-production DecimalNumber {
+production DecimalNumber : Number {
     flag isExplicit;
-} : Number = ('0' 'd')? ['0' - '9']+;
+} = ('0' 'd')? ['0' - '9']+;
 production HexadecimalNumber : Number = '0' 'x' ['0' - '9' 'a'-'f']+;
 ```
 
@@ -246,19 +246,19 @@ category Number {
     raw valueString;
 };
 
-pattern BinaryNumber {
+pattern BinaryNumber : Number {
     raw valueString;
-} : Number = ('0' 'b' ['0' '1']+)@capture:valueString;
-pattern OctalNumber {
+} = ('0' 'b' ['0' '1']+)@capture:valueString;
+pattern OctalNumber : Number {
     raw valueString;
-} : Number = ('0' 'o' ['0' - '7']+)@capture:valueString;
-pattern DecimalNumber {
+} = ('0' 'o' ['0' - '7']+)@capture:valueString;
+pattern DecimalNumber : Number {
     raw valueString;
     flag isExplicit;
-} : Number = ('0' 'd'@flag:isExplicit)? (['0' - '9']+)@capture:valueString;
-pattern HexadecimalNumber{
+} = ('0' 'd'@flag:isExplicit)? (['0' - '9']+)@capture:valueString;
+pattern HexadecimalNumber : Number {
     raw valueString;
-} : Number = '0' 'x' (['0' - '9' 'a'-'f']+)@capture:valueString;
+} = '0' 'x' (['0' - '9' 'a'-'f']+)@capture:valueString;
 ```
 
 And just like that -- all the sub-types of `Number` will disappear in the generated output and the only type exposed to the developer on the back end will be `Number`.
@@ -296,30 +296,32 @@ terminal production Line {
 
 ## The final grammar
 ```astir
-production File {
-    Line list lines;
-    Line lastLine;
-} = (Line@append:lines '\n')* Line@append:lines@set:lastLine;
+finite automaton CSNTokenizer {
+    production File {
+        Line list lines;
+        Line lastLine;
+    } = (Line@append:lines '\n')* Line@append:lines@set:lastLine;
 
-production Line {
-    Number list numbers;
-} = (Number@append:numbers ',')*;
+    production Line {
+        Number list numbers;
+    } = (Number@append:numbers ',')*;
 
-category Number {
-    raw valueString;
-};
+    category Number {
+        raw valueString;
+    };
 
-pattern BinaryNumber {
-    raw valueString;
-} : Number = ('0' 'b' ['0' '1']+)@capture:valueString;
-pattern OctalNumber {
-    raw valueString;
-} : Number = ('0' 'o' ['0' - '7']+)@capture:valueString;
-pattern DecimalNumber {
-    raw valueString;
-    flag isExplicit;
-} : Number = ('0' 'd'@flag:isExplicit)? (['0' - '9']+)@capture:valueString;
-pattern HexadecimalNumber{
-    raw valueString;
-} : Number = '0' 'x' (['0' - '9' 'a'-'f']+)@capture:valueString;
+    pattern BinaryNumber : Number {
+        raw valueString;
+    } = ('0' 'b' ['0' '1']+)@capture:valueString;
+    pattern OctalNumber : Number  {
+        raw valueString;
+    } = ('0' 'o' ['0' - '7']+)@capture:valueString;
+    pattern DecimalNumber : Number  {
+        raw valueString;
+        flag isExplicit;
+    } = ('0' 'd'@flag:isExplicit)? (['0' - '9']+)@capture:valueString;
+    pattern HexadecimalNumber : Number {
+        raw valueString;
+    }= '0' 'x' (['0' - '9' 'a'-'f']+)@capture:valueString;
+}
 ```

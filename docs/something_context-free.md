@@ -31,7 +31,7 @@ Node =
 One could now easily proceed to define an LL(finite) (or, strictly speaking, an LL(2)) parser on raw input, if it weren't for the annoying whitespace that can just appear almost everywhere.
 
 ## The tokenizer
-We shall instead tokenizer our raw input first, and then feed the terminal output of the tokenizer into an LL(finite) parser. Although simple, the following tokenizer will do the job
+We shall instead tokenize our raw input first, and then feed the terminal output of the tokenizer into an LL(finite) parser. Although simple, the following tokenizer will do the job
 
 ```astir
 finite automaton TreeTokenizer {
