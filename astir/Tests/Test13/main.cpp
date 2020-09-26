@@ -1,5 +1,3 @@
-#include <fstream>
-
 #include "Output/TreeTokenizer.h"
 #include "Output/TreeParser.h"
 

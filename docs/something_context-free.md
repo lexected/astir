@@ -1,0 +1,159 @@
+# Something context-free
+
+Regular languages are a strict subset of context-free free languages and thus, unfortunately, can not be represented by the conventional finite automata, although a properly generalized deterministic finite automaton can easily reach up to context-sensitive languages.
+
+Most of the concepts presented in the [Something regular](/#something-regular) section, including but not being limited to categories, patterns, fields, actions, or terminality, are available in the entire languange and can hence naturally be used within machines other than the finite automata as well.
+
+In this section we will therefore only focus on giving a minimal example of what is a context-free grammar for the traditional Lisp parenthesis nesting. Our parser machine of choice will be the LL(k) or more generally the LL(finite) parser. The LL(finite) parser can recognize (and indeed, parse) a relatively large subset of non-left-recursive context-free grammars., and will be sufficient for our purposes.
+
+Suppose that we want to be able to parse Lisp trees like the following one
+
+```lisp
+(defun fibonacci (N)
+  (if (or (zerop N) (= N 1))
+      1
+    (let
+	((F1 (fibonacci (- N 1)))
+	 (F2 (fibonacci (- N 2))))
+      (+ F1 F2))))
+```
+
+Ignoring whitespace, the following could be our starting-point grammar
+
+```astir
+Node = 
+    '(' ')'
+    | '(' Node+ ')'
+    | ['a'-'z' 'A'-'Z' '0'-'9' '_' '-' '+' '=']+
+    ;
+```
+
+One could now easily proceed to define an LL(finite) (or, strictly speaking, an LL(2)) parser on raw input, if it weren't for the annoying whitespace that can just appear almost everywhere.
+
+## The tokenizer
+We shall instead tokenize our raw input first, and then feed the terminal output of the tokenizer into an LL(finite) parser. Although simple, the following tokenizer will do the job
+
+```astir
+finite automaton TreeTokenizer {
+    ignored root WhiteSpace = [' ' '\n' '\r' '\t']+;
+    root PAR_LEFT = '(';
+    root PAR_RIGHT = ')';
+    root LEAF = ['a'-'z' 'A'-'Z' '_' '0' - '9']+;
+}
+```
+
+
+## The parser machine
+Equipped with `TreeTokenizer` the starting-point grammar can be rephrased as follows
+
+```astir
+LL(finite) parser TreeParser with ambiguity_resolved_by_precedence on TreeTokenizer {
+    root category Node;
+
+    production EmptyNode : Node = PAR_LEFT empty PAR_RIGHT;
+
+    production BranchingNode : Node {
+        Node list nodes;
+    } = PAR_LEFT (Node@push:nodes)+ PAR_RIGHT;
+
+    production Leaf : Node {
+        raw text;
+    } = LEAF@capture:text;
+}
+```
+
+> More on the `ambiguity_resolved_by_precedence` machine attribute can be found below.
+
+To generate output we invoke (Bash)
+
+```bash
+./astir TreeParsing.astir
+```
+
+or (Powershell)
+
+```powershell
+astir.exe TreeParsing.astir
+```
+
+Finally, the generated output can be lumped together into a parser with the following  `main.cpp` code
+
+```cpp
+#include "Output/TreeTokenizer.h"
+#include "Output/TreeParser.h"
+
+int main() {
+	TextFileStream tfs("someInput.txt");
+
+	TreeTokenizer::TreeTokenizer treeTokenizer;
+	auto primaryStreamProcessed = treeTokenizer.processStreamWithIgnorance(tfs);
+
+	ListProductionStream<TreeTokenizer::OutputProduction> lps(primaryStreamProcessed);
+
+	TreeParser::TreeParser treeParser;
+	auto secondaryStreamProcessed = treeParser.parse(lps);
+
+	return 0;
+}
+```
+
+> Remember to compile the boilerplate `.cpp` files as well in order to be able to link the intermediate output successfully.
+
+## LL(k) vs LL(finite) - so what is the difference?
+The conventional construction of LL(k) parsers involves a construction of a large table that gets bigger as `k` increases. The approach chosen by astir is different: regardless of whether the parser is meant to be LL(k) or LL(finite), astir will try to build a predictive recursive-descent parser that looks ahead as much as it needs to to disambiguate between various alternatives. If the parser is specified to be LL(k) and the lookahead needed to differentiate between some two alternatives (of a nonterminal) turns out to be at least `k+1`, the disambiguation process will be aborted with an error. This, however, won't happen if the parser is specified to be LL(finite) instead of LL(k) for some k. In other words, the grammars accepted by LL(finite) parsers are precisely the union of all LL(k) grammars in `k>=1`.
+
+Consider the following example grammar
+
+```astir
+production S =
+    '(' ')'
+    | '(' S ')'
+    ;
+```
+
+which generates the language `()`, `(())`, `((()))`, ... . This is a context-free grammar, and also happens to be LL(finite).
+
+* Is it LL(1)? *No.* If an input string begins with `(` we can not differentiate between the first (`'(' ')'`) and the second (`'(' S ')'`) alternative.
+* Is it LL(2)? *Yes.* If an input string begins with `()` only the first alternative matches. If the input string begins with `((` the second alternative is the alternative that will accept a match. All other string prefixes are errorneous as they certainly do not come from the language generated by this grammar. 
+* Is it LL(k)? *Yes, because it is LL(2) and 3 > 2.* On the output, however, the parser generated is the same as the LL(2) parser before.
+
+## Limitations of LL(finite) parsers
+
+### Left-recursion
+The following grammar is clearly left-recursive
+
+```astir
+production Expression {
+    flag isUnary;
+    Expression item lhs;
+    Expression item rhs;
+} = 
+    Expression@set:lhs '+' Expression@set:rhs
+    | Variable@flag:isUnary@set:lhs
+    | Constant@flag:isUnary@set:lhs
+    ;
+```
+
+Left-recursive grammars should not be fed into astir's LL(k/finite) parser generator as it currently does not perform the semantic check against their possibility before attempting to build the parser, and such attempt is thus likely to end up in a stack overflow.
+
+However, generally speaking, there are ways of systematically eliminating left-recursion, even if it involves cycles and epsilon-productions (empty productions). So, the constraint on the input grammars to be non-left-recursive actually isn't that prohibitive. Furthermore, patterns can make sure that all the productions that would have otherwise been clearly generic can actually be made to look natural, at least on the generated output.
+
+### Ambiguity
+In general it is impossible to detect whether a grammar is ambiguous as the problem ahs been proven undecidable (untractable). The LL(k/finite) parser generator may be able to identify some simple cases of ambiguity -- if that happens, by default an error is produced and the operation aborted. Sometimes, the ambiguity might be resolved by giving the production/alternative that matches first with the given lookahead priority. This behaviour can be requested by specifying the `ambiguity_resolved_by_precedence` attribute in the `with` clause of machine declaration.
+
+The attribute currently has no effect when applied to finite automata.
+
+### General non-LL(finite)-ness
+Take a look at the following astir grammar
+
+```astir
+LL(finite) parser TreeParser with ambiguity_resolved_by_precedence {
+	root production Node =
+		'(' Node ')'
+		| '(' Node Node ')'
+		| 'L' // as in "leaf"
+		;
+}
+```
+
+Although one could be tempted to say that the grammar is ambiguous, it is not, and that is not the reason why asking astir to generate parser files will lead to errorneous behaviour. The real problem is that the grammar is not LL(finite) - while a recursive parser that attempts to match productions one-by-one and backtracks if not successful could parse exactly the language generated by this grammar, the LL(finite) parsers are not quite so powerful. Regardless of what finite lookahead is chosen, the parser generated will not be able to distinguish between the first and second alternatives' lookaheads for any prefix of length strictly greater than `1`. An LL parser with a finite automaton on lookahead, (e.g. an LL(*/infinity) parser) would work.

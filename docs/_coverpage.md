@@ -2,9 +2,9 @@
 
 ![logo](_media/tornado-2.4.png)
 
-# astir <small>0.1</small>
+# Astir <small>1.0.0</small>
 
-> An OOP-based context-free grammar compiler generator for C++
+> An OOP-based context-free grammar parser generator for C++
 
 [GitHub](https://github.com/lexected/astir/)
 [Get Started](#about)
