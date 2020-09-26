@@ -15,6 +15,7 @@ void printTokenList(const std::list<Token>& tokenList);
 int main(int argc, char* argv[]) {
 #ifndef TESTING
 	Dim::Cli cli;
+	cli.versionOpt("1.0.0");
 	auto& grammarFilePath = cli.opt<std::string>("<grammarFilePath>").desc("The path to the containing the grammar specification that is to be processed");
 	auto& outputDirectoryPath = cli.opt<std::string>("outputDirectory", ".").desc("The directory where the generated files are meant to go.");
 	if (!cli.parse(std::cerr, argc, argv))

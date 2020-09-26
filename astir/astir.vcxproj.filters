@@ -117,9 +117,6 @@
     <ClCompile Include="Token.cpp">
       <Filter>Source Files\Lexical Analysis</Filter>
     </ClCompile>
-    <ClCompile Include="Resources\SpecimenFiniteAutomaton.scpp">
-      <Filter>Resource Files\Resources</Filter>
-    </ClCompile>
     <ClCompile Include="GenerationHelper.cpp">
       <Filter>Source Files\Generation</Filter>
     </ClCompile>
@@ -232,9 +229,6 @@
     </ClInclude>
     <ClInclude Include="IActing.h">
       <Filter>Header Files\Semantic Analysis</Filter>
-    </ClInclude>
-    <ClInclude Include="Resources\SpecimenFiniteAutomaton.sh">
-      <Filter>Resource Files\Resources</Filter>
     </ClInclude>
     <ClInclude Include="GenerationException.h">
       <Filter>Header Files\Generation</Filter>
@@ -388,10 +382,16 @@
     <None Include="Tests\Test08\Test08.astir">
       <Filter>Resource Files\Tests\Test08</Filter>
     </None>
-    <None Include="Resources\SpecimenLLkParser.sh">
+    <None Include="Resources\SpecimenFiniteAutomaton.scpp">
+      <Filter>Resource Files\Resources</Filter>
+    </None>
+    <None Include="Resources\SpecimenFiniteAutomaton.sh">
       <Filter>Resource Files\Resources</Filter>
     </None>
     <None Include="Resources\SpecimenLLkParser.scpp">
+      <Filter>Resource Files\Resources</Filter>
+    </None>
+    <None Include="Resources\SpecimenLLkParser.sh">
       <Filter>Resource Files\Resources</Filter>
     </None>
   </ItemGroup>
