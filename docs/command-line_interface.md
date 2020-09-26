@@ -14,4 +14,5 @@ Options:
                             to go. (default: .)
 
   --help                    Show this message and exit.
+  --version                 Show version and exit.
 ```
