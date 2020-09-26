@@ -249,6 +249,9 @@ std::string CppNFAGenerationHelper::generateActionOperation(const NFAAction& na)
 		case NFAActionType::Clear:
 			output << na.contextPath << "->" << na.targetName << ".clear();" << std::endl;
 			break;
+		case NFAActionType::None:
+			// do nothing -- or maybe throw an exception? Idk should not really happen anyway. Why is that enum item there even?
+			break;
 	}
 
 	return output.str();
