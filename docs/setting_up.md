@@ -1,18 +1,18 @@
 # Setting up
 
-In order to use astir you need to have its binaries present at your computer. Astir has been written in C++ and as such it needs to be compiled at some point before use.
+In order to use Astir you need to have its binaries present at your computer. Astir has been written in C++ and as such it needs to be compiled at some point before it is used.
 
 ## Cloning the repository with submodules
 Astir has no dependencies aside from one compile-time dependency library, [DimCli](https://github.com/gknowles/dimcli), which is also included in the repository as a [git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules). Hence, in order to have a successful compilation you need to initialize the submodules prior to compiling. That can be done by either specifying `--recursive` when cloning the repository or by running the following in the local copy. The following are equivalent
 
 **Recursive clone**
 ```git
-git clone --recursive URL https://github.com/lexected/astir.git
+git clone --recursive https://github.com/lexected/astir.git
 ```
 
 **Clone and submodule initialization**
 ```git
-git clone URL https://github.com/lexected/astir.git
+git clone https://github.com/lexected/astir.git
 git submodule init
 git submodule update
 ```
@@ -34,12 +34,12 @@ If you are running on a Windows machine, there are three options available to yo
 + download the compiled binaries from the [GitHub Releases](https://github.com/lexected/astir/releases) page of the repository,
 + clone the source code and compile it refering to the native Visual Studio solution; that is to do
     ```git
-    git clone --recursive URL https://github.com/lexected/astir.git
+    git clone --recursive https://github.com/lexected/astir.git
     ```
     followed by a double-click on the `.sln` file to open the solution, and clicking `Build Solution`.
 + clone the source code, CMake, and then compile the sources; that is to do
     ```bash
-    git clone --recursive URL https://github.com/lexected/astir
+    git clone --recursive https://github.com/lexected/astir
     cd astir
     mkdir Build
     cd Build
@@ -59,7 +59,7 @@ Remember that in order to have a working installation the current working direct
 The only option for Linux machines so far is to use `CMake` and consequently make. For that you will obviously need `build-essential`.
 
 ```bash
-    git clone --recursive URL https://github.com/lexected/astir
+    git clone --recursive https://github.com/lexected/astir
     cd astir
     mkdir Build
     cd Build
@@ -79,7 +79,7 @@ Remember that in order to have a working installation the current working direct
 Similarly to Linux, the only option so far is to use `CMake`
 
 ```bash
-    git clone --recursive URL https://github.com/lexected/astir
+    git clone --recursive https://github.com/lexected/astir
     cd astir
     mkdir Build
     cd Build
