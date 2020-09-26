@@ -12,6 +12,8 @@
 	KW_PRODUCTIONS_NONROOT_BY_DEFAULT,
 	KW_CATEGORIES_ROOT_BY_DEFAULT,
 	KW_CATEGORIES_NONROOT_BY_DEFAULT,
+	KW_AMBIGUITY_DISALLOWED,
+	KW_AMBIGUITY_RESOLVED_BY_PRECEDENCE,
 	
 	KW_IGNORED,
 	KW_ROOT,
@@ -77,15 +79,20 @@ production specification =
 
 production specificationStatement =
 	machineDefinition
-	| usingStatement
+	| usesStatement
 	;
 
-production usingStatement =
-	KW_USING STRING
+production usesStatement =
+	KW_USES STRING
 	;
 
 production machineDefinition =
-	machineType IDENTIFIER (KW_WITH machineOptionList)? (KW_ON IDENTIFIER)? (KW_USES (IDENTIFIER)+)?  CURLY_LEFT machineDefinitionBody CURLY_RIGHT
+	machineType IDENTIFIER
+        (KW_WITH machineOptionList)?
+        (KW_ON IDENTIFIER)?
+        (KW_USES IDENTIFIER (OP_COMMA IDENTIFIER)*)? CURLY_LEFT
+            machineDefinitionBody
+        CURLY_RIGHT
 	;
 
 pattern machineType =
@@ -104,13 +111,11 @@ pattern machineOption =
 	| KW_PRODUCTIONS_NONROOT_BY_DEFAULT
 	| KW_CATEGORIES_ROOT_BY_DEFAULT
 	| KW_CATEGORIES_NONROOT_BY_DEFAULT
+	| KW_AMBIGUITY_DISALLOWED
+	| KW_AMBIGUITY_RESOLVED_BY_PRECEDENCE
 	;
 
 production machineDefinitionBody =
-	statementList
-	;
-
-pattern statementList =
 	statement*
 	;
 
@@ -121,21 +126,16 @@ production statement =
 	| regexStatement
 	;
 
-pattern attributedStatementAttribution =
-	(OP_COLON declarationNameList)? memberDeclarationBody?
+pattern attributableStatementElaboration =
+	(OP_COLON declarationNameList)? CURLY_LEFT memberDeclaration* CURLY_RIGHT
 	;
 
-pattern typeFormingStatementAttribution =
+pattern typeFormingStatementElaboration =
 	(KW_ROOT|KW_IGNORED KW_ROOT)?
 	;
 
 production categoryStatement =
-	typeFormingStatementAttribution KW_CATEGORY IDENTIFIER attributedStatementAttribution OP_SEMICOLON
-	| typeFormingStatementAttribution KW_CATEGORY IDENTIFIER attributedStatementAttribution OP_EQUALS categoryStatementBody OP_SEMICOLON
-	;
-
-pattern memberDeclarationBody =
-	CURLY_LEFT memberDeclaration* CURLY_RIGHT
+	typeFormingStatementElaboration KW_CATEGORY IDENTIFIER attributableStatementElaboration OP_SEMICOLON
 	;
 
 production memberDeclaration =
@@ -149,15 +149,27 @@ pattern categoryStatementBody =
 	;
 
 production productionStatement =
-	typeFormingStatementAttribution KW_PRODUCTION? IDENTIFIER attributedStatementAttribution OP_EQUALS ruleStatementBody OP_SEMICOLON
+	typeFormingStatementElaboration
+    terminalityElaboration
+    KW_PRODUCTION? IDENTIFIER attributableStatementElaboration OP_EQUALS
+        ruleStatementBody
+    OP_SEMICOLON
+	;
+
+pattern terminalityElaboration =
+	(KW_TERMINAL | KW_NONTERMINAL)?
 	;
 
 production patternStatement =
-	KW_PATTERN IDENTIFIER attributedStatementAttribution OP_EQUALS ruleStatementBody OP_SEMICOLON
+	KW_PATTERN IDENTIFIER attributableStatementElaboration OP_EQUALS
+        ruleStatementBody
+    OP_SEMICOLON
 	;
 
 production regexStatement =
-	KW_REGEX IDENTIFIER OP_EQUALS ruleStatementBody OP_SEMICOLON
+	KW_REGEX IDENTIFIER OP_EQUALS
+		ruleStatementBody
+	OP_SEMICOLON
 	;
 
 production ruleStatementBody = 
@@ -173,7 +185,11 @@ production conjunctiveRegex =
 	;
 
 production rootRegex =
-	(repetitiveRegex | atomicRegex) (OP_AT action OP_COLON IDENTIFIER)*
+	(repetitiveRegex | atomicRegex) actionTag*
+	;
+
+production actionTag = 
+	OP_AT action OP_COLON IDENTIFIER
 	;
 
 pattern action =

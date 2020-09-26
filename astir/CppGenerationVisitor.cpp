@@ -185,7 +185,7 @@ void CppGenerationVisitor::visit(const TypeFormingStatement* tfs) {
 }
 
 void CppGenerationVisitor::visit(const FlagField* flagField) {
-	m_output << "bool " << flagField->name << ";" << std::endl;
+	m_output << "bool " << flagField->name << " = false;" << std::endl;
 }
 
 void CppGenerationVisitor::visit(const RawField* rawField) {

@@ -12,6 +12,10 @@ void MachineDefinition::initialize() {
 	// here we simply make sure that the dependencies are initialized before the machine itself.
 	// Note that since at this point we are guaranteed that there are no recursions assumed the process is consequently also guaranteed to terminated
 	if (on.second) {
+		if (on.first == this->name) {
+			throw SemanticAnalysisException("The machine '" + name + "' referenced itself in the `on` clause (can not use itself for input)", *this);
+		}
+
 		on.second->initialize();
 		if (on.second->hasPurelyTerminalRoots()) {
 			this->m_isOnTerminalInput = true;
@@ -22,6 +26,12 @@ void MachineDefinition::initialize() {
 	
 
 	for (const auto& usedPair : uses) {
+		if (usedPair.first == this->name) {
+			throw SemanticAnalysisException("The machine '" + name + "' referenced itself in the `uses` clause (can not use itself as a dependency machine)", *this);
+		}
+		if (usedPair.second->on.first != on.first) {
+			throw SemanticAnalysisException("The machine '" + usedPair.first + "' declared at " + usedPair.second->locationString() + " referenced in the `uses` clause of '" + name + "' accepts input (specified in the `on` clause if present) different from the one of '" + name + "' -- inputs of the current machine and all of its dependencies have to be identical", *this);
+		}
 		usedPair.second->initialize();
 	}
 
