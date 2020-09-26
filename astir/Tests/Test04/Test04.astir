@@ -1,0 +1,21 @@
+// Test04 - alternation context mixing testing
+// - example input: abc
+// - correct behaviour: T is recognized with
+//		- payloadA: b
+//		- payloadB: a
+//		- payloadC: c
+// - overwriting behaviour (incorrect, an example): T is recognized with
+//		- payloadA: b
+//		- payloadB: b
+//		- payloadC: c
+
+finite automaton Test04 {
+	terminal production T {
+		raw payloadA;
+		raw payloadB;
+		raw payloadC;
+	} =
+		.@capture:payloadA .@capture:payloadB
+		| .@capture:payloadB .@capture:payloadA .@capture:payloadC
+		;
+}

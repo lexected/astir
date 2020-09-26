@@ -1,0 +1,36 @@
+nondeterministic finite automaton ExampleTokenizer {
+	terminal pattern digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+
+	category Number {
+		flag isNegative;
+	};
+
+	category Integer : Number {
+		raw value;
+	};
+	
+	production PositiveInteger : Integer = (digit@append:value)+;
+	production NegativeInteger : Integer = "-"@flag:isNegative (digit@append:value)+;
+
+	production Float : Number {
+		PositiveInteger item mantissaWholes;
+		PositiveInteger item mantissaDecimals;
+		PositiveInteger item exponent;
+	} =
+		("-"@flag:isNegative)? PositiveInteger@set:mantissaWholes "." PositiveInteger@set:mantissaDecimals (("e"|"E") PositiveInteger@set:exponent)?
+		;
+
+	pattern identifierStartingCharacter = ["a"-"z" "A"-"Z" "_"];
+	pattern identifierCharacter = identifierStartingCharacter | digit;
+
+	production Identifier {
+		raw name;
+	} = (identifierStartingCharacter@append:name) (identifierCharacter@append:name)*;
+
+	production Operator =
+		"+"
+		| "-"
+		| "*"
+		| "\"
+		;
+}

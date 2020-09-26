@@ -1,4 +1,4 @@
-# astir
-A tokenizer/parser generator that blurs the lines between the two, furthermore making cross-target-language parser generation seamless with a new high-level extension to EBNF grammars. 
+# Astir
+Astir is a flexible parser generator producing output from object-oriented hierarchical context-free grammar specfications.
 
-Work is in progress as of the 12th of August 2020. Version 0.1 supporting finite automata, categorical descriptions of lexical and syntactic structures, universal/cross-language AST building field/attribute system with full documentation are expected in early September 2020.
+Full documentation including a Getting started guide, language reference, generation reference, and output interface reference can be found [here](http://astir.dev).

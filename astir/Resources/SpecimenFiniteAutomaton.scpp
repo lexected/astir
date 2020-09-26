@@ -1,0 +1,172 @@
+#pragma once
+
+#include <sstream>
+
+#include "${{MachineName}}.h"
+
+namespace ${{MachineName}} {
+	std::shared_ptr<OutputProduction> ${{MachineName}}::apply(InputStream& rs) {
+		struct BranchingPoint {
+			size_t inputPosition;
+			size_t actionStackPosition;
+			std::vector<State> remainingStates;
+			std::vector<ActionMethodPointer> remainingActions;
+
+			BranchingPoint(size_t inputPosition,
+					size_t actionStackPosition,
+					const std::vector<State>& remainingStates,
+					const std::vector<ActionMethodPointer>& remainingActions)
+				: inputPosition(inputPosition), actionStackPosition(actionStackPosition),
+				remainingStates(remainingStates), remainingActions(remainingActions) { }
+		};
+
+		struct ActionPack {
+			ActionMethodPointer action;
+			size_t position;
+			std::shared_ptr<Location> location;
+
+			ActionPack()
+				: action(nullptr), position((size_t)-1), location(nullptr) { }
+			ActionPack(ActionMethodPointer action, size_t position, const std::shared_ptr<Location>& location)
+				: action(action), position(position), location(location) { }
+		};
+
+		const std::vector<State> emptyStateVector;
+		const std::vector<ActionMethodPointer> emptyActionVector;
+		std::shared_ptr<OutputProduction> tokenToReturn = nullptr;
+
+		rs.pin();
+		
+		State lastAcceptingState = (State)(-1);
+		size_t lastAcceptedInputPosition = 0;
+		std::vector<ActionPack> lastAcceptedActionStack;
+		std::list<BranchingPoint> branchingPoints;
+		std::vector<ActionPack> actionStack;
+
+		// register the actions associated with state 0 if there are any
+		if(this->m_stateActions[0] != nullptr) {
+			actionStack.emplace_back(this->m_stateActions[0], rs.currentPositionRelativeToLastPin(), rs.lastLocation());
+		}
+		
+		while (true) {
+			InputTerminalPtr currentTerminal;
+			auto currentPosition = rs.currentPositionRelativeToLastPin();
+			auto currentLocation = rs.lastLocation();
+			bool readingOutcome = rs.get(currentTerminal);
+			const std::vector<State>& nextStates = !readingOutcome ? emptyStateVector : m_stateMap[m_currentState][(size_t)currentTerminal->type];
+			const std::vector<ActionMethodPointer>& nextActions = !readingOutcome ? emptyActionVector : this->m_transitionActions[m_currentState][(size_t)currentTerminal->type];
+
+			State stateToGoTo;
+			ActionMethodPointer stateToGoToCorrespondingTransitionAction = nullptr;
+			if(nextStates.empty()) {
+				if(!branchingPoints.empty()) {
+					BranchingPoint& lastBp = branchingPoints.back();
+					// simulate reading of the character at which we branched again
+					currentPosition = lastBp.inputPosition;
+					rs.resetToPositionRelativeToLastPin(lastBp.inputPosition);
+					currentLocation = rs.lastLocation();
+					readingOutcome = rs.get(currentTerminal);
+					
+					stateToGoTo = lastBp.remainingStates.back();
+					lastBp.remainingStates.pop_back();
+
+					stateToGoToCorrespondingTransitionAction = lastBp.remainingActions.back();
+					lastBp.remainingActions.pop_back();
+					actionStack.resize(lastBp.actionStackPosition);
+					
+					if(lastBp.remainingStates.empty()) {
+						branchingPoints.pop_back();
+					}
+				} else {
+					if (lastAcceptingState == (State)(-1)) {
+						// for stack parity, we unpin the pin we placed internally a few lines above
+						rs.unpin();
+
+						// in case of failure at this point, we are not in the first state and we have not reached any accepting state so far, so we will return nullptr. The users are then encouraged to make use of lastApplicationSuccessful() and InputStream location information to identify the issue
+						// the stream is left as we left it after the last read, it is up to user to try to rs.resetToPin() and try again if they want to
+						// further, bufferSincePin() gives precisely the token that we failed to match
+
+						// but you can also reach this point by simply reaching an accepting state and not being able to proceed any further
+						break;
+					} else {
+						// backtrack input to where the lastAcceptingState was hit
+						rs.resetToPositionRelativeToLastPin(lastAcceptedInputPosition);
+						std::deque<InputTerminalPtr> completeInput = rs.bufferSincePin();
+						rs.unpin();
+
+						// execute all actions accepted with the state
+						for(const ActionPack& actionPackObject : lastAcceptedActionStack) {
+							(this->*actionPackObject.action)(actionPackObject.position, completeInput, actionPackObject.location);
+						}
+
+						// plan to return the built token
+						tokenToReturn = m_token;
+
+						// the following is essential for correct readings of lastApplicationSuccessful
+						m_currentState = lastAcceptingState;
+						
+						// break out of this loop and proceed
+						break;
+					}
+				}
+			} else if(nextStates.size() == 1) {
+				stateToGoTo = nextStates.front();
+				stateToGoToCorrespondingTransitionAction = nextActions.front();
+			} else {
+				branchingPoints.emplace_back(currentPosition, actionStack.size(), nextStates, nextActions);
+				BranchingPoint& lastBp = branchingPoints.back();
+				stateToGoTo = lastBp.remainingStates.back();
+				lastBp.remainingStates.pop_back();
+				stateToGoToCorrespondingTransitionAction = lastBp.remainingActions.back();
+				lastBp.remainingActions.pop_back();
+			}
+
+			// register transition actions
+			// this must happen before the registration of state actions!
+			if(stateToGoToCorrespondingTransitionAction != nullptr) {
+				actionStack.emplace_back(stateToGoToCorrespondingTransitionAction, currentPosition, currentLocation);
+			}
+
+			// register the state actions
+			// this must happen after the registration of transition actions!
+			if(this->m_stateActions[stateToGoTo] != nullptr) {
+				actionStack.emplace_back(this->m_stateActions[stateToGoTo], currentPosition, currentLocation);
+			}
+
+			// if this is a final state and strictly longer than the previous accepted sequence, take a note of that
+			if (m_stateFinality[stateToGoTo] && rs.currentPositionRelativeToLastPin() > lastAcceptedInputPosition) {
+				// remember, rs.currentPosition() is of currentPosition by 1, and it is the right quantity to use here
+				lastAcceptingState = stateToGoTo;
+				lastAcceptedInputPosition = rs.currentPositionRelativeToLastPin();
+				lastAcceptedActionStack = actionStack;
+			}
+
+			// finally, change the state
+			m_currentState = stateToGoTo;
+		}
+
+		m_token = nullptr;
+		return tokenToReturn;
+	}
+
+	void ${{MachineName}}::reset() {
+		m_currentState = 0;
+	}
+
+	std::vector<State> ${{MachineName}}::m_stateMap[${{StateCount}}][${{TransitionSymbolCount}}] = {
+		${{StateMapEnumerated}} 
+	};
+	bool ${{MachineName}}::m_stateFinality[${{StateCount}}] = { 
+		${{StateFinalityEnumerated}} 
+	};
+	std::vector<ActionMethodPointer> ${{MachineName}}::m_transitionActions[${{StateCount}}][${{TransitionSymbolCount}}] = {
+		${{TransitionActionMapEnumerated}}
+	};
+	ActionMethodPointer ${{MachineName}}::m_stateActions[${{StateCount}}] = {
+		${{StateActionMapEnumerated}}
+	};
+
+	${{ActionDefinitions}}
+	// helper methods
+	${{CombineRawDefinition}}
+}

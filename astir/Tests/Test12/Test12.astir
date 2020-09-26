@@ -1,0 +1,59 @@
+// Test12 - test for the disjoinFrom (unpickReferal) procedures on category hierarchies
+
+LL(3) parser CategoricalParser with ambiguity_resolved_by_precedence {
+    category TopLevelCategory;
+    category MidLevelCategory : TopLevelCategory;
+
+    a : MidLevelCategory = '0';
+    b : MidLevelCategory = '1';
+    c : MidLevelCategory = '2';
+    d : TopLevelCategory = '3';
+    e : TopLevelCategory = '4';
+    f : TopLevelCategory = '5';
+
+    root TestA = 
+        TopLevelCategory 'X' 'A'
+        | f 'Y' 'A'
+        ;
+    
+    root TestB = 
+        TopLevelCategory 'X' 'B'
+        | a 'Y' 'B'
+        ;
+    
+    root TestC = 
+        TopLevelCategory 'X' 'C'
+        | MidLevelCategory 'Y' 'C'
+        ;
+
+    root TestD = 
+        TopLevelCategory 'X' 'D'
+        | MidLevelCategory 'Y' 'D'
+        | b 'Z' 'D'
+        ;
+
+    root TestE = 
+        MidLevelCategory 'X' 'E'
+        | c 'Y' 'E'
+        ;
+
+    root TestF = 
+        MidLevelCategory 'X' 'F'
+        | e 'Y' 'F'
+        ;
+}
+
+/*
+// A Simplified version for debugging
+LL(1) parser CategoricalParser with ambiguity_resolved_by_precedence {
+    category TopLevelCategory;
+    category MidLevelCategory : TopLevelCategory;
+
+    A : MidLevelCategory = '0';
+    F : TopLevelCategory = '5';
+
+    root TestA = 
+        TopLevelCategory 'X'
+        | F 'Y'
+        ;
+}*/

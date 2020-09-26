@@ -1,0 +1,232 @@
+/*
+	KW_USES,
+
+	KW_ON,
+	KW_WITH,
+	
+	KW_FINITE,
+	KW_AUTOMATON,
+	KW_PRODUCTIONS_TERMINAL_BY_DEFAULT,
+	KW_PRODUCTIONS_NONTERMINAL_BY_DEFAULT,
+	KW_PRODUCTIONS_ROOT_BY_DEFAULT,
+	KW_PRODUCTIONS_NONROOT_BY_DEFAULT,
+	KW_CATEGORIES_ROOT_BY_DEFAULT,
+	KW_CATEGORIES_NONROOT_BY_DEFAULT,
+	KW_AMBIGUITY_DISALLOWED,
+	KW_AMBIGUITY_RESOLVED_BY_PRECEDENCE,
+	
+	KW_IGNORED,
+	KW_ROOT,
+	KW_TERMINAL,
+	KW_NONTERMINAL,
+	KW_CATEGORY,
+	KW_PRODUCTION,
+	KW_PATTERN,
+	KW_REGEX,
+
+	KW_ITEM,
+	KW_LIST,
+	KW_RAW,
+
+	KW_FLAG,
+	KW_UNFLAG,
+	KW_CAPTURE,
+	KW_EMPTY,
+	KW_APPEND,
+	KW_PREPEND,
+	KW_SET,
+	KW_UNSET,
+	KW_PUSH,
+	KW_POP,
+	KW_CLEAR,
+
+	IDENTIFIER,
+	STRING,
+	NUMBER,
+
+	PAR_LEFT,
+	PAR_RIGHT,
+	SQUARE_LEFT,
+	SQUARE_RIGHT,
+	CURLY_LEFT,
+	CURLY_RIGHT,
+
+	OP_COLON,
+	OP_EQUALS,
+	OP_LEFTARR,
+	OP_SEMICOLON,
+	OP_COMMA,
+	OP_DOT,
+	OP_CARET,
+	OP_DOLLAR,
+
+	OP_STAR,
+	OP_PLUS,
+	OP_QM,
+	OP_OR,
+	OP_FWDSLASH,
+	
+	OP_AMPERSAND,
+	OP_DASH,
+	OP_AT,
+
+	EOS
+*/
+
+production specification = 
+	specificationStatement*
+	;
+
+production specificationStatement =
+	machineDefinition
+	| usesStatement
+	;
+
+production usesStatement =
+	KW_USES STRING
+	;
+
+production machineDefinition =
+	machineType IDENTIFIER
+        (KW_WITH machineOptionList)?
+        (KW_ON IDENTIFIER)?
+        (KW_USES IDENTIFIER (OP_COMMA IDENTIFIER)*)? CURLY_LEFT
+            machineDefinitionBody
+        CURLY_RIGHT
+	;
+
+pattern machineType =
+	KW_FINITE KW_AUTOMATON
+	| KW_LL PAR_LEFT (NUMBER|KW_FINITE) PAR_RIGHT KW_PARSER
+	;
+
+pattern machineOptionList =
+	machineOption (OP_COMMA machineOption)*
+	;
+
+pattern machineOption = 
+	KW_PRODUCTIONS_TERMINAL_BY_DEFAULT
+	| KW_PRODUCTIONS_NONTERMINAL_BY_DEFAULT
+	| KW_PRODUCTIONS_ROOT_BY_DEFAULT
+	| KW_PRODUCTIONS_NONROOT_BY_DEFAULT
+	| KW_CATEGORIES_ROOT_BY_DEFAULT
+	| KW_CATEGORIES_NONROOT_BY_DEFAULT
+	| KW_AMBIGUITY_DISALLOWED
+	| KW_AMBIGUITY_RESOLVED_BY_PRECEDENCE
+	;
+
+production machineDefinitionBody =
+	statement*
+	;
+
+production statement =
+	categoryStatement
+	| productionStatement
+	| patternStatement
+	| regexStatement
+	;
+
+pattern attributableStatementElaboration =
+	(OP_COLON declarationNameList)? CURLY_LEFT memberDeclaration* CURLY_RIGHT
+	;
+
+pattern typeFormingStatementElaboration =
+	(KW_ROOT|KW_IGNORED KW_ROOT)?
+	;
+
+production categoryStatement =
+	typeFormingStatementElaboration KW_CATEGORY IDENTIFIER attributableStatementElaboration OP_SEMICOLON
+	;
+
+production memberDeclaration =
+	KW_FLAG IDENTIFIER OP_SEMICOLON
+	| KW_RAW IDENTIFIER OP_SEMICOLON
+	| IDENTIFIER (KW_LIST|KW_ITEM)? IDENTIFIER OP_SEMICOLON
+	;
+
+pattern categoryStatementBody =
+	IDENTIFIER*
+	;
+
+production productionStatement =
+	typeFormingStatementElaboration
+    terminalityElaboration
+    KW_PRODUCTION? IDENTIFIER attributableStatementElaboration OP_EQUALS
+        ruleStatementBody
+    OP_SEMICOLON
+	;
+
+pattern terminalityElaboration =
+	(KW_TERMINAL | KW_NONTERMINAL)?
+	;
+
+production patternStatement =
+	KW_PATTERN IDENTIFIER attributableStatementElaboration OP_EQUALS
+        ruleStatementBody
+    OP_SEMICOLON
+	;
+
+production regexStatement =
+	KW_REGEX IDENTIFIER OP_EQUALS
+		ruleStatementBody
+	OP_SEMICOLON
+	;
+
+production ruleStatementBody = 
+	disjunctiveRegex?
+	;
+
+production disjunctiveRegex =
+	conjuctiveRegex (OP_OR conjuctiveRegex)*
+	;
+
+production conjunctiveRegex =
+	rootRegex+
+	;
+
+production rootRegex =
+	(repetitiveRegex | atomicRegex) actionTag*
+	;
+
+production actionTag = 
+	OP_AT action OP_COLON IDENTIFIER
+	;
+
+pattern action =
+	| KW_FLAG
+	| KW_UNFLAG
+	| KW_CAPTURE
+	| KW_EMPTY
+	| KW_APPEND
+	| KW_PREPEND
+	| KW_SET
+	| KW_UNSET
+	| KW_PUSH
+	| KW_POP
+	| KW_CLEAR
+	;
+
+production repetitiveRegex =
+	atomicRegex OP_QM
+	| atomicRegex OP_STAR
+	| atomicRegex OP_PLUS
+	| atomicRegex CURLY_LEFT NUMBER, NUMBER CURLY_RIGHT
+	;
+	
+production atomicRegex =
+	PAR_LEFT disjunctiveRegex PAR_RIGHT
+	| SQUARE_LEFT OP_CARET (STRING|regexRange)+ SQUARE_RIGHT
+	| SQUARE_LEFT (STRING|regexRange)+ SQUARE_RIGHT
+	| STRING
+	| (KW_EMPTY | PAR_LEFT PAR_RIGHT)
+	| OP_DOT
+	| referenceRegex
+	;
+
+production regexRange =
+	STRING OP_DASH STRING
+	;
+
+production referenceRegex =
+	IDENTIFIER
+	;

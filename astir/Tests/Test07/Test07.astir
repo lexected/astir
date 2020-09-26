@@ -1,0 +1,18 @@
+// Test07 - finite automaton rootness and root ignorance test
+
+finite automaton PrimaryAutomaton with productions_nonroot_by_default {
+	root terminal production WORD = ['a'-'z''A'-'Z']+;
+	ignored root terminal production WHITESPACE = ' '* ' '; 
+	root terminal production PUNCTUATION = ['.' '!' '?'];
+
+	production irrelevant = 'irrelevant';
+}
+
+finite automaton SecondaryAutomaton on PrimaryAutomaton {
+	nonterminal production Sentence {
+		PUNCTUATION type;
+		WORD list words;
+	} = 
+		(WORD@push:words)+ PUNCTUATION@set:type
+		;
+}

@@ -1,0 +1,9 @@
+// BinaryTokenizer - an example from the getting started part of the documentation
+
+finite automaton BinaryTokenizer {
+    regex binaryDigit = ['0' '1'];
+    regex whiteSpaceCharacter = [' ' '\t' '\n'];
+
+    production BinaryString = binaryDigit+;
+    production WhiteSpace = whiteSpaceCharacter+;
+}

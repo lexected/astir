@@ -1,0 +1,5 @@
+// BinaryRecognizer - an example from the getting started part of the documentation
+
+finite automaton BinaryRecognizer {
+    language = ['0' '1']+ ([' ' '\t' '\n']+ ['0' '1']+)*;
+}
