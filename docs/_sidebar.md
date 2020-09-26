@@ -11,5 +11,5 @@
 
     - [Command-line interface](command-line_interface.md)
     - [Language](language.md)
-    - [Generation](code_generation.md)
-    
+    - [Generation](generation.md)
+    - [Output interface](output_interface.md)

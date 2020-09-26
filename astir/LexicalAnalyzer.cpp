@@ -44,7 +44,7 @@ std::list<Token> LexicalAnalyzer::process(std::istream& input) {
 					m_currentToken.string.append(std::string({ m_currentCharacter }));
 					m_currentToken.type = TokenType::NUMBER;
 					m_currentToken.setLocation(m_currentLocation);
-				} else if (isspace(m_currentCharacter)) {
+				} else if (isspace(m_currentCharacter) || m_currentCharacter == '\0') {
 					/* do nothin' */
 				} else if (m_currentCharacter == '"' || m_currentCharacter == '\'') {
 					m_state = LexicalAnalyzerState::String;
