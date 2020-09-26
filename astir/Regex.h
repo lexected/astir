@@ -31,7 +31,7 @@ struct RepetitiveRegex : public RootRegex, public ILLkNonterminal {
 	std::shared_ptr<AtomicRegex> regex;
 	unsigned long minRepetitions;
 	unsigned long maxRepetitions;
-	static const unsigned long INFINITE_REPETITIONS = (unsigned long)((signed int)-1);
+	static const unsigned long INFINITE_REPETITIONS;
 
 	RepetitiveRegex() : RepetitiveRegex(nullptr, 0, 0) { }
 	RepetitiveRegex(const std::shared_ptr<AtomicRegex>& regex, unsigned long minRepetitions,

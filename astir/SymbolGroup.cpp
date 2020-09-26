@@ -6,6 +6,7 @@
 #include "MachineStatement.h"
 
 #include <sstream>
+#include <stdexcept>
 
 bool ByteSymbolGroup::equals(const SymbolGroup* rhs) const {
 	const ByteSymbolGroup* rhsCast = dynamic_cast<const ByteSymbolGroup*>(rhs);
@@ -243,7 +244,7 @@ std::string LiteralSymbolGroup::toString() const {
 }
 
 std::shared_ptr<std::list<SymbolIndex>> LiteralSymbolGroup::retrieveSymbolIndices() const {
-	throw std::exception("retrieveSymbolIndices() called on LiteralSymbolGroup -- an invalid call");
+	throw std::logic_error("retrieveSymbolIndices() called on LiteralSymbolGroup -- an invalid call");
 	// make it into a(n internal) warning and just return an empty list, continuing with execution
 	return std::shared_ptr<std::list<SymbolIndex>>();
 }
@@ -346,7 +347,7 @@ std::shared_ptr<std::list<SymbolIndex>> StatementSymbolGroup::retrieveSymbolIndi
 		auto referencedProductions = statement->calculateInstandingProductions();
 		for (const ProductionStatement* referencedComponentPtr : referencedProductions) {
 			if (referencedComponentPtr->terminality != Terminality::Terminal) {
-				throw std::exception("Calling retrieveSymbolIndices on at least partially non-terminal statement");
+				throw std::logic_error("Calling retrieveSymbolIndices on at least partially non-terminal statement");
 			}
 			m_symbolIndicesFlyweight->push_back(referencedComponentPtr->terminalTypeIndex);
 		}

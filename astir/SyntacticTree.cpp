@@ -5,7 +5,7 @@
 #include "SemanticAnalysisException.h"
 
 #include <set>
-
+#include <algorithm>
 
 void SyntacticTree::initialize() {
 	if (initialized()) {

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <exception>
+#include <stdexcept>
 #include <string>
 
-class Exception : public std::exception {
+class Exception : public std::runtime_error {
 public:
 	Exception(const std::string& message)
-		: std::exception(message.c_str()) {}
+		: std::runtime_error(message) {}
 	virtual ~Exception() = default;
 };

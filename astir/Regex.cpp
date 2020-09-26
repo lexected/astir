@@ -9,6 +9,10 @@
 
 #include "SemanticAnalysisException.h"
 
+#include <algorithm>
+
+const unsigned long RepetitiveRegex::INFINITE_REPETITIONS = (unsigned long)((signed int)-1);
+
 void RepetitiveRegex::completeReferences(const MachineDefinition& machine) {
 	regex->completeReferences(machine);
 }

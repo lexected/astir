@@ -7,7 +7,7 @@
 #include "SyntacticAnalyzer.h"
 #include "CppGenerationVisitor.h"
 
-#include "dimcli/libs/dimcli/cli.h"
+#include "DimCli/libs/dimcli/cli.h"
 
 void printTokenList(const std::list<Token>& tokenList);
 

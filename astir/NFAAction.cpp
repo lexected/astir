@@ -2,6 +2,8 @@
 
 #include "GenerationVisitor.h"
 
+#include <algorithm>
+
 bool NFAAction::operator==(const NFAAction& rhs) const {
     return
         this->type == rhs.type && this->contextPath == rhs.contextPath

@@ -2,6 +2,8 @@
 
 #include "SemanticAnalysisException.h"
 
+#include <algorithm>
+
 void MachineDefinition::initialize() {
 	if (initialized()) {
 		return;

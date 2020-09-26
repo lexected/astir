@@ -8,6 +8,8 @@
 #include "LLkParserGenerator.h"
 #include "GenerationVisitor.h"
 
+#include <algorithm>
+
 std::shared_ptr<Field> AttributedStatement::findField(const std::string& name, std::shared_ptr<CategoryStatement>& categoryFoundIn) const {
 	auto fit = std::find_if(fields.cbegin(), fields.cend(), [&name](const auto& fieldPtr) {
 		return fieldPtr->name == name;
