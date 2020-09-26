@@ -164,7 +164,10 @@ SymbolGroupList SymbolGroupList::allButEmpty() const {
 }
 
 void SymbolGroupList::removeEmpty() {
-	auto newEndIt = this->remove_if([](const auto& ptr) {
+	/*auto newEndIt = 
+	I ONLY INTRODUCED THIS BECAUSE OF A NO-DISCARD. TURNS OUT IT IS NOT C++17 compliant, only C++20*/
+	
+	this->remove_if([](const auto& ptr) {
 		return dynamic_cast<const EmptySymbolGroup*>(ptr.get()) != nullptr;
 	});
 }

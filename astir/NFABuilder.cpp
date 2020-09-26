@@ -285,7 +285,7 @@ NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 
 	const MachineDefinition* statementMachine;
 	auto statement = this->m_contextMachine.findMachineStatement(regex->referenceName, &statementMachine);
-	auto statementCastIntoBuildable = dynamic_pointer_cast<INFABuildable>(statement);
+	auto statementCastIntoBuildable = std::dynamic_pointer_cast<INFABuildable>(statement);
 	if (statementMachine->name == m_contextMachine.name) {
 		auto typeFormingComponent = std::dynamic_pointer_cast<TypeFormingStatement>(statement);
 		const std::string payloadPath = typeFormingComponent ? m_generationContextPath + "__" + regex->referenceName : "";

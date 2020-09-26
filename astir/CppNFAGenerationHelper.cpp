@@ -119,7 +119,7 @@ std::string CppNFAGenerationHelper::generateStateFinality() const {
 	std::stringstream ss;
 
 	for (State state = 0; state < m_fa.states.size(); ++state) {
-		if (m_fa.finalStates.contains(state)) {
+		if (m_fa.finalStates.count(state) > 0) {
 			ss << "true, ";
 		} else {
 			ss << "false, ";
@@ -157,7 +157,7 @@ std::string CppNFAGenerationHelper::generateActionRegisterDefinition(ActionRegis
 
 std::string CppNFAGenerationHelper::generateActionOperation(const NFAAction& na) const {
 	const std::string payloadOrInput = na.payload.empty() ? "input[position]" : na.payload;
-	auto vtf = dynamic_pointer_cast<VariablyTypedField>(na.targetField);
+	auto vtf = std::dynamic_pointer_cast<VariablyTypedField>(na.targetField);
 	std::string dynamicCastType;
 	if (vtf) {
 		dynamicCastType = vtf->machineOfTheType->name + "::" + vtf->type;

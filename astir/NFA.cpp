@@ -174,7 +174,7 @@ void NFA::addInitialActions(const NFAActionRegister& actions) {
     // now this may sound like cheating but I promise you it is not
     // in fact, it makes perfect sense - in the specific case when we might be done before we ever consume anything,
     // we want to make sure that the initial actions are performed
-    if (this->finalStates.contains(0)) {
+    if (this->finalStates.count(0) > 0) {
         auto newActions = actions;
         newActions += this->states[0].actions;
         this->states[0].actions = newActions;
