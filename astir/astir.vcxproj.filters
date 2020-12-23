@@ -100,6 +100,9 @@
     <Filter Include="Source Files\DimCli">
       <UniqueIdentifier>{11b8e5d4-e334-4b6d-afac-4583231fe355}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Semantic Analysis\LRk">
+      <UniqueIdentifier>{98d7d775-4e1e-4494-ae01-3a277d2b0335}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -191,6 +194,9 @@
     </ClCompile>
     <ClCompile Include="DimCli\libs\dimcli\cli.cpp">
       <Filter>Source Files\DimCli</Filter>
+    </ClCompile>
+    <ClCompile Include="AFA.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -343,6 +349,9 @@
     </ClInclude>
     <ClInclude Include="DimCli\libs\dimcli\cli.h">
       <Filter>Header Files\DimCli</Filter>
+    </ClInclude>
+    <ClInclude Include="AFA.h">
+      <Filter>Header Files\Semantic Analysis</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
