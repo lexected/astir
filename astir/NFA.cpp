@@ -203,9 +203,9 @@ NFA NFA::buildPseudoDFA() const {
     // to be executed when an accepting state is reached
 
     NFA base;
-    std::deque<DFAState> stateMap; // must be a deque, not a vector!
+    std::deque<InterimDFAState> stateMap; // must be a deque, not a vector!
 
-    DFAState initialState = calculateEpsilonClosure(std::set<State>({ (State)0 }));
+    InterimDFAState initialState = calculateEpsilonClosure(std::set<State>({ (State)0 }));
     base.states[0].actions = initialState.actions;
     stateMap.push_back(initialState);
 
@@ -241,7 +241,7 @@ NFA NFA::buildPseudoDFA() const {
     return base;
 }
 
-NFA::DFAState NFA::calculateEpsilonClosure(const std::set<State>& states) const {
+NFA::InterimDFAState NFA::calculateEpsilonClosure(const std::set<State>& states) const {
     NFAActionRegister accumulatedActions;
     std::stack<State> statesToCheck;
     for (const auto& state : states) {
@@ -270,7 +270,7 @@ NFA::DFAState NFA::calculateEpsilonClosure(const std::set<State>& states) const 
         }
     }
 
-    return NFA::DFAState(ret, accumulatedActions);
+    return NFA::InterimDFAState(ret, accumulatedActions);
 }
 
 std::list<NFA::SymbolClosure> NFA::calculateSymbolClosures(const std::list<Transition>& transitions) const {
@@ -362,7 +362,7 @@ std::list<LiteralSymbolGroup> NFA::negateLiteralSymbolGroups(const std::list<Lit
 }
 */
 
-State NFA::findUnmarkedState(const std::deque<DFAState>& stateMap) const {
+State NFA::findUnmarkedState(const std::deque<InterimDFAState>& stateMap) const {
     size_t index;
     for (index = 0; index < stateMap.size(); ++index) {
         if (!stateMap[index].marked) {
@@ -373,7 +373,7 @@ State NFA::findUnmarkedState(const std::deque<DFAState>& stateMap) const {
     return index;
 }
 
-State NFA::findStateByNFAStateSet(const std::deque<DFAState>& stateMap, const std::set<State>& nfaSet) const {
+State NFA::findStateByNFAStateSet(const std::deque<InterimDFAState>& stateMap, const std::set<State>& nfaSet) const {
     size_t index;
     for (index = 0; index < stateMap.size(); ++index) {
         if (stateMap[index].nfaStates == nfaSet) {

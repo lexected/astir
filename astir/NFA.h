@@ -71,14 +71,14 @@ public:
 private:
 	void mergeInContexts(const NFA& rhs);
 
-	struct DFAState {
+	struct InterimDFAState {
 		std::set<State> nfaStates;
 		bool marked;
 		NFAActionRegister actions;
 
-		DFAState()
+		InterimDFAState()
 			: marked(false) { }
-		DFAState(const std::set<State>& nfaStates, const NFAActionRegister& actions)
+		InterimDFAState(const std::set<State>& nfaStates, const NFAActionRegister& actions)
 			: nfaStates(nfaStates), marked(false), actions(actions) { }
 	};
 
@@ -95,11 +95,11 @@ private:
 			: symbols(symbols), states(states), actions(actions) { }
 	};
 
-	DFAState calculateEpsilonClosure(const std::set<State>& states) const;
+	InterimDFAState calculateEpsilonClosure(const std::set<State>& states) const;
 	std::list<NFA::SymbolClosure> calculateSymbolClosures(const std::list<Transition>& transitions) const;
 	std::list<Transition> calculateTransitions(const std::set<State>& states) const;
 	
 
-	State findUnmarkedState(const std::deque<DFAState>& stateMap) const;
-	State findStateByNFAStateSet(const std::deque<DFAState>& stateMap, const std::set<State>& nfaSet) const;
+	State findUnmarkedState(const std::deque<InterimDFAState>& stateMap) const;
+	State findStateByNFAStateSet(const std::deque<InterimDFAState>& stateMap, const std::set<State>& nfaSet) const;
 };

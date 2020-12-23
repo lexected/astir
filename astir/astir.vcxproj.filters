@@ -186,17 +186,17 @@
     <ClCompile Include="CppLLkParserGenerator.h">
       <Filter>Header Files\Generation\Cpp</Filter>
     </ClCompile>
-    <ClCompile Include="CppLLkParserGenerator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="IndentedStringStream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DimCli\libs\dimcli\cli.cpp">
       <Filter>Source Files\DimCli</Filter>
     </ClCompile>
+    <ClCompile Include="CppLLkParserGenerator.cpp">
+      <Filter>Source Files\Generation\Cpp</Filter>
+    </ClCompile>
     <ClCompile Include="AFA.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Semantic Analysis</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
