@@ -48,6 +48,7 @@ struct ByteSymbolGroup : public SymbolGroup {
 	ByteSymbolGroup(const ByteSymbolGroup& lsg)
 		: ByteSymbolGroup(lsg.rangeStart, lsg.rangeEnd) { }
 
+	bool isEmpty() const override;
 	bool equals(const SymbolGroup* rhs) const override;
 	bool disjoint(const SymbolGroup* rhs) const override;
 	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
@@ -66,6 +67,7 @@ struct LiteralSymbolGroup : public SymbolGroup {
 	LiteralSymbolGroup(const std::string& literal)
 		: SymbolGroup(), literal(literal) { }
 
+	bool isEmpty() const override;
 	bool equals(const SymbolGroup* rhs) const override;
 	bool disjoint(const SymbolGroup* rhs) const override;
 	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
@@ -83,6 +85,7 @@ struct StatementSymbolGroup : public SymbolGroup {
 	StatementSymbolGroup(const TypeFormingStatement* statement, const MachineDefinition* statementMachine)
 		: SymbolGroup(), statement(statement), statementMachine(statementMachine), m_symbolIndicesFlyweight(std::make_shared<std::list<SymbolIndex>>()) { }
 
+	bool isEmpty() const override;
 	bool equals(const SymbolGroup* rhs) const override;
 	bool disjoint(const SymbolGroup* rhs) const override;
 	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;

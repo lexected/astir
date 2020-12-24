@@ -45,6 +45,10 @@ std::shared_ptr<std::list<SymbolIndex>> SymbolGroup::retrieveSymbolIndices() con
 	return std::shared_ptr<std::list<SymbolIndex>>();
 }
 
+bool ByteSymbolGroup::isEmpty() const {
+	return false;
+}
+
 bool ByteSymbolGroup::equals(const SymbolGroup* rhs) const {
 	const ByteSymbolGroup* rhsCast = dynamic_cast<const ByteSymbolGroup*>(rhs);
 	if (rhsCast == nullptr) {
@@ -209,6 +213,10 @@ SymbolGroupList& SymbolGroupList::operator+=(const SymbolGroupList& rhs) {
 	return *this;
 }
 
+bool LiteralSymbolGroup::isEmpty() const {
+	return false;
+}
+
 bool LiteralSymbolGroup::equals(const SymbolGroup* rhs) const {
 	const LiteralSymbolGroup* rhsCast = dynamic_cast<const LiteralSymbolGroup*>(rhs);
 	if (rhsCast == nullptr) {
@@ -256,6 +264,10 @@ std::shared_ptr<std::list<SymbolIndex>> LiteralSymbolGroup::retrieveSymbolIndice
 	throw std::logic_error("retrieveSymbolIndices() called on LiteralSymbolGroup -- an invalid call");
 	// make it into a(n internal) warning and just return an empty list, continuing with execution
 	return std::shared_ptr<std::list<SymbolIndex>>();
+}
+
+bool StatementSymbolGroup::isEmpty() const {
+	return false;
 }
 
 bool StatementSymbolGroup::equals(const SymbolGroup* rhs) const {
