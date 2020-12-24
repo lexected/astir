@@ -2,16 +2,17 @@
 
 #include <string>
 #include <list>
-#include <memory>
 
+#include "AFACondition.h"
 #include "CharType.h"
 
 using SymbolIndex = size_t;
 
-struct SymbolGroup {
+struct SymbolGroup : public virtual AFACondition {
 public:
 	virtual ~SymbolGroup() = default;
 
+	bool equals(const std::shared_ptr<AFACondition>& anotherCondition) const override;
 	virtual bool equals(const SymbolGroup* rhs) const = 0;
 	virtual bool disjoint(const SymbolGroup* rhs) const = 0;
 	virtual std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) = 0;
@@ -40,10 +41,11 @@ public:
 	SymbolGroupList& operator+=(const SymbolGroupList& rhs);
 };
 
-struct EmptySymbolGroup : public SymbolGroup {
+struct EmptySymbolGroup : public SymbolGroup, public EmptyAFACondition {
 public:
 	EmptySymbolGroup() = default;
-
+	
+	bool equals(const std::shared_ptr<AFACondition>& anotherCondition) const override;
 	bool equals(const SymbolGroup* rhs) const override;
 	bool disjoint(const SymbolGroup* rhs) const override;
 	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;

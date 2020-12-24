@@ -103,6 +103,12 @@
     <Filter Include="Header Files\Semantic Analysis\LRk">
       <UniqueIdentifier>{98d7d775-4e1e-4494-ae01-3a277d2b0335}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Semantic Analysis\AFA">
+      <UniqueIdentifier>{3d12571a-a795-4336-88e9-dff3a27dd4f4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Semantic Analysis\AFA">
+      <UniqueIdentifier>{6575a965-3994-4259-909c-015dac20dd6c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -195,8 +201,8 @@
     <ClCompile Include="CppLLkParserGenerator.cpp">
       <Filter>Source Files\Generation\Cpp</Filter>
     </ClCompile>
-    <ClCompile Include="AFA.cpp">
-      <Filter>Source Files\Semantic Analysis</Filter>
+    <ClCompile Include="AFACondition.cpp">
+      <Filter>Source Files\Semantic Analysis\AFA</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -351,7 +357,10 @@
       <Filter>Header Files\DimCli</Filter>
     </ClInclude>
     <ClInclude Include="AFA.h">
-      <Filter>Header Files\Semantic Analysis</Filter>
+      <Filter>Header Files\Semantic Analysis\AFA</Filter>
+    </ClInclude>
+    <ClInclude Include="AFACondition.h">
+      <Filter>Header Files\Semantic Analysis\AFA</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

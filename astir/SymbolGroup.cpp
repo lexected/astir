@@ -8,6 +8,15 @@
 #include <sstream>
 #include <stdexcept>
 
+bool SymbolGroup::equals(const std::shared_ptr<AFACondition>& anotherCondition) const {
+	const SymbolGroup* convertedRhs = dynamic_cast<const SymbolGroup*>(anotherCondition.get());
+	if (convertedRhs != nullptr) {
+		return this->equals(convertedRhs);
+	} else {
+		return false;
+	}
+}
+
 bool ByteSymbolGroup::equals(const SymbolGroup* rhs) const {
 	const ByteSymbolGroup* rhsCast = dynamic_cast<const ByteSymbolGroup*>(rhs);
 	if (rhsCast == nullptr) {
@@ -99,6 +108,10 @@ std::shared_ptr<std::list<SymbolIndex>> ByteSymbolGroup::retrieveSymbolIndices()
 	}
 
 	return m_symbolIndicesFlyweight;
+}
+
+bool EmptySymbolGroup::equals(const std::shared_ptr<AFACondition>& anotherCondition) const {
+	return this->SymbolGroup::equals(anotherCondition);
 }
 
 bool EmptySymbolGroup::equals(const SymbolGroup* rhs) const {

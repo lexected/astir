@@ -10,22 +10,9 @@
 #include <iterator>
 #include <stack>
 
+#include "AFACondition.h"
+
 using AFAState = size_t;
-
-class AFACondition {
-public:
-	virtual bool equals(const std::shared_ptr<AFACondition>& anotherCondition) const = 0;
-
-protected:
-	AFACondition() = default;
-};
-
-class EmptyAFACondition : public AFACondition {
-public:
-	EmptyAFACondition() = default;
-
-	bool equals(const std::shared_ptr<AFACondition>& anotherCondition) const override;
-};
 
 template <class ConditionType>
 class AFATransition {

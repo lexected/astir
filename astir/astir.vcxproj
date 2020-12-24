@@ -152,7 +152,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AFA.cpp" />
+    <ClCompile Include="AFACondition.cpp" />
     <ClCompile Include="CppGenerationVisitor.cpp" />
     <ClCompile Include="CppLLkParserGenerator.cpp" />
     <ClCompile Include="CppLLkParserGenerator.h" />
@@ -190,6 +190,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AFA.h" />
+    <ClInclude Include="AFACondition.h" />
     <ClInclude Include="CharType.h" />
     <ClInclude Include="CppGenerationVisitor.h" />
     <ClInclude Include="CppNFAGenerationHelper.h" />
