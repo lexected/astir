@@ -44,6 +44,7 @@ public:
         : target(target), condition(condition), doNotOptimizeTargetIntoConditionClosure(doNotOptimizeTargetIntoConditionClosure) { }
 
 	virtual bool equals(const AFATransition& transition);
+    virtual bool canBeMerged() const;
 };
 
 template<class ConditionType>
@@ -53,6 +54,11 @@ inline bool AFATransition<ConditionType>::equals(const AFATransition& transition
     }
 
     return transition.target == this->target && transition.condition.equals(this->condition);
+}
+
+template<class ConditionType>
+inline bool AFATransition<ConditionType>::canBeMerged() const {
+    return !doNotOptimizeTargetIntoConditionClosure;
 }
 
 template <class TransitionType>
@@ -116,6 +122,10 @@ private:
             : condition(condition), states(states) { }
         ConditionClosure(const std::shared_ptr<CondType>& condition, const std::set<AFAState>& states, const StateObjectType& statePayload)
             : condition(condition), states(states), statePayload(statePayload) { }
+        ConditionClosure(const std::shared_ptr<CondType>& condition, const std::set<AFAState>& states, const TransType& transPayload)
+            : condition(condition), states(states), statePayload() {
+            statePayload.copyInPayload(transPayload);
+        }
     };
 
     InterimDFAState calculateEpsilonClosure(const std::set<AFAState>& states) const;
@@ -305,6 +315,37 @@ inline typename AFA<StateObjectType>::InterimDFAState AFA<StateObjectType>::calc
     }
 
     return AFA::InterimDFAState(ret, payloadAccumulator);
+}
+
+template<class StateObjectType>
+inline std::list<typename AFA<StateObjectType>::ConditionClosure> AFA<StateObjectType>::calculateConditionClosures(const std::list<TransType>& transitions) const {
+    std::list<ConditionClosure> generalClosures;
+    std::list<ConditionClosure> individualClosures;
+    for (const auto& transition : transitions) {
+        const EmptyAFACondition* eac = dynamic_cast<const EmptyAFACondition*>(transition.condition.get());
+        if (eac != nullptr) {
+            continue;
+        }
+
+        if (!transition.canBeMerged()) {
+            individualClosures.emplace_back(transition.condition, std::set<AFAState> { transition.target }, transition);
+        } else {
+            auto fit = std::find_if(generalClosures.begin(), generalClosures.end(), [&transition](const ConditionClosure& cc) {
+                return cc.condition->equals(transition.condition.get());
+                });
+
+            if (fit == generalClosures.end()) {
+                generalClosures.emplace_back(transition.condition, std::set<AFAState> { transition.target }, transition);
+            } else {
+                fit->states.insert(transition.target);
+                fit->copyInPayload(transition);
+            }
+        }
+    }
+
+    individualClosures.insert(individualClosures.end(), generalClosures.cbegin(), generalClosures.cend());
+
+    return individualClosures;
 }
 
 template<class StateObjectType>
