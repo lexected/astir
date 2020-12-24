@@ -10,58 +10,65 @@
 #include "NFAAction.h"
 #include "SymbolGroup.h"
 
-using State = size_t;
+#include "AFA.h"
 
-struct Transition {
-	State target;
+struct Transition : public AFATransition<SymbolGroup> {
 	NFAActionRegister actions;
-	std::shared_ptr<SymbolGroup> condition;
-	bool doNotOptimizeTargetIntoSymbolClosure;
 
-	Transition(State target)
-		: target(target), condition(nullptr), doNotOptimizeTargetIntoSymbolClosure(false) { }
-	Transition(State target, const std::shared_ptr<SymbolGroup>& condition, const NFAActionRegister& actions, bool doNotOptimizeTargetIntoSymbolClosure = false)
-		: target(target), condition(condition), actions(actions), doNotOptimizeTargetIntoSymbolClosure(doNotOptimizeTargetIntoSymbolClosure) { }
-	Transition(State target, const std::shared_ptr<SymbolGroup>& condition)
+	Transition(AFAState target)
+		: AFATransition<SymbolGroup>(target) { }
+	Transition(AFAState target, const std::shared_ptr<SymbolGroup>& condition, const NFAActionRegister& actions, bool doNotOptimizeTargetIntoConditionClosure = false)
+		: AFATransition<SymbolGroup>(target, condition, doNotOptimizeTargetIntoConditionClosure), actions(actions) { }
+	Transition(AFAState target, const std::shared_ptr<SymbolGroup>& condition)
 		: Transition(target, condition, NFAActionRegister()) { }
 
-	bool equals(const Transition& rhs) const;
+	bool equals(const AFATransition<SymbolGroup>& transition) const override;
+	bool canBeMerged() const override;
+
 	bool alignedSymbolWise(const Transition& rhs) const;
 	std::list<Transition> disjoinFrom(const Transition& rhs);
 };
 
 using TransitionList = std::list<Transition>;
 
-struct NFAState {
-	TransitionList transitions;
+class NFAStateObject : public AFAStateObject<Transition> {
+public:
 	NFAActionRegister actions;
+
+	const NFAStateObject& operator+=(const NFAStateObject& rhs);
+	void copyPayloadIn(const NFAStateObject& rhs);
+	void copyPayloadIn(const Transition& rhs) override;
+	void copyPayloadOut(Transition& rhs) const override;
+
+protected:
+	const AFAStateObject<Transition>& operator+=(const AFAStateObject<Transition>& rhs) override;
+	void copyPayloadIn(const AFAStateObject<Transition>& rhs) override;
 };
 
 using CapturePointId = size_t;
 
-class NFA {
+class NFA : public AFA<NFAStateObject> {
 public:
-	std::set<State> finalStates;
-	std::vector<NFAState> states; // 0th element of this vector is by default the initial state
 	std::list<std::pair<std::string, std::string>> contexts; // parent context name, subcontext name (also the type)
 
-	NFA();
+	NFA() = default;
+	NFA(const NFA& rhs) = default;
+	NFA(const AFA<NFAStateObject>& rhs);
+	NFA(AFA<NFAStateObject>&& rhs);
 
 	void orNFA(const NFA& rhs, bool preventSymbolClosureOptimisation);
 	void andNFA(const NFA& rhs, bool preventSymbolClosureOptimisation);
 	void operator|=(const NFA& rhs);
 	void operator&=(const NFA& rhs);
 
-	State addState();
-	void addTransition(State state, const Transition& transition);
-	Transition& addEmptyTransition(State state, State target);
-	Transition& addEmptyTransition(State state, State target, const NFAActionRegister& ar);
+	Transition& addEmptyTransition(AFAState state, AFAState target);
+	Transition& addEmptyTransition(AFAState state, AFAState target, const NFAActionRegister& ar);
 	void registerContext(const std::string& parentContextName, const std::string& name);
 
 	void addFinalActions(const NFAActionRegister& actions);
 	void addInitialActions(const NFAActionRegister& actions);
-	State concentrateFinalStates();
-	State concentrateFinalStates(const NFAActionRegister& actions);
+	AFAState concentrateFinalStates();
+	AFAState concentrateFinalStates(const NFAActionRegister& actions);
 
 	NFA buildPseudoDFA() const;
 
@@ -71,35 +78,5 @@ public:
 private:
 	void mergeInContexts(const NFA& rhs);
 
-	struct InterimDFAState {
-		std::set<State> nfaStates;
-		bool marked;
-		NFAActionRegister actions;
-
-		InterimDFAState()
-			: marked(false) { }
-		InterimDFAState(const std::set<State>& nfaStates, const NFAActionRegister& actions)
-			: nfaStates(nfaStates), marked(false), actions(actions) { }
-	};
-
-	struct SymbolClosure {
-		std::shared_ptr<SymbolGroup> symbols;
-		std::set<State> states;
-		NFAActionRegister actions;
-
-		SymbolClosure()
-			: symbols(nullptr) { }
-		SymbolClosure(const std::shared_ptr<SymbolGroup>& symbols, const std::set<State>& states)
-			: symbols(symbols), states(states) { }
-		SymbolClosure(const std::shared_ptr<SymbolGroup>& symbols, const std::set<State>& states, const NFAActionRegister& actions)
-			: symbols(symbols), states(states), actions(actions) { }
-	};
-
-	InterimDFAState calculateEpsilonClosure(const std::set<State>& states) const;
-	std::list<NFA::SymbolClosure> calculateSymbolClosures(const std::list<Transition>& transitions) const;
-	std::list<Transition> calculateTransitions(const std::set<State>& states) const;
-	
-
-	State findUnmarkedState(const std::deque<InterimDFAState>& stateMap) const;
-	State findStateByNFAStateSet(const std::deque<InterimDFAState>& stateMap, const std::set<State>& nfaSet) const;
+	std::list<Transition> calculateTransitions(const std::set<AFAState>& states) const override;
 };

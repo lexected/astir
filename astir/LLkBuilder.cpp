@@ -76,7 +76,7 @@ void LLkBuilder::visit(const ConjunctiveRegex* regex) {
 	}
 	
 	if (conjunctionBits.empty()) {
-		correspondingFlyweight.decisions.transitions.push_back(std::make_shared<LLkTransition>(std::make_shared<EmptySymbolGroup>()));
+		correspondingFlyweight.decisions.transitions.push_back(std::make_shared<LLkTransition>(std::make_shared<SymbolGroup>()));
 	}
 }
 

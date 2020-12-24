@@ -13,8 +13,36 @@ bool SymbolGroup::equals(const std::shared_ptr<AFACondition>& anotherCondition) 
 	if (convertedRhs != nullptr) {
 		return this->equals(convertedRhs);
 	} else {
-		return false;
+		return this->AFACondition::equals(anotherCondition);
 	}
+}
+
+bool SymbolGroup::equals(const SymbolGroup* rhs) const {
+	return isEmpty() && rhs->isEmpty();
+}
+
+bool SymbolGroup::disjoint(const SymbolGroup* rhs) const {
+	return !rhs->isEmpty();
+}
+
+std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> SymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) {
+	if (rhs->equals(this)) {
+		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>();
+	}
+
+	if (!rhs->isEmpty()) {
+		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool >>({ { rhs, true } });
+	} else {
+		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>();
+	}
+}
+
+std::string SymbolGroup::toString() const {
+	return std::string("empty");
+}
+
+std::shared_ptr<std::list<SymbolIndex>> SymbolGroup::retrieveSymbolIndices() const {
+	return std::shared_ptr<std::list<SymbolIndex>>();
 }
 
 bool ByteSymbolGroup::equals(const SymbolGroup* rhs) const {
@@ -110,38 +138,6 @@ std::shared_ptr<std::list<SymbolIndex>> ByteSymbolGroup::retrieveSymbolIndices()
 	return m_symbolIndicesFlyweight;
 }
 
-bool EmptySymbolGroup::equals(const std::shared_ptr<AFACondition>& anotherCondition) const {
-	return this->SymbolGroup::equals(anotherCondition);
-}
-
-bool EmptySymbolGroup::equals(const SymbolGroup* rhs) const {
-	return dynamic_cast<const EmptySymbolGroup*>(rhs) != nullptr;
-}
-
-bool EmptySymbolGroup::disjoint(const SymbolGroup* rhs) const {
-	return dynamic_cast<const EmptySymbolGroup*>(rhs) == nullptr;
-}
-
-std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> EmptySymbolGroup::disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) {
-	if (rhs->equals(this)) {
-		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>();
-	}
-
-	if (dynamic_cast<EmptySymbolGroup*>(rhs.get()) == nullptr) {
-		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool >>({ { rhs, true } });
-	} else {
-		return std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>>();
-	}
-}
-
-std::string EmptySymbolGroup::toString() const {
-	return "empty";
-}
-
-std::shared_ptr<std::list<SymbolIndex>> EmptySymbolGroup::retrieveSymbolIndices() const {
-	return std::shared_ptr<std::list<SymbolIndex>>();
-}
-
 bool SymbolGroupList::contains(const std::shared_ptr<SymbolGroup>& symbolGroupPtr) const {
 	for (const auto& elementPtr : *this) {
 		if (elementPtr == symbolGroupPtr) {
@@ -158,7 +154,7 @@ bool SymbolGroupList::contains(const std::shared_ptr<SymbolGroup>& symbolGroupPt
 
 bool SymbolGroupList::containsEmpty() const {
 	for (const auto& sgPtr : *this) {
-		if (dynamic_cast<const EmptySymbolGroup*>(sgPtr.get()) != nullptr) {
+		if (sgPtr->isEmpty()) {
 			return true;
 		}
 	}
@@ -169,7 +165,7 @@ bool SymbolGroupList::containsEmpty() const {
 SymbolGroupList SymbolGroupList::allButEmpty() const {
 	SymbolGroupList ret;
 	for (const auto& sgPtr : *this) {
-		if (dynamic_cast<const EmptySymbolGroup*>(sgPtr.get()) != nullptr) {
+		if (!sgPtr->isEmpty()) {
 			ret.push_back(sgPtr);
 		}
 	}
@@ -182,7 +178,7 @@ void SymbolGroupList::removeEmpty() {
 	I ONLY INTRODUCED THIS BECAUSE OF A NO-DISCARD. TURNS OUT IT IS NOT C++17 compliant, only C++20*/
 	
 	this->remove_if([](const auto& ptr) {
-		return dynamic_cast<const EmptySymbolGroup*>(ptr.get()) != nullptr;
+		return ptr->isEmpty();
 	});
 }
 

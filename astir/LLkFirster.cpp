@@ -64,7 +64,7 @@ SymbolGroupList LLkFirster::visit(const RepetitiveRegex* rr, const SymbolGroupLi
 	}
 
 	if (!nextQueueOfPrefixEnds.empty() && counter == rr->maxRepetitions) {
-		ret.push_back(std::make_shared<EmptySymbolGroup>());
+		ret.push_back(std::make_shared<SymbolGroup>());
 	}
 
 	return ret;
@@ -118,7 +118,7 @@ SymbolGroupList LLkFirster::visit(const ConjunctiveRegex* cr, const SymbolGroupL
 	}
 
 	if (!nextQueueOfPrefixEnds.empty() && conjunctionIt == cr->conjunction.cend()) {
-		ret.push_back(std::make_shared<EmptySymbolGroup>());
+		ret.push_back(std::make_shared<SymbolGroup>());
 	}
 
 	return ret;
@@ -126,7 +126,7 @@ SymbolGroupList LLkFirster::visit(const ConjunctiveRegex* cr, const SymbolGroupL
 
 SymbolGroupList LLkFirster::visit(const EmptyRegex* er, const SymbolGroupList& prefix) {
 	if (prefix.empty()) {
-		return SymbolGroupList({ std::make_shared<EmptySymbolGroup>() });
+		return SymbolGroupList({ std::make_shared<SymbolGroup>() });
 	} else {
 		return SymbolGroupList();
 	}
@@ -140,7 +140,7 @@ SymbolGroupList LLkFirster::visit(const ReferenceRegex* rr, const SymbolGroupLis
 			auto statementAsTypeForming = dynamic_cast<const TypeFormingStatement*>(rr->referenceStatement); // if it does not originate from this machine then it must be type-forming as it is a root!
 			return SymbolGroupList({ std::make_shared<StatementSymbolGroup>(statementAsTypeForming, rr->referenceStatementMachine) });
 		} else if (prefix.size() == 1) {
-			return SymbolGroupList({ std::make_shared<EmptySymbolGroup>() });
+			return SymbolGroupList({ std::make_shared<SymbolGroup>() });
 		} else {
 			return SymbolGroupList();
 		}
@@ -151,7 +151,7 @@ SymbolGroupList LLkFirster::visit(const AnyRegex* ar, const SymbolGroupList& pre
 	if (prefix.empty()) {
 		return ar->makeSymbolGroups();
 	} else if (prefix.size() == 1) {
-		return SymbolGroupList({ std::make_shared<EmptySymbolGroup>() });
+		return SymbolGroupList({ std::make_shared<SymbolGroup>() });
 	} else {
 		return SymbolGroupList();
 	}
@@ -161,7 +161,7 @@ SymbolGroupList LLkFirster::visit(const ExceptAnyRegex* ar, const SymbolGroupLis
 	if (prefix.empty()) {
 		return ar->makeSymbolGroups();
 	} else if (prefix.size() == 1) {
-		return SymbolGroupList({ std::make_shared<EmptySymbolGroup>() });
+		return SymbolGroupList({ std::make_shared<SymbolGroup>() });
 	} else {
 		return SymbolGroupList();
 	}
@@ -175,7 +175,7 @@ SymbolGroupList LLkFirster::visit(const LiteralRegex* lr, const SymbolGroupList&
 	if (prefix.empty()) {
 		return SymbolGroupList({ std::make_shared<LiteralSymbolGroup>(lr->literal) });
 	} else if (prefix.size() == 1) {
-		return SymbolGroupList({ std::make_shared<EmptySymbolGroup>() });
+		return SymbolGroupList({ std::make_shared<SymbolGroup>() });
 	} else {
 		return SymbolGroupList();
 	}
@@ -185,7 +185,7 @@ SymbolGroupList LLkFirster::visit(const ArbitrarySymbolRegex* asr, const SymbolG
 	if (prefix.empty()) {
 		return m_machine->computeArbitrarySymbolGroupList();
 	} else if (prefix.size() == 1) {
-		return SymbolGroupList({ std::make_shared<EmptySymbolGroup>()  });
+		return SymbolGroupList({ std::make_shared<SymbolGroup>()  });
 	} else {
 		return SymbolGroupList();
 	}

@@ -10,17 +10,16 @@ using SymbolIndex = size_t;
 
 struct SymbolGroup : public virtual AFACondition {
 public:
+	SymbolGroup() = default;
 	virtual ~SymbolGroup() = default;
 
 	bool equals(const std::shared_ptr<AFACondition>& anotherCondition) const override;
-	virtual bool equals(const SymbolGroup* rhs) const = 0;
-	virtual bool disjoint(const SymbolGroup* rhs) const = 0;
-	virtual std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) = 0;
-	virtual std::string toString() const = 0;
+	virtual bool equals(const SymbolGroup* rhs) const;
+	virtual bool disjoint(const SymbolGroup* rhs) const;
+	virtual std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs);
+	virtual std::string toString() const;
 
-	virtual std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const = 0;
-protected:
-	SymbolGroup() = default;
+	virtual std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const;
 };
 
 class SymbolGroupList : public std::list<std::shared_ptr<SymbolGroup>> {
@@ -39,20 +38,6 @@ public:
 	std::string asSequenceString() const;
 
 	SymbolGroupList& operator+=(const SymbolGroupList& rhs);
-};
-
-struct EmptySymbolGroup : public SymbolGroup, public EmptyAFACondition {
-public:
-	EmptySymbolGroup() = default;
-	
-	bool equals(const std::shared_ptr<AFACondition>& anotherCondition) const override;
-	bool equals(const SymbolGroup* rhs) const override;
-	bool disjoint(const SymbolGroup* rhs) const override;
-	std::list<std::pair<std::shared_ptr<SymbolGroup>, bool>> disjoinFrom(const std::shared_ptr<SymbolGroup>& rhs) override;
-	std::string toString() const override;
-
-	std::shared_ptr<std::list<SymbolIndex>> retrieveSymbolIndices() const override;
-protected:
 };
 
 struct ByteSymbolGroup : public SymbolGroup {

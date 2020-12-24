@@ -30,17 +30,17 @@ public:
     AFATransition(AFAState target, const std::shared_ptr<ConditionType>& condition, bool doNotOptimizeTargetIntoConditionClosure)
         : target(target), condition(condition), doNotOptimizeTargetIntoConditionClosure(doNotOptimizeTargetIntoConditionClosure) { }
 
-	virtual bool equals(const AFATransition& transition);
+	virtual bool equals(const AFATransition<ConditionType>& transition) const;
     virtual bool canBeMerged() const;
 };
 
 template<class ConditionType>
-inline bool AFATransition<ConditionType>::equals(const AFATransition& transition) {
+inline bool AFATransition<ConditionType>::equals(const AFATransition<ConditionType>& transition) const {
     if (doNotOptimizeTargetIntoConditionClosure) {
         return false;
     }
 
-    return transition.target == this->target && transition.condition.equals(this->condition);
+    return transition.target == this->target && transition.condition->equals(this->condition);
 }
 
 template<class ConditionType>
@@ -57,13 +57,15 @@ public:
 	std::list<TransitionType> transitions;
 
     virtual const AFAStateObject<TransitionType>& operator+=(const AFAStateObject<TransitionType>& rhs);
-    virtual void copyPayloadIn(const AFAStateObject<TransitionType>& rhs) = 0;
-    virtual void copyPayloadIn(const TransitionType& rhs) = 0;
+    virtual void copyPayloadIn(const AFAStateObject<TransitionType>& rhs) { }
+    virtual void copyPayloadIn(const TransitionType& rhs) { }
+    virtual void copyPayloadOut(TransitionType& rhs) const { }
 };
 
 template<class TransitionType>
 inline const AFAStateObject<TransitionType>& AFAStateObject<TransitionType>::operator+=(const AFAStateObject<TransitionType>& rhs) {
     this->transitions.insert(this->transitions.cend(), rhs.transitions.cbegin(), rhs.transitions.cend());
+    return *this;
 }
 
 template <class StateObjectType>
@@ -81,7 +83,7 @@ public:
 	void andAFA(const AFA& rhs, bool preventConditionClosureOptimisation = false);
 
 	AFAState addState();
-	void addTransition(AFAState state, const TransType& transition);
+    TransType& addTransition(AFAState state, const TransType& transition);
     TransType& addEmptyTransition(AFAState state, AFAState target);
 
     AFA<StateObjectType> buildPseudoDFA() const;
@@ -111,13 +113,15 @@ private:
             : condition(condition), states(states), statePayload(statePayload) { }
         ConditionClosure(const std::shared_ptr<CondType>& condition, const std::set<AFAState>& states, const TransType& transPayload)
             : condition(condition), states(states), statePayload() {
-            statePayload.copyInPayload(transPayload);
+            statePayload.copyPayloadIn(transPayload);
         }
+
+        TransType makeTransition(AFAState target) const;
     };
 
     InterimDFAState calculateEpsilonClosure(const std::set<AFAState>& states) const;
     std::list<ConditionClosure> calculateConditionClosures(const std::list<TransType>& transitions) const;
-    std::list<TransType> calculateTransitions(const std::set<AFAState>& states) const;
+    virtual std::list<TransType> calculateTransitions(const std::set<AFAState>& states) const;
 
 
     AFAState findUnmarkedState(const std::deque<InterimDFAState>& stateMap) const;
@@ -217,14 +221,15 @@ inline AFAState AFA<StateObjectType>::addState() {
 }
 
 template<class StateObjectType>
-inline void AFA<StateObjectType>::addTransition(AFAState state, const typename TransType& transition) {
-	states[state].transitions.push_back(transition);
+inline typename AFA<StateObjectType>::TransType& AFA<StateObjectType>::addTransition(AFAState state, const typename TransType& transition) {
+    auto& stateObject = states[state];
+    stateObject.transitions.push_back(transition);
+    return stateObject.transitions.back();
 }
 
 template<class StateObjectType>
 inline typename AFA<StateObjectType>::TransType& AFA<StateObjectType>::addEmptyTransition(AFAState state, AFAState target) {
-	addTransition(state, TransType(target, std::make_shared<EmptyAFACondition>()));
-	return states[state].transitions.back();
+    return addTransition(state, typename AFA<StateObjectType>::TransType(target, std::make_shared<CondType>()));
 }
 
 template<class StateObjectType>
@@ -238,7 +243,7 @@ inline AFA<StateObjectType> AFA<StateObjectType>::buildPseudoDFA() const {
     std::deque<InterimDFAState> stateMap; // must be a deque, not a vector!
 
     InterimDFAState initialState = calculateEpsilonClosure(std::set<AFAState>({ (AFAState)0 }));
-    base.states[0].copyPayloadIn(initialState);
+    base.states[0].copyPayloadIn(initialState.statePayload);
     stateMap.push_back(initialState);
 
     AFAState unmarkedStateDfaState;
@@ -254,7 +259,7 @@ inline AFA<StateObjectType> AFA<StateObjectType>::buildPseudoDFA() const {
             AFAState theCorrespondingDFAStateIndex = findStateByNFAStateSet(stateMap, epsilonClosureInterimDFAState.nfaStates);
             if (theCorrespondingDFAStateIndex == base.states.size()) {
                 theCorrespondingDFAStateIndex = base.addState();
-                base.states[theCorrespondingDFAStateIndex].copyPayloadIn(epsilonClosureInterimDFAState);
+                base.states[theCorrespondingDFAStateIndex].copyPayloadIn(epsilonClosureInterimDFAState.statePayload);
                 stateMap.emplace_back(epsilonClosureInterimDFAState);
 
                 std::set<AFAState> intersectionOfNFAStates;
@@ -264,7 +269,7 @@ inline AFA<StateObjectType> AFA<StateObjectType>::buildPseudoDFA() const {
                 }
             }
 
-            base.addTransition(unmarkedStateDfaState, TransType(theCorrespondingDFAStateIndex, conditionClosure.symbols, conditionClosure.actions));
+            base.addTransition(unmarkedStateDfaState, conditionClosure.makeTransition(theCorrespondingDFAStateIndex));
         }
     }
 
@@ -287,8 +292,7 @@ inline typename AFA<StateObjectType>::InterimDFAState AFA<StateObjectType>::calc
         const auto& stateObject = this->states[currentState];
         payloadAccumulator.copyPayloadIn(stateObject);
         for (const auto& transition : stateObject.transitions) {
-            const EmptyAFACondition* eac = dynamic_cast<const EmptyAFACondition*>(transition.condition.get());
-            if (eac == nullptr) {
+            if (!transition.condition->isEmpty()) {
                 continue;
             }
 
@@ -309,8 +313,7 @@ inline std::list<typename AFA<StateObjectType>::ConditionClosure> AFA<StateObjec
     std::list<ConditionClosure> generalClosures;
     std::list<ConditionClosure> individualClosures;
     for (const auto& transition : transitions) {
-        const EmptyAFACondition* eac = dynamic_cast<const EmptyAFACondition*>(transition.condition.get());
-        if (eac != nullptr) {
+        if (transition.condition->isEmpty()) {
             continue;
         }
 
@@ -325,7 +328,7 @@ inline std::list<typename AFA<StateObjectType>::ConditionClosure> AFA<StateObjec
                 generalClosures.emplace_back(transition.condition, std::set<AFAState> { transition.target }, transition);
             } else {
                 fit->states.insert(transition.target);
-                fit->copyInPayload(transition);
+                fit->statePayload.copyPayloadIn(transition);
             }
         }
     }
@@ -367,7 +370,7 @@ inline AFAState AFA<StateObjectType>::findUnmarkedState(const std::deque<Interim
 
 template<class StateObjectType>
 inline AFAState AFA<StateObjectType>::findStateByNFAStateSet(const std::deque<InterimDFAState>& stateMap, const std::set<AFAState>& nfaSet) const {
-    AFA index;
+    AFAState index;
     for (index = 0; index < stateMap.size(); ++index) {
         if (stateMap[index].nfaStates == nfaSet) {
             break;
@@ -377,4 +380,9 @@ inline AFAState AFA<StateObjectType>::findStateByNFAStateSet(const std::deque<In
     return index;
 }
 
-
+template<class StateObjectType>
+inline typename AFA<StateObjectType>::TransType AFA<StateObjectType>::ConditionClosure::makeTransition(AFAState target) const {
+    auto ret = TransType(target, condition);
+    statePayload.copyPayloadOut(ret);
+    return ret;
+}

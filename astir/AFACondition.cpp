@@ -1,5 +1,9 @@
 #include "AFACondition.h"
 
-bool EmptyAFACondition::equals(const std::shared_ptr<AFACondition>& anotherCondition) const {
-    return (bool)std::dynamic_pointer_cast<EmptyAFACondition>(anotherCondition);
+bool AFACondition::equals(const std::shared_ptr<AFACondition>& anotherCondition) const {
+    return this->isEmpty() && anotherCondition->isEmpty();
+}
+
+bool AFACondition::isEmpty() const {
+    return true;
 }

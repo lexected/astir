@@ -4,15 +4,10 @@
 
 class AFACondition {
 public:
-	virtual bool equals(const std::shared_ptr<AFACondition>& anotherCondition) const = 0;
+	virtual bool equals(const std::shared_ptr<AFACondition>& anotherCondition) const;
+
+	virtual bool isEmpty() const;
 
 protected:
 	AFACondition() = default;
-};
-
-class EmptyAFACondition : public virtual AFACondition {
-public:
-	EmptyAFACondition() = default;
-
-	bool equals(const std::shared_ptr<AFACondition>& anotherCondition) const override;
 };

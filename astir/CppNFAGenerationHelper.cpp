@@ -19,11 +19,11 @@ void CppNFAGenerationHelper::generateMechanicsMaps(std::string& stateMap, std::s
 	// the entire state action-register map, 0 (to be nullptr) by default
 	std::vector<ActionRegisterId> stateActionRegisterMap(m_fa.states.size(), (ActionRegisterId)0);
 
-	for (State state = 0; state < m_fa.states.size(); ++state) {
+	for (AFAState state = 0; state < m_fa.states.size(); ++state) {
 		const auto& stateObject = m_fa.states[state];
 
 		// a single line of the state transition map, (State)-1 by default
-		std::vector<std::vector<State>> transitionStateMapLine(m_inputTerminalCount, std::vector<State>());
+		std::vector<std::vector<AFAState>> transitionStateMapLine(m_inputTerminalCount, std::vector<AFAState>());
 
 		// a single line of transition action-register map, 0 (to be nullptr) by default
 		std::vector<std::vector<ActionRegisterId>> transitionActionRegisterMapLine(m_inputTerminalCount, std::vector<ActionRegisterId>());
@@ -64,7 +64,7 @@ void CppNFAGenerationHelper::generateMechanicsMaps(std::string& stateMap, std::s
 		}
 
 		stateMapStream << "{ ";
-		for (const std::vector<State>& transitionStateMapEntryVector : transitionStateMapLine) {
+		for (const std::vector<AFAState>& transitionStateMapEntryVector : transitionStateMapLine) {
 			stateMapStream << "{ ";
 			for (auto it = transitionStateMapEntryVector.crbegin(); it != transitionStateMapEntryVector.crend(); ++it) {
 				stateMapStream << *it << ", ";
@@ -89,7 +89,7 @@ void CppNFAGenerationHelper::generateMechanicsMaps(std::string& stateMap, std::s
 	}
 
 	std::stringstream stateActionMapStream;
-	for (State state = 0; state < m_fa.states.size(); ++state) {
+	for (AFAState state = 0; state < m_fa.states.size(); ++state) {
 		if (stateActionRegisterMap[state] == (ActionRegisterId)0) {
 			stateActionMapStream << "nullptr, ";
 		} else {
@@ -118,7 +118,7 @@ std::string CppNFAGenerationHelper::generateContextDeclarations() const {
 std::string CppNFAGenerationHelper::generateStateFinality() const {
 	std::stringstream ss;
 
-	for (State state = 0; state < m_fa.states.size(); ++state) {
+	for (AFAState state = 0; state < m_fa.states.size(); ++state) {
 		if (m_fa.finalStates.count(state) > 0) {
 			ss << "true, ";
 		} else {

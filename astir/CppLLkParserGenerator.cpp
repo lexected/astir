@@ -476,9 +476,8 @@ std::string CppLLkParserGenerator::makeCondition(const std::shared_ptr<SymbolGro
 
 		return output.str();
 	}
-
-	const EmptySymbolGroup* esgPtr = dynamic_cast<const EmptySymbolGroup*>(rawPtr);
-	if (esgPtr != nullptr) {
+	
+	if (rawPtr != nullptr && rawPtr->isEmpty()) {
 		return "true /*due to empty regex encountered*/";
 	}
 

@@ -142,9 +142,9 @@ NFA NFABuilder::visit(const RepetitiveRegex* regex) const {
 		for(unsigned long it = 0; it < howManyToPrefix;++it) {
 			theLongBranch &= atomMachine;
 		}
-		const State startLoopBodyFinalState = theLongBranch.concentrateFinalStates();
+		const AFAState startLoopBodyFinalState = theLongBranch.concentrateFinalStates();
 		theLongBranch &= atomMachine;
-		const State endLoopBodyFinalState = theLongBranch.concentrateFinalStates();
+		const AFAState endLoopBodyFinalState = theLongBranch.concentrateFinalStates();
 		theLongBranch.addEmptyTransition(endLoopBodyFinalState, startLoopBodyFinalState);
 		theLongBranch.andNFA(atomMachine, true); // MUST BE TRUE
 	} else if (regex->maxRepetitions >= 2) {
@@ -153,18 +153,18 @@ NFA NFABuilder::visit(const RepetitiveRegex* regex) const {
 			theLongBranch &= atomMachine;
 		}
 
-		std::stack<State> interimFinalStates;
+		std::stack<AFAState> interimFinalStates;
 		interimFinalStates.push(theLongBranch.concentrateFinalStates());
 
 		for (auto it = regex->minRepetitions; it < regex->maxRepetitions;++it) {
 			theLongBranch &= atomMachine;
 			interimFinalStates.push(theLongBranch.concentrateFinalStates());
 		}
-		const State endOfOptionalityState = interimFinalStates.top();
+		const AFAState endOfOptionalityState = interimFinalStates.top();
 		interimFinalStates.pop();
 
 		while (!interimFinalStates.empty()) {
-			const State interimState = interimFinalStates.top();
+			const AFAState interimState = interimFinalStates.top();
 			theLongBranch.addEmptyTransition(interimState, endOfOptionalityState);
 			interimFinalStates.pop();
 		}
@@ -184,7 +184,7 @@ NFA NFABuilder::visit(const RepetitiveRegex* regex) const {
 
 NFA NFABuilder::visit(const EmptyRegex* regex) const {
 	NFA base;
-	const State newState = base.addState();
+	const AFAState newState = base.addState();
 	base.finalStates.insert(newState);
 
 	NFAActionRegister initial, final;
@@ -243,7 +243,7 @@ NFA NFABuilder::visit(const LiteralRegex* regex) const {
 	NFAActionRegister initial, final;
 	std::tie(initial, final) = computeActionRegisterEntries(regex->actions);
 
-	State newState = base.addState();
+	AFAState newState = base.addState();
 	if (regex->literal.length() == 1) {
 		base.addTransition(0, Transition(newState, std::make_shared<ByteSymbolGroup>(regex->literal[0], regex->literal[0]), initial));
 	} else {
@@ -280,7 +280,7 @@ NFA NFABuilder::visit(const ArbitrarySymbolRegex* regex) const {
 
 NFA NFABuilder::visit(const ReferenceRegex* regex) const {
 	NFA base;
-	const State newBaseState = base.addState();
+	const AFAState newBaseState = base.addState();
 	base.finalStates.insert(newBaseState);
 
 	const MachineDefinition* statementMachine;
