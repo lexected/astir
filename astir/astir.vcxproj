@@ -167,6 +167,9 @@
     <ClCompile Include="IReferencing.cpp" />
     <ClCompile Include="LLkBuilder.cpp" />
     <ClCompile Include="LLkParserDefinition.cpp" />
+    <ClCompile Include="LRA.cpp" />
+    <ClCompile Include="LRABuilder.cpp" />
+    <ClCompile Include="LRAutomaton.cpp" />
     <ClCompile Include="MachineDefinition.cpp" />
     <ClCompile Include="MachineStatement.cpp" />
     <ClCompile Include="NFAAction.cpp" />
@@ -187,6 +190,7 @@
     <ClCompile Include="SemanticAnalysisException.cpp" />
     <ClCompile Include="SyntacticTree.cpp" />
     <ClCompile Include="Token.cpp" />
+    <ClCompile Include="WeakContext.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AFA.h" />
@@ -199,6 +203,10 @@
     <ClInclude Include="Field.h" />
     <ClInclude Include="FileLocation.h" />
     <ClInclude Include="FiniteAutomatonDefinition.h" />
+    <ClInclude Include="ILRABuilding.h" />
+    <ClInclude Include="LRA.h" />
+    <ClInclude Include="LRABuilder.h" />
+    <ClInclude Include="WeakContext.h" />
     <ClInclude Include="ILLkParserGenerable.h" />
     <ClInclude Include="IndentedStringStream.h" />
     <ClInclude Include="LLkFirster.h" />

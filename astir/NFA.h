@@ -47,14 +47,14 @@ protected:
 
 using CapturePointId = size_t;
 
-class NFA : public AFA<NFAStateObject> {
+class NFA : public AFA<NFAStateObject, unsigned int> {
 public:
 	std::list<std::pair<std::string, std::string>> contexts; // parent context name, subcontext name (also the type)
 
 	NFA() = default;
 	NFA(const NFA& rhs) = default;
-	NFA(const AFA<NFAStateObject>& rhs);
-	NFA(AFA<NFAStateObject>&& rhs);
+	NFA(const AFA<NFAStateObject, unsigned int>& rhs);
+	NFA(AFA<NFAStateObject, unsigned int>&& rhs);
 
 	void orNFA(const NFA& rhs, bool preventSymbolClosureOptimisation);
 	void andNFA(const NFA& rhs, bool preventSymbolClosureOptimisation);

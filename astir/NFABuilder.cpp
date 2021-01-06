@@ -311,7 +311,7 @@ std::pair<NFAActionRegister, NFAActionRegister> NFABuilder::computeActionRegiste
 	return computeActionRegisterEntries(actions, "");
 }
 
-std::pair<NFAActionRegister, NFAActionRegister>  NFABuilder::computeActionRegisterEntries(const std::list<RegexAction>& actions, const std::string& payload) const {
+std::pair<NFAActionRegister, NFAActionRegister> NFABuilder::computeActionRegisterEntries(const std::list<RegexAction>& actions, const std::string& payload) const {
 	NFAActionRegister initial, final;
 
 	for (const RegexAction& atp : actions) {

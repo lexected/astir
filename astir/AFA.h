@@ -11,6 +11,7 @@
 #include <stack>
 
 #include "AFACondition.h"
+#include "Exception.h"
 
 using AFAState = size_t;
 
@@ -45,7 +46,7 @@ inline bool AFATransition<ConditionType>::equals(const AFATransition<ConditionTy
 
 template<class ConditionType>
 inline bool AFATransition<ConditionType>::canBeMerged() const {
-    return !doNotOptimizeTargetIntoConditionClosure;
+    return !doNotOptimizeTargetIntoConditionClosure; 
 }
 
 template <class TransitionType>
@@ -68,14 +69,20 @@ inline const AFAStateObject<TransitionType>& AFAStateObject<TransitionType>::ope
     return *this;
 }
 
-template <class StateObjectType>
+template <class StateObjectType, class TagObjectType>
 class AFA {
 public:
     typedef typename StateObjectType::TransType TransType;
     typedef typename TransType::CondType CondType;
+    typedef typename TagObjectType TagType;
 
+    std::map<TagType, AFAState> tags;
 	std::set<AFAState> finalStates;
 	std::vector<StateObjectType> states; // 0th element of this vector is by default the initial state
+
+    bool hasTag(const TagType& tag) const;
+    AFAState findStateByTag(const TagType& tag) const;
+    void tagState(AFAState state, const TagType& tag);
 
 	AFA();
 
@@ -86,7 +93,7 @@ public:
     TransType& addTransition(AFAState state, const TransType& transition);
     TransType& addEmptyTransition(AFAState state, AFAState target);
 
-    AFA<StateObjectType> buildPseudoDFA() const;
+    AFA<StateObjectType, TagObjectType> buildPseudoDFA() const;
 
 private:
     struct InterimDFAState {
@@ -128,13 +135,38 @@ private:
     AFAState findStateByNFAStateSet(const std::deque<InterimDFAState>& stateMap, const std::set<AFAState>& nfaSet) const;
 };
 
-template<class StateObjectType>
-inline AFA<StateObjectType>::AFA() : finalStates(), states() {
+template<class StateObjectType, class TagObjectType>
+inline bool AFA<StateObjectType, TagObjectType>::hasTag(const TagType& tag) const {
+    auto it = tags.find(tag);
+    if (it == tags.end()) {
+        return false;
+    }
+
+    return true;
+}
+
+template<class StateObjectType, class TagObjectType>
+inline AFAState AFA<StateObjectType, TagObjectType>::findStateByTag(const TagType& tag) const {
+    auto it = tags.find(tag);
+    if (it == tags.end()) {
+        throw Exception("Tag unknown to this AFA requested"); // create an InternalException exception type to handle this??
+    }
+
+    return it->second;
+}
+
+template<class StateObjectType, class TagObjectType>
+inline void AFA<StateObjectType, TagObjectType>::tagState(AFAState state, const TagType& tag) {
+    tags[tag] = state;
+}
+
+template<class StateObjectType, class TagType>
+inline AFA<StateObjectType, TagType>::AFA() : finalStates(), states() {
 	states.emplace_back();
 }
 
-template<class StateObjectType>
-inline void AFA<StateObjectType>::orAFA(const AFA& rhs, bool preventConditionClosureOptimisation) {
+template<class StateObjectType, class TagType>
+inline void AFA<StateObjectType, TagType>::orAFA(const AFA& rhs, bool preventConditionClosureOptimisation) {
     AFAState stateIndexShift = this->states.size() - 1; //-1 as we are skipping the rhs 0th state
 
     // first, transform the state indices of the states referenced as targets of rhs transitions
@@ -172,10 +204,17 @@ inline void AFA<StateObjectType>::orAFA(const AFA& rhs, bool preventConditionClo
         }
     }
     finalStates.insert(finalStatesCopy.begin(), finalStatesCopy.end());
+
+    // copy in tags
+    for (const auto& rhsTagPair : rhs.tags) {
+        auto pairCopy = rhsTagPair;
+        pairCopy.second += stateIndexShift;
+        tags.emplace(pairCopy);
+    }
 }
 
-template<class StateObjectType>
-inline void AFA<StateObjectType>::andAFA(const AFA& rhs, bool preventConditionClosureOptimisation) {
+template<class StateObjectType, class TagType>
+inline void AFA<StateObjectType, TagType>::andAFA(const AFA& rhs, bool preventConditionClosureOptimisation) {
     AFAState stateIndexShift = this->states.size() - 1; //-1 as we are skipping the rhs 0th state
 
     // first, transform the state indices of the states referenced as targets of rhs transitions
@@ -211,35 +250,44 @@ inline void AFA<StateObjectType>::andAFA(const AFA& rhs, bool preventConditionCl
         rhsFinalStatesCopy.insert(stateIndexShift + finalState);
     }
     this->finalStates = rhsFinalStatesCopy;
+
+    // copy in tags
+    for (const auto& rhsTagPair : rhs.tags) {
+        auto pairCopy = rhsTagPair;
+        pairCopy.second += stateIndexShift;
+        tags.emplace(pairCopy);
+    }
 }
 
-template<class StateObjectType>
-inline AFAState AFA<StateObjectType>::addState() {
+template<class StateObjectType, class TagType>
+inline AFAState AFA<StateObjectType, TagType>::addState() {
 	auto ret = (AFAState)states.size();
 	states.emplace_back();
 	return ret;
 }
 
-template<class StateObjectType>
-inline typename AFA<StateObjectType>::TransType& AFA<StateObjectType>::addTransition(AFAState state, const typename TransType& transition) {
+template<class StateObjectType, class TagType>
+inline typename AFA<StateObjectType, TagType>::TransType& AFA<StateObjectType, TagType>::addTransition(AFAState state, const typename TransType& transition) {
     auto& stateObject = states[state];
     stateObject.transitions.push_back(transition);
     return stateObject.transitions.back();
 }
 
-template<class StateObjectType>
-inline typename AFA<StateObjectType>::TransType& AFA<StateObjectType>::addEmptyTransition(AFAState state, AFAState target) {
+template<class StateObjectType, class TagType>
+inline typename AFA<StateObjectType, TagType>::TransType& AFA<StateObjectType, TagType>::addEmptyTransition(AFAState state, AFAState target) {
     return addTransition(state, typename AFA<StateObjectType>::TransType(target, std::make_shared<CondType>()));
 }
 
-template<class StateObjectType>
-inline AFA<StateObjectType> AFA<StateObjectType>::buildPseudoDFA() const {
+template<class StateObjectType, class TagObjectType>
+inline AFA<StateObjectType, TagObjectType> AFA<StateObjectType, TagObjectType>::buildPseudoDFA() const {
     // the idea of the conversion algorithm is quite simple,
     // but what makes the whole conversion rather challenging
     // is the bookkeeping necessary to know what state payload
     // is to be carried around
 
-    AFA<StateObjectType> base;
+    // tags will be lost in this process!!!
+
+    AFA<StateObjectType, TagType> base;
     std::deque<InterimDFAState> stateMap; // must be a deque, not a vector!
 
     InterimDFAState initialState = calculateEpsilonClosure(std::set<AFAState>({ (AFAState)0 }));
@@ -276,8 +324,8 @@ inline AFA<StateObjectType> AFA<StateObjectType>::buildPseudoDFA() const {
     return base;
 }
 
-template<class StateObjectType>
-inline typename AFA<StateObjectType>::InterimDFAState AFA<StateObjectType>::calculateEpsilonClosure(const std::set<AFAState>& states) const {
+template<class StateObjectType, class TagType>
+inline typename AFA<StateObjectType, TagType>::InterimDFAState AFA<StateObjectType, TagType>::calculateEpsilonClosure(const std::set<AFAState>& states) const {
     StateObjectType payloadAccumulator;
     std::stack<AFAState> statesToCheck;
     for (const auto& state : states) {
@@ -308,8 +356,8 @@ inline typename AFA<StateObjectType>::InterimDFAState AFA<StateObjectType>::calc
     return AFA::InterimDFAState(ret, payloadAccumulator);
 }
 
-template<class StateObjectType>
-inline std::list<typename AFA<StateObjectType>::ConditionClosure> AFA<StateObjectType>::calculateConditionClosures(const std::list<TransType>& transitions) const {
+template<class StateObjectType, class TagType>
+inline std::list<typename AFA<StateObjectType, TagType>::ConditionClosure> AFA<StateObjectType, TagType>::calculateConditionClosures(const std::list<TransType>& transitions) const {
     std::list<ConditionClosure> generalClosures;
     std::list<ConditionClosure> individualClosures;
     for (const auto& transition : transitions) {
@@ -338,8 +386,8 @@ inline std::list<typename AFA<StateObjectType>::ConditionClosure> AFA<StateObjec
     return individualClosures;
 }
 
-template<class StateObjectType>
-inline std::list<typename AFA<StateObjectType>::TransType> AFA<StateObjectType>::calculateTransitions(const std::set<AFAState>& states) const {
+template<class StateObjectType, class TagType>
+inline std::list<typename AFA<StateObjectType, TagType>::TransType> AFA<StateObjectType, TagType>::calculateTransitions(const std::set<AFAState>& states) const {
     std::list<TransType> transitionsUsed;
     for (AFAState state : states) {
         const auto& stateObject = this->states[state];
@@ -356,8 +404,8 @@ inline std::list<typename AFA<StateObjectType>::TransType> AFA<StateObjectType>:
     return transitionsUsed;
 }
 
-template<class StateObjectType>
-inline AFAState AFA<StateObjectType>::findUnmarkedState(const std::deque<InterimDFAState>& stateMap) const {
+template<class StateObjectType, class TagType>
+inline AFAState AFA<StateObjectType, TagType>::findUnmarkedState(const std::deque<InterimDFAState>& stateMap) const {
     AFAState index;
     for (index = 0; index < stateMap.size(); ++index) {
         if (!stateMap[index].marked) {
@@ -368,8 +416,8 @@ inline AFAState AFA<StateObjectType>::findUnmarkedState(const std::deque<Interim
     return index;
 }
 
-template<class StateObjectType>
-inline AFAState AFA<StateObjectType>::findStateByNFAStateSet(const std::deque<InterimDFAState>& stateMap, const std::set<AFAState>& nfaSet) const {
+template<class StateObjectType, class TagType>
+inline AFAState AFA<StateObjectType, TagType>::findStateByNFAStateSet(const std::deque<InterimDFAState>& stateMap, const std::set<AFAState>& nfaSet) const {
     AFAState index;
     for (index = 0; index < stateMap.size(); ++index) {
         if (stateMap[index].nfaStates == nfaSet) {
@@ -380,8 +428,8 @@ inline AFAState AFA<StateObjectType>::findStateByNFAStateSet(const std::deque<In
     return index;
 }
 
-template<class StateObjectType>
-inline typename AFA<StateObjectType>::TransType AFA<StateObjectType>::ConditionClosure::makeTransition(AFAState target) const {
+template<class StateObjectType, class TagType>
+inline typename AFA<StateObjectType, TagType>::TransType AFA<StateObjectType, TagType>::ConditionClosure::makeTransition(AFAState target) const {
     auto ret = TransType(target, condition);
     statePayload.copyPayloadOut(ret);
     return ret;

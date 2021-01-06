@@ -204,6 +204,18 @@
     <ClCompile Include="AFACondition.cpp">
       <Filter>Source Files\Semantic Analysis\AFA</Filter>
     </ClCompile>
+    <ClCompile Include="LRAutomaton.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WeakContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LRABuilder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LRA.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h">
@@ -361,6 +373,18 @@
     </ClInclude>
     <ClInclude Include="AFACondition.h">
       <Filter>Header Files\Semantic Analysis\AFA</Filter>
+    </ClInclude>
+    <ClInclude Include="WeakContext.h">
+      <Filter>Header Files\Semantic Analysis\LRk</Filter>
+    </ClInclude>
+    <ClInclude Include="LRA.h">
+      <Filter>Header Files\Semantic Analysis\LRk</Filter>
+    </ClInclude>
+    <ClInclude Include="LRABuilder.h">
+      <Filter>Header Files\Semantic Analysis\LRk</Filter>
+    </ClInclude>
+    <ClInclude Include="ILRABuilding.h">
+      <Filter>Header Files\Semantic Analysis\LRk</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

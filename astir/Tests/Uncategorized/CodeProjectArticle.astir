@@ -1,0 +1,24 @@
+finite automaton Tokenizer {
+    ignored root WhiteSpace = [' ' '\n' '\r' '\t']+;
+    root KW_NODE = "node";
+    root IDENTIFIER = ['a'-'z' 'A'-'Z' '_']+;
+    ...
+}
+
+LL(1) parser Parser on Tokenizer with ambiguity_resolved_by_precedence uses IdentifierListAutomaton {
+    root category NodeDefinition;
+
+    production OldNodeDefinition : NodeDefinition
+        = KW_NODE IDENTIFIER OP_COLON IDENTIFIER_LIST OP_LCURLY NodeBody OP_RCURLY
+        ;
+    production NewNodeDefinition : NodeDefinition
+        = KW_NODE IDENTIFIER OP_COLON IDENTIFIER_LIST KW_WITH_INPUTS IDENTIFIER_LIST OP_LCURLY
+            InputlessNodeBody
+            OP_RCURLY
+        ;
+    ...
+}
+
+finite automaton IdentifierListAutomaton on Tokenzier {
+    root production IDENTIFIER_LIST  = IDENTIFIER+;
+}
