@@ -2,7 +2,7 @@
 
 The astir grammar-specification language could be considered a version of EBNF extended by regular expressions and signficantly supplemented by semantic declarations and action mechanisms.
 
-Internally, astir input is first analysed lexically into several types token. Then, skeleton syntax definitions are parsed by a syntactic analyzer, and finally, a few universal semantic checks are performed before the AST is passed onto the output code generation mechanisms. We shall only concern ourselves with the first three of the aforementioned parts.
+Internally, Astir's input is first analysed lexically into tokens. Then, skeleton syntax definitions are parsed by a syntactic analyzer, and finally, a few universal semantic checks are performed before the AST is passed onto the output code generation mechanisms. here we shall only concern ourselves with the first three of the aforementioned parts.
 
 If you are not a keen reader, you can skip directly to the astir grammar written in ... the astir grammar, [here](#the_entire_grammar).
 
