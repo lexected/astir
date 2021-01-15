@@ -64,22 +64,34 @@ void LRABuilder::visit(const ConjunctiveRegex* regex, LRA* lra, AFAState startin
 	AFAState attachmentState = startingState;
 	auto nextIt = ++it;
 	for (; it != endIt;) {
-		SymbolGroupPtrVector lookaheadForThisItem = this->computeItemLookahead(nextIt, endIt, lookahead);
-		(*it)->accept(lra, attachmentState, lookaheadForThisItem);
+		std::list<SymbolGroupPtrVector> lookaheadsForThisItem = this->computeItemLookaheads(nextIt, endIt, lookahead);
 
-		AFAState newAttachmentState = lra->addState();
-		for (AFAState endPointState : lra->finalStates) {
-			lra->addEmptyTransition(endPointState, newAttachmentState);
+		for (const SymbolGroupPtrVector& lookahead : lookaheadsForThisItem) {
+			(*it)->accept(lra, attachmentState, lookahead);
+
+			AFAState newAttachmentState;
+			if (lra->finalStates.size() == 1) {
+				newAttachmentState = *lra->finalStates.cbegin();
+			} else {
+				newAttachmentState = lra->addState();
+				for (AFAState endPointState : lra->finalStates) {
+					lra->addEmptyTransition(endPointState, newAttachmentState);
+				}
+			}
+			attachmentState = newAttachmentState;
+			lra->finalStates.clear();
 		}
-		lra->finalStates.clear();
-		attachmentState = newAttachmentState;
 
 		it = nextIt;
 		++nextIt;
 	}
 }
 
-std::list<SymbolGroupPtrVector> LRABuilder::computeItemLookahead(std::list<std::unique_ptr<RootRegex>>::const_iterator symbolPrecededByDotIt, std::list<std::unique_ptr<RootRegex>>::const_iterator endOfProductionIt, SymbolGroupPtrVector parentLookahead) const {
+void LRABuilder::visit(const EmptyRegex* regex, LRA* lra, AFAState startingState, SymbolGroupPtrVector lookahead) const {
+	lra->finalStates.insert(startingState);
+}
+
+std::list<SymbolGroupPtrVector> LRABuilder::computeItemLookaheads(std::list<std::unique_ptr<RootRegex>>::const_iterator symbolPrecededByDotIt, std::list<std::unique_ptr<RootRegex>>::const_iterator endOfProductionIt, SymbolGroupPtrVector parentLookahead) const {
 	// this entire thing could be done very nicely as a recursion...
 	// shame I did not notice until after the looping code has been written
 
