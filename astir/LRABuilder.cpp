@@ -132,3 +132,26 @@ std::list<SymbolGroupPtrVector> LRABuilder::computeItemLookahead(std::list<std::
 	// at this point completePossibleLookaheads is guaranteed to be the complete list of possible lookaheads
 	return completePossibleLookaheads;
 }
+
+std::list<SymbolGroupPtrVector> LRABuilder::cross(const SymbolGroupPtrVector& initialString, const SymbolGroupList& listOfPossibleUnitContinuations) const {
+	std::list<SymbolGroupPtrVector> ret;
+
+	for (const auto& symbolGroupPtr : listOfPossibleUnitContinuations) {
+		SymbolGroupPtrVector initialStringCopy = initialString;
+		initialStringCopy.push_back(symbolGroupPtr);
+		ret.push_back(initialStringCopy);
+	}
+
+	return ret;
+}
+
+SymbolGroupPtrVector LRABuilder::truncatedConcat(const SymbolGroupPtrVector& initialString, const SymbolGroupPtrVector& continuation) const {
+	SymbolGroupPtrVector ret(initialString);
+	const auto amountToAdd = continuation.size() - initialString.size();
+
+	auto copySrcEndIt = continuation.cbegin();
+	std::advance(copySrcEndIt, amountToAdd);
+
+	ret.insert(ret.end(), continuation.cbegin(), copySrcEndIt);
+	return ret;
+}
