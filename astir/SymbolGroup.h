@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <string>
 #include <list>
 
@@ -28,6 +29,8 @@ public:
 	SymbolGroupList(std::initializer_list<std::shared_ptr<SymbolGroup>> il)
 		: std::list<std::shared_ptr<SymbolGroup>>(il) { }
 	SymbolGroupList(const SymbolGroupList::const_iterator& begin, const SymbolGroupList::const_iterator& end)
+		: std::list<std::shared_ptr<SymbolGroup>>(begin, end) { }
+	SymbolGroupList(const std::vector<std::shared_ptr<SymbolGroup>>::const_iterator& begin, const std::vector<std::shared_ptr<SymbolGroup>>::const_iterator& end)
 		: std::list<std::shared_ptr<SymbolGroup>>(begin, end) { }
 
 	bool contains(const std::shared_ptr<SymbolGroup>& symbolGroupPtr) const;
@@ -100,7 +103,9 @@ private:
 	std::shared_ptr<std::list<SymbolIndex>> m_symbolIndicesFlyweight;
 };
 
-class SymbolGroupPtrVector : std::vector<std::shared_ptr<SymbolGroup>> {
+class SymbolGroupPtrVector : public std::vector<std::shared_ptr<SymbolGroup>> {
 public:
 	bool operator==(const SymbolGroupPtrVector& rhs) const;
+
+	SymbolGroupList toSymbolGroupList() const;
 };

@@ -1,4 +1,5 @@
 #include "LRABuilder.h"
+#include "LLkFirster.h"
 
 void LRABuilder::visit(const CategoryStatement* category, LRA* lra, AFAState attachmentState, SymbolGroupPtrVector lookahead) const {
 	LRTag categoryTag(category, lookahead);
@@ -23,7 +24,7 @@ void LRABuilder::visit(const CategoryStatement* category, LRA* lra, AFAState att
 }
 
 void LRABuilder::visit(const PatternStatement* rule, LRA* lra, AFAState startingState, SymbolGroupPtrVector lookahead) const {
-	rule->regex->visit(lra, startingState, lookahead);
+	rule->regex->accept(lra, startingState, lookahead);
 }
 
 void LRABuilder::visit(const ProductionStatement* rule, LRA* lra, AFAState attachmentState, SymbolGroupPtrVector lookahead) const {
@@ -39,12 +40,12 @@ void LRABuilder::visit(const ProductionStatement* rule, LRA* lra, AFAState attac
 
 		lra->tagState(productionRootState, productionTag);
 
-		rule->regex->visit(lra, productionRootState, lookahead);
+		rule->regex->accept(lra, productionRootState, lookahead);
 	}
 }
 
 void LRABuilder::visit(const RegexStatement* rule, LRA* lra, AFAState startingState, SymbolGroupPtrVector lookahead) const {
-	rule->regex->visit(lra, startingState, lookahead);
+	rule->regex->accept(lra, startingState, lookahead);
 }
 
 void LRABuilder::visit(const DisjunctiveRegex* regex, LRA* lra, AFAState startingState, SymbolGroupPtrVector lookahead) const {
@@ -52,7 +53,7 @@ void LRABuilder::visit(const DisjunctiveRegex* regex, LRA* lra, AFAState startin
 		AFAState conjunctiveRegexStateAfterShift = lra->addState();
 		lra->addEmptyTransition(startingState, conjunctiveRegexStateAfterShift);
 
-		conjunctiveRegexPtr->visit(lra, conjunctiveRegexStateAfterShift, lookahead);
+		conjunctiveRegexPtr->accept(lra, conjunctiveRegexStateAfterShift, lookahead);
 	}
 }
 
@@ -64,7 +65,7 @@ void LRABuilder::visit(const ConjunctiveRegex* regex, LRA* lra, AFAState startin
 	auto nextIt = ++it;
 	for (; it != endIt;) {
 		SymbolGroupPtrVector lookaheadForThisItem = this->computeItemLookahead(nextIt, endIt, lookahead);
-		(*it)->visit(lra, attachmentState, lookaheadForThisItem);
+		(*it)->accept(lra, attachmentState, lookaheadForThisItem);
 
 		AFAState newAttachmentState = lra->addState();
 		for (AFAState endPointState : lra->finalStates) {
@@ -78,6 +79,56 @@ void LRABuilder::visit(const ConjunctiveRegex* regex, LRA* lra, AFAState startin
 	}
 }
 
-SymbolGroupPtrVector LRABuilder::computeItemLookahead(std::list<std::unique_ptr<RootRegex>>::const_iterator symbolPrecededByDot, std::list<std::unique_ptr<RootRegex>>::const_iterator endOfProduction, SymbolGroupPtrVector parentLookahead) const {
-	return SymbolGroupPtrVector();
+std::list<SymbolGroupPtrVector> LRABuilder::computeItemLookahead(std::list<std::unique_ptr<RootRegex>>::const_iterator symbolPrecededByDotIt, std::list<std::unique_ptr<RootRegex>>::const_iterator endOfProductionIt, SymbolGroupPtrVector parentLookahead) const {
+	// this entire thing could be done very nicely as a recursion...
+	// shame I did not notice until after the looping code has been written
+
+	// setup
+	const auto lookaheadSize = parentLookahead.size();
+	SymbolGroupPtrVector capacitySettingEpsilonRootVector;
+	capacitySettingEpsilonRootVector.reserve(lookaheadSize);
+	std::list<SymbolGroupPtrVector> currentlyPossibleLookaheads({ capacitySettingEpsilonRootVector });
+	std::list<SymbolGroupPtrVector> completePossibleLookaheads;
+
+	// computation
+	LLkFirster firster(&m_contextMachine);
+	for (; symbolPrecededByDotIt != endOfProductionIt; ++symbolPrecededByDotIt) {
+		std::list<SymbolGroupPtrVector> newPossibleLookaheads;
+
+		for(const SymbolGroupPtrVector& currentlyPossibleLookahead : currentlyPossibleLookaheads) {
+			const RootRegex* regex = symbolPrecededByDotIt->get();
+			ILLkFirstableCPtr regexAsFirstable = dynamic_cast<ILLkFirstableCPtr>(regex);
+			// because dealing with the ILLkNonterminal/ILLkFirstable diamond was too much for my gentle brain
+			// and I have to hack this hierarchy ever sice
+			if (regexAsFirstable == nullptr) {
+				throw Exception("Internal exception -- the regex passed to what is essentially a LR(k) firster (LRABuilder::computeItemLookahead) was ILLkFirstableCPtr despite one's best attempts not to judge the regex by its pointer ");
+				// TODO: change type to InternalException or something of the kind
+			}
+
+			SymbolGroupList possibleContinuations = regexAsFirstable->first(&firster, currentlyPossibleLookahead.toSymbolGroupList());
+			auto& targetListForLongerLookaheads =
+				currentlyPossibleLookahead.size() + 1 == lookaheadSize ? completePossibleLookaheads : newPossibleLookaheads;
+			const auto toAdd = this->cross(currentlyPossibleLookahead, possibleContinuations.allButEmpty());
+			if (possibleContinuations.containsEmpty()) {
+				newPossibleLookaheads.push_back(currentlyPossibleLookahead);
+			}
+			targetListForLongerLookaheads.insert(targetListForLongerLookaheads.end(), toAdd.cbegin(), toAdd.cend());
+		}
+
+		if (newPossibleLookaheads.empty()) {
+			break;
+		}
+		currentlyPossibleLookaheads = newPossibleLookaheads;
+	}
+
+	// if not firstable from the current context, fill the rest from the parent lookahead
+	if (!currentlyPossibleLookaheads.empty()) {
+		for (const SymbolGroupPtrVector& currentlyPossibleLookahead : currentlyPossibleLookaheads) {
+			const SymbolGroupPtrVector lookaheadToAdd = this->truncatedConcat(currentlyPossibleLookahead, parentLookahead);
+			completePossibleLookaheads.insert(completePossibleLookaheads.end(), lookaheadToAdd);
+		}
+	}
+
+	// at this point completePossibleLookaheads is guaranteed to be the complete list of possible lookaheads
+	return completePossibleLookaheads;
 }

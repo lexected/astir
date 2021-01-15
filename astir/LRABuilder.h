@@ -31,5 +31,7 @@ public:
 private:
 	const MachineDefinition& m_contextMachine;
 
-	SymbolGroupPtrVector computeItemLookahead(std::list<std::unique_ptr<RootRegex>>::const_iterator symbolPrecededByDot, std::list<std::unique_ptr<RootRegex>>::const_iterator endOfProduction, SymbolGroupPtrVector parentLookahead) const;
+	std::list<SymbolGroupPtrVector> computeItemLookahead(std::list<std::unique_ptr<RootRegex>>::const_iterator symbolPrecededByDotIt, std::list<std::unique_ptr<RootRegex>>::const_iterator endOfProductionIt, SymbolGroupPtrVector parentLookahead) const;
+	std::list<SymbolGroupPtrVector> cross(const SymbolGroupPtrVector& initialString, const SymbolGroupList& listOfPossibleUnitContinuations) const;
+	SymbolGroupPtrVector truncatedConcat(const SymbolGroupPtrVector& initialString, const SymbolGroupPtrVector& continuation) const;
 };

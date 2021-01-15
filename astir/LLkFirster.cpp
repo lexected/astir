@@ -5,7 +5,7 @@
 #include "SemanticAnalysisException.h"
 #include "LLkParserDefinition.h"
 
-LLkFirster::LLkFirster(const LLkParserDefinition* machine)
+LLkFirster::LLkFirster(const MachineDefinition* machine)
 	: m_machine(machine) { }
 
 SymbolGroupList LLkFirster::visit(const CategoryStatement* cs, const SymbolGroupList& prefix) {

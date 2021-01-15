@@ -395,3 +395,7 @@ bool SymbolGroupPtrVector::operator==(const SymbolGroupPtrVector& rhs) const {
 
 	return true;
 }
+
+SymbolGroupList SymbolGroupPtrVector::toSymbolGroupList() const {
+	return SymbolGroupList(this->std::vector<std::shared_ptr<SymbolGroup>>::cbegin(), this->std::vector<std::shared_ptr<SymbolGroup>>::cend());
+}
