@@ -4,7 +4,6 @@
 
 #include "AFA.h"
 #include "SymbolGroup.h"
-#include "WeakContext.h"
 
 class LRATransition : public AFATransition<SymbolGroup> {
 public:
@@ -18,7 +17,7 @@ public:
 
 class LRAAction {
 public:
-	std::shared_ptr<WeakContext> context;
+	
 };
 
 class LRAShift : public LRAAction {
@@ -33,7 +32,10 @@ public:
 class LRTag {
 public:
 	const TypeFormingStatement* statement;
-	std::shared_ptr<WeakContext> context;
+	SymbolGroupPtrVector lookahead;
+
+	LRTag(const TypeFormingStatement* statement, const SymbolGroupPtrVector& lookahead);
+	LRTag(const TypeFormingStatement* statement, const SymbolGroupPtrVector&& lookahead);
 };
 
 class LRAStateObject : public AFAStateObject<LRATransition> {

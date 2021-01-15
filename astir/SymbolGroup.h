@@ -99,3 +99,8 @@ struct StatementSymbolGroup : public SymbolGroup {
 private:
 	std::shared_ptr<std::list<SymbolIndex>> m_symbolIndicesFlyweight;
 };
+
+class SymbolGroupPtrVector : std::vector<std::shared_ptr<SymbolGroup>> {
+public:
+	bool operator==(const SymbolGroupPtrVector& rhs) const;
+};

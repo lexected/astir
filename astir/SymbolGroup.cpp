@@ -376,3 +376,22 @@ std::shared_ptr<std::list<SymbolIndex>> StatementSymbolGroup::retrieveSymbolIndi
 
 	return m_symbolIndicesFlyweight;
 }
+
+bool SymbolGroupPtrVector::operator==(const SymbolGroupPtrVector& rhs) const {
+	if (this->size() != rhs.size()) {
+		return false;
+	}
+
+	auto lhsIt = this->cbegin();
+	auto rhsIt = rhs.cbegin();
+	do {
+		if (!(*lhsIt)->equals((*rhsIt).get())) {
+			return false;
+		}
+
+		++lhsIt;
+		++rhsIt;
+	} while (lhsIt != this->cend());
+
+	return true;
+}
