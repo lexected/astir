@@ -8,6 +8,7 @@
 #include "ILLkBuilding.h"
 #include "IGenerationVisitable.h"
 #include "ILLkParserGenerable.h"
+#include "ILRABuilding.h"
 
 #include "Field.h"
 #include "Regex.h"
@@ -35,8 +36,10 @@ enum class Terminality {
 #pragma warning( disable : 4250 )
 
 
-struct MachineStatement : public ISyntacticEntity, public ISemanticEntity, public IReferencing,
-	public INFABuildable, public ILLkNonterminal, public ILLkBuilding, ILLkParserGenerable {
+struct MachineStatement
+	: public ISyntacticEntity, public ISemanticEntity, public IReferencing,
+		public INFABuildable, public ILLkNonterminal, public ILLkBuilding,
+		public ILLkParserGenerable, public ILRABuilding {
 	std::string name;
 	virtual ~MachineStatement() = default;
 
@@ -117,6 +120,7 @@ struct CategoryStatement : public TypeFormingStatement {
 	SymbolGroupList first(LLkFirster* firster, const SymbolGroupList& prefix) const override;
 	void accept(LLkBuilder* llkBuilder) const override;
 	void accept(LLkParserGenerator* generator) const override;
+	void accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const override;
 };
 
 struct ProductionStatement : public TypeFormingStatement, public RuleStatement {
@@ -136,6 +140,7 @@ struct ProductionStatement : public TypeFormingStatement, public RuleStatement {
 	using RuleStatement::first;
 	using RuleStatement::findRecursiveReference;
 	void accept(LLkParserGenerator* generator) const override;
+	void accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const override;
 };
 
 struct PatternStatement : public AttributedStatement, public RuleStatement {
@@ -149,6 +154,7 @@ struct PatternStatement : public AttributedStatement, public RuleStatement {
 	using RuleStatement::first;
 	using RuleStatement::findRecursiveReference;
 	void accept(LLkParserGenerator* generator) const override;
+	void accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const override;
 };
 
 struct RegexStatement : public RuleStatement {
@@ -158,6 +164,7 @@ struct RegexStatement : public RuleStatement {
 	using RuleStatement::first;
 	using RuleStatement::findRecursiveReference;
 	void accept(LLkParserGenerator* generator) const override;
+	void accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const override;
 };
 
 #pragma warning( pop )

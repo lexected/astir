@@ -7,6 +7,7 @@
 #include "LLkBuilder.h"
 #include "LLkParserGenerator.h"
 #include "GenerationVisitor.h"
+#include "LRABuilder.h"
 
 #include <algorithm>
 
@@ -121,6 +122,10 @@ void CategoryStatement::accept(LLkParserGenerator* generator) const {
 	generator->visit(this);
 }
 
+void CategoryStatement::accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
+	lraBuilder->visit(this, lra, startingState, lookahead);
+}
+
 bool CategoryStatement::categoricallyRefersTo(const AttributedStatement* statement) const {
 	for (const auto& catRefPair : references) {
 		if (catRefPair.second.statement->categoricallyRefersTo(statement)) {
@@ -155,6 +160,10 @@ void ProductionStatement::accept(LLkParserGenerator* generator) const {
 	generator->visit(this);
 }
 
+void ProductionStatement::accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
+	lraBuilder->visit(this, lra, startingState, lookahead);
+}
+
 void PatternStatement::verifyContextualValidity(const MachineDefinition& machine) const {
 	regex->checkAndTypeformActionUsage(machine, this, true);
 }
@@ -179,6 +188,10 @@ void PatternStatement::accept(LLkParserGenerator* generator) const {
 	generator->visit(this);
 }
 
+void PatternStatement::accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
+	lraBuilder->visit(this, lra, startingState, lookahead);
+}
+
 void RegexStatement::verifyContextualValidity(const MachineDefinition& machine) const {
 	regex->checkAndTypeformActionUsage(machine, this, false);
 }
@@ -189,6 +202,10 @@ NFA RegexStatement::accept(const NFABuilder& nfaBuilder) const {
 
 void RegexStatement::accept(LLkParserGenerator* generator) const {
 	generator->visit(this);
+}
+
+void RegexStatement::accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
+	lraBuilder->visit(this, lra, startingState, lookahead);
 }
 
 bool TypeFormingStatement::isTypeForming() const {

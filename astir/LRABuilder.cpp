@@ -1,7 +1,7 @@
 #include "LRABuilder.h"
 #include "LLkFirster.h"
 
-void LRABuilder::visit(const CategoryStatement* category, LRA* lra, AFAState attachmentState, SymbolGroupPtrVector lookahead) const {
+void LRABuilder::visit(const CategoryStatement* category, LRA* lra, AFAState attachmentState, const SymbolGroupPtrVector& lookahead) const {
 	LRTag categoryTag(category, lookahead);
 
 	auto tagIt = lra->tags.find(categoryTag);
@@ -16,18 +16,29 @@ void LRABuilder::visit(const CategoryStatement* category, LRA* lra, AFAState att
 
 		for (const auto& categoryReferencePair : category->references) {
 			AFAState referenceStatementStateAfterShift = lra->addState();
-			lra->addTransition(categoryRootState, referenceStatementStateAfterShift, std::make_shared<StatementSymbolGroup>(categoryReferencePair.second.statement, &m_contextMachine));
-
-			categoryReferencePair.second.statement->visit(lra, categoryRootState, lookahead);
+			const auto theStatement = categoryReferencePair.second.statement;
+			if(theStatement->isTypeForming()) {
+				lra->addTransition(categoryRootState,
+					referenceStatementStateAfterShift,
+					std::make_shared<StatementSymbolGroup>(theStatement, &m_contextMachine)
+				);
+				theStatement->ILRABuilding::accept(this, lra, categoryRootState, lookahead);
+			} else {
+				theStatement->ILRABuilding::accept(this, lra, categoryRootState, lookahead);
+				for (AFAState endPointState : lra->finalStates) {
+					lra->addEmptyTransition(endPointState, referenceStatementStateAfterShift);
+				}
+				lra->finalStates.clear();
+			}
 		}
 	}
 }
 
-void LRABuilder::visit(const PatternStatement* rule, LRA* lra, AFAState startingState, SymbolGroupPtrVector lookahead) const {
-	rule->regex->accept(lra, startingState, lookahead);
+void LRABuilder::visit(const PatternStatement* rule, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
+	rule->regex->accept(this, lra, startingState, lookahead);
 }
 
-void LRABuilder::visit(const ProductionStatement* rule, LRA* lra, AFAState attachmentState, SymbolGroupPtrVector lookahead) const {
+void LRABuilder::visit(const ProductionStatement* rule, LRA* lra, AFAState attachmentState, const SymbolGroupPtrVector& lookahead) const {
 	LRTag productionTag(rule, lookahead);
 
 	auto tagIt = lra->tags.find(productionTag);
@@ -40,24 +51,24 @@ void LRABuilder::visit(const ProductionStatement* rule, LRA* lra, AFAState attac
 
 		lra->tagState(productionRootState, productionTag);
 
-		rule->regex->accept(lra, productionRootState, lookahead);
+		rule->regex->ILRABuilding::accept(this, lra, productionRootState, lookahead);
 	}
 }
 
-void LRABuilder::visit(const RegexStatement* rule, LRA* lra, AFAState startingState, SymbolGroupPtrVector lookahead) const {
-	rule->regex->accept(lra, startingState, lookahead);
+void LRABuilder::visit(const RegexStatement* rule, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
+	rule->regex->ILRABuilding::accept(this, lra, startingState, lookahead);
 }
 
-void LRABuilder::visit(const DisjunctiveRegex* regex, LRA* lra, AFAState startingState, SymbolGroupPtrVector lookahead) const {
+void LRABuilder::visit(const DisjunctiveRegex* regex, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
 	for (const auto& conjunctiveRegexPtr : regex->disjunction) {
 		AFAState conjunctiveRegexStateAfterShift = lra->addState();
 		lra->addEmptyTransition(startingState, conjunctiveRegexStateAfterShift);
 
-		conjunctiveRegexPtr->accept(lra, conjunctiveRegexStateAfterShift, lookahead);
+		conjunctiveRegexPtr->ILRABuilding::accept(this, lra, conjunctiveRegexStateAfterShift, lookahead);
 	}
 }
 
-void LRABuilder::visit(const ConjunctiveRegex* regex, LRA* lra, AFAState startingState, SymbolGroupPtrVector parentLookahead) const {
+void LRABuilder::visit(const ConjunctiveRegex* regex, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& parentLookahead) const {
 	auto it = regex->conjunction.cbegin();
 	const auto endIt = regex->conjunction.cend();
 
@@ -67,7 +78,7 @@ void LRABuilder::visit(const ConjunctiveRegex* regex, LRA* lra, AFAState startin
 		std::list<SymbolGroupPtrVector> lookaheadsForThisItem = this->computeItemLookaheads(nextIt, endIt, parentLookahead);
 
 		for (const SymbolGroupPtrVector& lookahead : lookaheadsForThisItem) {
-			(*it)->accept(lra, attachmentState, lookahead);
+			(*it)->ILRABuilding::accept(this, lra, attachmentState, lookahead);
 
 			AFAState newAttachmentState;
 			if (lra->finalStates.size() == 1) {
@@ -89,7 +100,7 @@ void LRABuilder::visit(const ConjunctiveRegex* regex, LRA* lra, AFAState startin
 	lra->finalStates.insert(attachmentState);
 }
 
-void LRABuilder::visit(const RepetitiveRegex* regex, LRA* lra, AFAState startingState, SymbolGroupPtrVector parentLookahead) const {
+void LRABuilder::visit(const RepetitiveRegex* regex, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& parentLookahead) const {
 	/*
 		Regex preparation phase
 	*/
@@ -134,7 +145,7 @@ void LRABuilder::visit(const RepetitiveRegex* regex, LRA* lra, AFAState starting
 			);
 		
 			for (const SymbolGroupPtrVector& lookahead : lookaheadsForThisItem) {
-				ar->accept(lra, attachmentState, lookahead);
+				ar->ILRABuilding::accept(this, lra, attachmentState, lookahead);
 
 				AFAState newAttachmentState;
 				if (lra->finalStates.size() == 1) {
@@ -174,7 +185,7 @@ void LRABuilder::visit(const RepetitiveRegex* regex, LRA* lra, AFAState starting
 			);
 
 			for (const SymbolGroupPtrVector& lookahead : lookaheadsForThisItem) {
-				ar->accept(lra, attachmentState, lookahead);
+				ar->ILRABuilding::accept(this, lra, attachmentState, lookahead);
 
 				AFAState newAttachmentState;
 				if (lra->finalStates.size() == 1) {
@@ -194,7 +205,7 @@ void LRABuilder::visit(const RepetitiveRegex* regex, LRA* lra, AFAState starting
 	} else {
 		/* here we handle the part under the Kleene star (in fact, the Kleene tail) */
 
-		ar->accept(lra, interimAttachmentState, parentLookahead);
+		ar->ILRABuilding::accept(this, lra, interimAttachmentState, parentLookahead);
 		AFAState endState;
 		if (lra->finalStates.size() == 1) {
 			endState = *lra->finalStates.cbegin();
@@ -211,11 +222,11 @@ void LRABuilder::visit(const RepetitiveRegex* regex, LRA* lra, AFAState starting
 	}
 }
 
-void LRABuilder::visit(const EmptyRegex* regex, LRA* lra, AFAState startingState, SymbolGroupPtrVector lookahead) const {
+void LRABuilder::visit(const EmptyRegex* regex, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
 	lra->finalStates.insert(startingState);
 }
 
-void LRABuilder::visit(const AnyRegex* regex, LRA* lra, AFAState startingState, SymbolGroupPtrVector lookahead) const {
+void LRABuilder::visit(const AnyRegex* regex, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
 	AFAState endingState = lra->addState();
 
 	const auto symbolGroups = regex->makeSymbolGroups();
@@ -228,7 +239,7 @@ void LRABuilder::visit(const AnyRegex* regex, LRA* lra, AFAState startingState, 
 
 #include "NFA.h"
 
-void LRABuilder::visit(const ExceptAnyRegex* regex, LRA* lra, AFAState startingState, SymbolGroupPtrVector lookahead) const {
+void LRABuilder::visit(const ExceptAnyRegex* regex, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
 	AFAState endingState = lra->addState();
 
 	const auto literalGroups = regex->makeSymbolGroups();
@@ -240,7 +251,7 @@ void LRABuilder::visit(const ExceptAnyRegex* regex, LRA* lra, AFAState startingS
 	lra->finalStates.insert(endingState);
 }
 
-void LRABuilder::visit(const LiteralRegex* regex, LRA* lra, AFAState startingState, SymbolGroupPtrVector lookahead) const {
+void LRABuilder::visit(const LiteralRegex* regex, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
 	AFAState endingState = lra->addState();
 
 	const auto symbolGroup = std::make_shared<LiteralSymbolGroup>(regex->literal);
@@ -249,7 +260,7 @@ void LRABuilder::visit(const LiteralRegex* regex, LRA* lra, AFAState startingSta
 	lra->finalStates.insert(endingState);
 }
 
-void LRABuilder::visit(const ArbitrarySymbolRegex* regex, LRA* lra, AFAState startingState, SymbolGroupPtrVector lookahead) const {
+void LRABuilder::visit(const ArbitrarySymbolRegex* regex, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
 	AFAState endingState = lra->addState();
 
 	const auto symbolGroups = m_contextMachine.computeArbitrarySymbolGroupList();
@@ -260,15 +271,15 @@ void LRABuilder::visit(const ArbitrarySymbolRegex* regex, LRA* lra, AFAState sta
 	lra->finalStates.insert(endingState);
 }
 
-void LRABuilder::visit(const ReferenceRegex* regex, LRA* lra, AFAState startingState, SymbolGroupPtrVector lookahead) const {
+void LRABuilder::visit(const ReferenceRegex* regex, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
 	AFAState endingState = lra->addState();
 
 	if(regex->referenceStatement->isTypeForming()) {
 		const auto symbolGroup = std::make_shared<StatementSymbolGroup>(regex->referenceStatement, regex->referenceStatementMachine);
 		lra->addTransition(startingState, endingState, symbolGroup);
-		regex->referenceStatement->accept(lra, startingState, lookahead);
+		regex->referenceStatement->ILRABuilding::accept(this, lra, startingState, lookahead);
 	} else {
-		regex->referenceStatement->accept(lra, startingState, lookahead);
+		regex->referenceStatement->ILRABuilding::accept(this, lra, startingState, lookahead);
 		for (AFAState endPointState : lra->finalStates) {
 			lra->addEmptyTransition(endPointState, endingState);
 		}
@@ -277,7 +288,7 @@ void LRABuilder::visit(const ReferenceRegex* regex, LRA* lra, AFAState startingS
 	lra->finalStates.insert(endingState);
 }
 
-std::list<SymbolGroupPtrVector> LRABuilder::computeItemLookaheads(std::list<std::unique_ptr<RootRegex>>::const_iterator symbolPrecededByDotIt, std::list<std::unique_ptr<RootRegex>>::const_iterator endOfProductionIt, SymbolGroupPtrVector parentLookahead) const {
+std::list<SymbolGroupPtrVector> LRABuilder::computeItemLookaheads(std::list<std::unique_ptr<RootRegex>>::const_iterator symbolPrecededByDotIt, std::list<std::unique_ptr<RootRegex>>::const_iterator endOfProductionIt, const SymbolGroupPtrVector& parentLookahead) const {
 	this->computeItemLookaheads(
 		[&symbolPrecededByDotIt]() {
 			const RootRegex* regex = symbolPrecededByDotIt->get();
@@ -301,7 +312,7 @@ std::list<SymbolGroupPtrVector> LRABuilder::computeItemLookaheads(std::list<std:
 	);
 }
 
-std::list<SymbolGroupPtrVector> LRABuilder::computeItemLookaheads(std::function<LRABuilder::InformedLookaheadDescriptor()> current, std::function<void()> advance, std::function<bool()> isAtEnd, SymbolGroupPtrVector parentLookahead) const {
+std::list<SymbolGroupPtrVector> LRABuilder::computeItemLookaheads(std::function<LRABuilder::InformedLookaheadDescriptor()> current, std::function<void()> advance, std::function<bool()> isAtEnd, const SymbolGroupPtrVector& parentLookahead) const {
 	// this entire thing could be done very nicely as a recursion...
 	// shame I did not notice until after the looping code has been written
 

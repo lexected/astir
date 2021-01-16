@@ -6,6 +6,7 @@
 #include "LLkBuilder.h"
 #include "LLkFirster.h"
 #include "LLkParserGenerator.h"
+#include "LRABuilder.h"
 
 #include "SemanticAnalysisException.h"
 
@@ -35,6 +36,10 @@ void RepetitiveRegex::accept(LLkBuilder* llkBuilder) const {
 
 void RepetitiveRegex::accept(LLkParserGenerator* generator) const {
 	generator->visit(this);
+}
+
+void RepetitiveRegex::accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
+	lraBuilder->visit(this, lra, startingState, lookahead);
 }
 
 void RepetitiveRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) {
@@ -182,6 +187,10 @@ void DisjunctiveRegex::accept(LLkParserGenerator* generator) const {
 	generator->visit(this);
 }
 
+void DisjunctiveRegex::accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
+	lraBuilder->visit(this, lra, startingState, lookahead);
+}
+
 void DisjunctiveRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) {
 	for (const auto& conjunction : disjunction) {
 		conjunction->checkAndTypeformActionUsage(machine, context, areActionsAllowed);
@@ -219,6 +228,10 @@ void ConjunctiveRegex::accept(LLkBuilder* llkBuilder) const {
 
 void ConjunctiveRegex::accept(LLkParserGenerator* generator) const {
 	generator->visit(this);
+}
+
+void ConjunctiveRegex::accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
+	lraBuilder->visit(this, lra, startingState, lookahead);
 }
 
 void ConjunctiveRegex::checkAndTypeformActionUsage(const MachineDefinition& machine, const MachineStatement* context, bool areActionsAllowed) {
@@ -274,6 +287,10 @@ void ReferenceRegex::accept(LLkParserGenerator* generator) const {
 	generator->visit(this);
 }
 
+void ReferenceRegex::accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
+	lraBuilder->visit(this, lra, startingState, lookahead);
+}
+
 SymbolGroupList AnyRegex::makeSymbolGroups() const {
 	SymbolGroupList literalGroups;
 
@@ -303,6 +320,10 @@ void AnyRegex::accept(LLkParserGenerator* generator) const {
 	generator->visit(this);
 }
 
+void AnyRegex::accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
+	lraBuilder->visit(this, lra, startingState, lookahead);
+}
+
 NFA ExceptAnyRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
@@ -313,6 +334,10 @@ SymbolGroupList ExceptAnyRegex::first(LLkFirster* firster, const SymbolGroupList
 
 void ExceptAnyRegex::accept(LLkParserGenerator* generator) const {
 	generator->visit(this);
+}
+
+void ExceptAnyRegex::accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
+	lraBuilder->visit(this, lra, startingState, lookahead);
 }
 
 NFA LiteralRegex::accept(const NFABuilder& nfaBuilder) const {
@@ -327,6 +352,10 @@ void LiteralRegex::accept(LLkParserGenerator* generator) const {
 	generator->visit(this);
 }
 
+void LiteralRegex::accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
+	lraBuilder->visit(this, lra, startingState, lookahead);
+}
+
 NFA ArbitrarySymbolRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
@@ -339,6 +368,11 @@ void ArbitrarySymbolRegex::accept(LLkParserGenerator* generator) const {
 	generator->visit(this);
 }
 
+void ArbitrarySymbolRegex::accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
+
+	lraBuilder->visit(this, lra, startingState, lookahead);
+}
+
 NFA EmptyRegex::accept(const NFABuilder& nfaBuilder) const {
 	return nfaBuilder.visit(this);
 }
@@ -349,4 +383,8 @@ SymbolGroupList EmptyRegex::first(LLkFirster* firster, const SymbolGroupList& pr
 
 void EmptyRegex::accept(LLkParserGenerator* generator) const {
 	generator->visit(this);
+}
+
+void EmptyRegex::accept(const LRABuilder* lraBuilder, LRA* lra, AFAState startingState, const SymbolGroupPtrVector& lookahead) const {
+	lraBuilder->visit(this, lra, startingState, lookahead);
 }
