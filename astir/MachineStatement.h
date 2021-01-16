@@ -42,6 +42,8 @@ struct MachineStatement : public ISyntacticEntity, public ISemanticEntity, publi
 
 	std::string referenceName() const override;
 
+	virtual bool isTypeForming() const;
+
 protected:
 	MachineStatement() = default;
 	MachineStatement(const std::string& name)
@@ -68,6 +70,8 @@ private:
 
 struct TypeFormingStatement : public AttributedStatement, public IGenerationVisitable {
 	Rootness rootness;
+
+	bool isTypeForming() const override;
 
 	void accept(GenerationVisitor* visitor) const override;
 protected:

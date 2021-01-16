@@ -191,12 +191,20 @@ void RegexStatement::accept(LLkParserGenerator* generator) const {
 	generator->visit(this);
 }
 
+bool TypeFormingStatement::isTypeForming() const {
+	return true;
+}
+
 void TypeFormingStatement::accept(GenerationVisitor* visitor) const {
 	visitor->visit(this);
 }
 
 std::string MachineStatement::referenceName() const {
 	return this->name;
+}
+
+bool MachineStatement::isTypeForming() const {
+	return false;
 }
 
 void RuleStatement::completeReferences(MachineDefinition& machine) const {

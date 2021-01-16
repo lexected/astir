@@ -296,6 +296,7 @@ void CppLLkParserGenerator::visit(const AnyRegex* regex) {
 	auto actionsToTake = makeActionExecution(regex->actions);
 	m_output.put(actionsToTake.first);
 
+	// TODO: BUG -- YOU ARE NOT VERIFYING WHETHER WHAT YOU CONSUMED IS WHAT YOU EXPECT
 	m_output.putln("auto payload = is.consume();");
 
 	// final actions
@@ -307,6 +308,7 @@ void CppLLkParserGenerator::visit(const ExceptAnyRegex* regex) {
 	auto actionsToTake = makeActionExecution(regex->actions);
 	m_output.put(actionsToTake.first);
 
+	// TODO: BUG -- YOU ARE NOT VERIFYING WHETHER WHAT YOU CONSUMED IS WHAT YOU EXPECT
 	m_output.putln("auto payload = is.consume();");
 
 	// final actions
@@ -318,6 +320,7 @@ void CppLLkParserGenerator::visit(const LiteralRegex* regex) {
 	auto actionsToTake = makeActionExecution(regex->actions);
 	m_output.put(actionsToTake.first);
 
+	// TODO: BUG -- YOU ARE NOT VERIFYING WHETHER WHAT YOU CONSUMED IS WHAT YOU EXPECT
 	m_output.putln("auto payload = is.consume();");
 
 	// final actions
@@ -329,6 +332,7 @@ void CppLLkParserGenerator::visit(const ArbitrarySymbolRegex* regex) {
 	auto actionsToTake = makeActionExecution(regex->actions);
 	m_output.put(actionsToTake.first);
 
+	// TODO: BUG -- YOU ARE NOT VERIFYING WHETHER WHAT YOU CONSUMED IS WHAT YOU EXPECT
 	m_output.putln("auto payload = is.consume();"); // even with uses machines, this is the intended and correct behaviour!!
 
 	// final actions
