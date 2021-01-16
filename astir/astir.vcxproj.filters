@@ -204,9 +204,6 @@
     <ClCompile Include="AFACondition.cpp">
       <Filter>Source Files\Semantic Analysis\AFA</Filter>
     </ClCompile>
-    <ClCompile Include="LRAutomaton.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="WeakContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

@@ -106,6 +106,7 @@ private:
 class SymbolGroupPtrVector : public std::vector<std::shared_ptr<SymbolGroup>> {
 public:
 	bool operator==(const SymbolGroupPtrVector& rhs) const;
+	bool operator<(const SymbolGroupPtrVector& rhs) const;
 
 	SymbolGroupList toSymbolGroupList() const;
 };

@@ -10,21 +10,21 @@
 
 #include "SemanticAnalysisException.h"
 
-NFA::NFA(const AFA<NFAStateObject>& rhs)
-    : AFA<NFAStateObject>(rhs) {}
+NFA::NFA(const AFA<NFAStateObject, NFATag>& rhs)
+    : AFA<NFAStateObject, NFATag>(rhs) {}
 
-NFA::NFA(AFA<NFAStateObject>&& rhs)
-    : AFA<NFAStateObject>(rhs) { }
+NFA::NFA(AFA<NFAStateObject, NFATag>&& rhs)
+    : AFA<NFAStateObject, NFATag>(rhs) { }
 
 void NFA::orNFA(const NFA& rhs, bool preventSymbolClosureOptimisation) {
-    this->AFA<NFAStateObject>::orAFA(rhs, preventSymbolClosureOptimisation);
+    this->AFA<NFAStateObject, NFATag>::orAFA(rhs, preventSymbolClosureOptimisation);
 
     // finally, merge in contexts registered in the rhs NFA
     mergeInContexts(rhs);
 }
 
 void NFA::andNFA(const NFA& rhs, bool preventSymbolClosureOptimisation) {
-    this->AFA<NFAStateObject>::andAFA(rhs, preventSymbolClosureOptimisation);
+    this->AFA<NFAStateObject, NFATag>::andAFA(rhs, preventSymbolClosureOptimisation);
 
     // finally, merge in contexts registered in the rhs NFA
     mergeInContexts(rhs);
@@ -39,7 +39,7 @@ void NFA::operator&=(const NFA& rhs) {
 }
 
 Transition& NFA::addEmptyTransition(AFAState state, AFAState target) {
-    return this->AFA<NFAStateObject>::addEmptyTransition(state, target);
+    return this->AFA<NFAStateObject, NFATag>::addEmptyTransition(state, target);
 }
 
 Transition& NFA::addEmptyTransition(AFAState state, AFAState target, const NFAActionRegister& ar) {
@@ -120,7 +120,7 @@ NFA NFA::buildPseudoDFA() const {
     // is the bookkeeping necessary to know what actions are
     // to be executed when an accepting state is reached
 
-    NFA base = this->AFA<NFAStateObject>::buildPseudoDFA();
+    NFA base = this->AFA<NFAStateObject, NFATag>::buildPseudoDFA();
 
     base.mergeInContexts(*this);
 

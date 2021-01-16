@@ -169,7 +169,6 @@
     <ClCompile Include="LLkParserDefinition.cpp" />
     <ClCompile Include="LRA.cpp" />
     <ClCompile Include="LRABuilder.cpp" />
-    <ClCompile Include="LRAutomaton.cpp" />
     <ClCompile Include="MachineDefinition.cpp" />
     <ClCompile Include="MachineStatement.cpp" />
     <ClCompile Include="NFAAction.cpp" />

@@ -276,7 +276,7 @@ inline typename AFA<StateObjectType, TagType>::TransType& AFA<StateObjectType, T
 
 template<class StateObjectType, class TagType>
 inline typename AFA<StateObjectType, TagType>::TransType& AFA<StateObjectType, TagType>::addEmptyTransition(AFAState state, AFAState target) {
-    return addTransition(state, typename AFA<StateObjectType>::TransType(target, std::make_shared<CondType>()));
+    return addTransition(state, typename AFA<StateObjectType, TagType>::TransType(target, std::make_shared<CondType>()));
 }
 
 template<class StateObjectType, class TagObjectType>

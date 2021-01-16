@@ -46,8 +46,9 @@ protected:
 };
 
 using CapturePointId = size_t;
+using NFATag = unsigned int;
 
-class NFA : public AFA<NFAStateObject, unsigned int> {
+class NFA : public AFA<NFAStateObject, NFATag> {
 public:
 	std::list<std::pair<std::string, std::string>> contexts; // parent context name, subcontext name (also the type)
 

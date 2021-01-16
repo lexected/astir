@@ -36,6 +36,8 @@ public:
 
 	LRTag(const TypeFormingStatement* statement, const SymbolGroupPtrVector& lookahead);
 	LRTag(const TypeFormingStatement* statement, const SymbolGroupPtrVector&& lookahead);
+
+	bool operator<(const LRTag& rhs) const;
 };
 
 class LRAStateObject : public AFAStateObject<LRATransition> {
