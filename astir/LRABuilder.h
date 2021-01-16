@@ -6,6 +6,9 @@
 #include "MachineStatement.h"
 #include "Regex.h"
 
+#include "ILLkFirstable.h"
+#include <functional>
+
 class LRABuilder {
 public:
 	LRABuilder(const MachineDefinition& contextMachine)
@@ -31,7 +34,18 @@ public:
 private:
 	const MachineDefinition& m_contextMachine;
 
-	std::list<SymbolGroupPtrVector> computeItemLookahead(std::list<std::unique_ptr<RootRegex>>::const_iterator symbolPrecededByDotIt, std::list<std::unique_ptr<RootRegex>>::const_iterator endOfProductionIt, SymbolGroupPtrVector parentLookahead) const;
+	struct InformedLookaheadDescriptor {
+		ILLkFirstableCPtr symbolAfterDot;
+		bool maySkipToEnd;
+
+		InformedLookaheadDescriptor(ILLkFirstableCPtr symbolAfterDot)
+			: symbolAfterDot(symbolAfterDot), maySkipToEnd(false) { }
+		InformedLookaheadDescriptor(ILLkFirstableCPtr symbolAfterDot, bool maySkipToEnd)
+			: symbolAfterDot(symbolAfterDot), maySkipToEnd(maySkipToEnd) { }
+	};
+
+	std::list<SymbolGroupPtrVector> computeItemLookaheads(std::list<std::unique_ptr<RootRegex>>::const_iterator symbolPrecededByDotIt, std::list<std::unique_ptr<RootRegex>>::const_iterator endOfProductionIt, SymbolGroupPtrVector parentLookahead) const;
+	std::list<SymbolGroupPtrVector> computeItemLookaheads(std::function<InformedLookaheadDescriptor()> current, std::function<void()> advance, std::function<bool()> isAtEnd, SymbolGroupPtrVector parentLookahead) const;
 	std::list<SymbolGroupPtrVector> cross(const SymbolGroupPtrVector& initialString, const SymbolGroupList& listOfPossibleUnitContinuations) const;
 	SymbolGroupPtrVector truncatedConcat(const SymbolGroupPtrVector& initialString, const SymbolGroupPtrVector& continuation) const;
 };
