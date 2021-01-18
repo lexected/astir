@@ -9,6 +9,7 @@
 #include <memory>
 
 struct LLkParserDefinition : public MachineDefinition {
+public:
 	LLkParserDefinition(unsigned long k);
 
 	void initialize() override;

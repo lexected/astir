@@ -396,26 +396,6 @@ bool SymbolGroupPtrVector::operator==(const SymbolGroupPtrVector& rhs) const {
 	return true;
 }
 
-bool SymbolGroupPtrVector::operator<(const SymbolGroupPtrVector& rhs) const {
-	// ``NOT A WORD, BELL!'' -- Woods
-	// do not ever tell anyone that I wrote this method, please
-
-	if (*this == rhs) {
-		return false;
-	}
-
-	size_t i = 0;
-	size_t minLength = std::min(size(), rhs.size());
-
-	for (; i < minLength;++i) {
-		if (((unsigned long long int)this->at(i).get()) < ((unsigned long long int)rhs.at(i).get())) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
 SymbolGroupList SymbolGroupPtrVector::toSymbolGroupList() const {
 	return SymbolGroupList(this->std::vector<std::shared_ptr<SymbolGroup>>::cbegin(), this->std::vector<std::shared_ptr<SymbolGroup>>::cend());
 }

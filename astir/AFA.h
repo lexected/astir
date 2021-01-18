@@ -4,7 +4,7 @@
 #include <set>
 #include <list>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <deque>
 #include <algorithm>
@@ -77,7 +77,7 @@ public:
     typedef typename TransType::CondType CondType;
     typedef typename TagObjectType TagType;
 
-    std::map<TagType, AFAState> tags;
+    std::unordered_map<TagType, AFAState> tags;
 	std::set<AFAState> finalStates;
 	std::vector<StateObjectType> states; // 0th element of this vector is by default the initial state
 

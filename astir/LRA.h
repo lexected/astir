@@ -5,6 +5,8 @@
 #include "AFA.h"
 #include "SymbolGroup.h"
 
+#include "MachineStatement.h"
+
 class LRATransition : public AFATransition<SymbolGroup> {
 public:
 	LRATransition(AFAState target)
@@ -37,8 +39,22 @@ public:
 	LRTag(const TypeFormingStatement* statement, const SymbolGroupPtrVector& lookahead);
 	LRTag(const TypeFormingStatement* statement, const SymbolGroupPtrVector&& lookahead);
 
-	bool operator<(const LRTag& rhs) const;
+	bool operator==(const LRTag& rhs) const;
 };
+
+namespace std {
+	template <>
+	struct hash<LRTag> {
+		std::size_t operator()(const LRTag& k) const {
+			using std::size_t;
+			using std::hash;
+			using std::string;
+
+			return hash<string>()(k.statement->name);
+		}
+	};
+
+}
 
 class LRAStateObject : public AFAStateObject<LRATransition> {
 public:
